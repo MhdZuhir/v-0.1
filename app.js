@@ -88,7 +88,7 @@ function filterSystemResources(data) {
       if (row[key]?.type === 'uri' && isSystemResource(row[key].value)) return false;
     }
     
-    return true;
+    return false;
   });
 }
 
