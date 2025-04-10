@@ -26,7 +26,7 @@
     {{/if}}
     
     <!-- Basic properties section -->
-    {{#if propertyGroups.basic.length}}
+    {{#if propertyGroups.basic}}
       <div class="property-group">
         <div class="property-group-header">Grundläggande information</div>
         <div class="property-group-content">
@@ -67,7 +67,7 @@
     {{/if}}
     
     <!-- Relationships section -->
-    {{#if propertyGroups.relationships.length}}
+    {{#if propertyGroups.relationships}}
       <div class="property-group">
         <div class="property-group-header">Relationer</div>
         <div class="property-group-content">
@@ -108,7 +108,7 @@
     {{/if}}
     
     <!-- Other properties section -->
-    {{#if propertyGroups.other.length}}
+    {{#if propertyGroups.other}}
       <div class="property-group">
         <div class="property-group-header">Övriga egenskaper</div>
         <div class="property-group-content">
@@ -147,6 +147,14 @@
         </div>
       </div>
     {{/if}}
+    
+    {{#unless propertyGroups.basic}}
+      {{#unless propertyGroups.relationships}}
+        {{#unless propertyGroups.other}}
+          <p>Ingen detaljerad information finns tillgänglig för denna resurs.</p>
+        {{/unless}}
+      {{/unless}}
+    {{/unless}}
   </div>
   
   <div class="resource-sidebar">

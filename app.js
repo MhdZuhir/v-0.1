@@ -56,6 +56,145 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// System namespaces to filter out
+const systemNamespaces = [
+  'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  'http://www.w3.org/2000/01/rdf-schema#',
+  'http://www.w3.org/2002/07/owl#',
+  'http://www.w3.org/2001/XMLSchema#'
+];
+
+// Function to check if a URI belongs to a system namespace
+function isSystemResource(uri) {
+  if (!uri || typeof uri !== 'string') return false;
+  return systemNamespaces.some(namespace => uri.startsWith(namespace));
+}
+
+// Function to filter out system resources from results
+function filterSystemResources(data) {
+  return data.filter(row => {
+    // Filter out rows where subject/object are system resources
+    if (row.s && row.s.type === 'uri' && isSystemResource(row.s.value)) return false;
+    if (row.o && row.o.type === 'uri' && isSystemResource(row.o.value)) return false;
+    if (row.subject && row.subject.type === 'uri' && isSystemResource(row.subject.value)) return false;
+    if (row.object && row.object.type === 'uri' && isSystemResource(row.object.value)) return false;
+    if (row.resource && row.resource.type === 'uri' && isSystemResource(row.resource.value)) return false;
+    if (row.category && row.category.type === 'uri' && isSystemResource(row.category.value)) return false;
+    if (row.predicate && row.predicate.type === 'uri' && isSystemResource(row.predicate.value)) return false;
+    if (row.type && row.type.type === 'uri' && isSystemResource(row.type.value)) return false;
+    
+    // Check other properties that might contain URIs
+    for (const key in row) {
+      if (row[key]?.type === 'uri' && isSystemResource(row[key].value)) return false;
+    }
+    
+    return true;
+  });
+}
+
+// Function to parse and extract triples from Notor65 data
+function parseNotor65Triples() {
+  try {
+    const fileContent = fs.readFileSync(path.join(__dirname, 'paste.txt'), 'utf8');
+    const triples = [];
+    
+    // First extract all distinct Notor65 entities and their properties
+    const entities = fileContent.split(/\n\nnotor65:/);
+    
+    // Skip the first part (it's just prefixes if it doesn't start with notor65:)
+    for (let i = 0; i < entities.length; i++) {
+      let entity = entities[i];
+      
+      // The first entity might not have a split prefix
+      if (i === 0 && !entity.startsWith('7')) {
+        continue; // Skip prefix section
+      }
+      
+      // Add back the prefix if needed
+      if (i !== 0) {
+        entity = 'notor65:' + entity;
+      }
+      
+      // Extract the subject ID
+      const subjectMatch = entity.match(/^notor65:(\d+)/);
+      if (!subjectMatch) continue;
+      
+      const subject = 'notor65:' + subjectMatch[1];
+      
+      // Add the type triple
+      triples.push({
+        s: { type: 'uri', value: subject },
+        p: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+        o: { type: 'uri', value: 'notor65:Notor65_BetaOpti' }
+      });
+      
+      // Extract all properties
+      const lines = entity.split('\n');
+      for (const line of lines) {
+        const propertyMatch = line.match(/\s+(notor:\w+)\s+(.*?)\s*[\.;]/);
+        if (propertyMatch) {
+          const predicate = propertyMatch[1];
+          let object = propertyMatch[2].trim();
+          
+          // Determine if object is a literal or URI
+          let objectType = 'literal';
+          
+          // If it's wrapped in quotes, it's definitely a literal
+          if (object.match(/^".*"(\^\^xsd:\w+)?$/)) {
+            objectType = 'literal';
+            // Remove quotes and type information
+            object = object.replace(/^"(.*?)"(\^\^xsd:\w+)?$/, '$1');
+          } else if (!isNaN(object)) {
+            // If it's a number without quotes
+            objectType = 'literal';
+          } else if (object === 'true' || object === 'false') {
+            // If it's a boolean
+            objectType = 'literal';
+          } else {
+            // Otherwise treat as URI
+            objectType = 'uri';
+          }
+          
+          triples.push({
+            s: { type: 'uri', value: subject },
+            p: { type: 'uri', value: predicate },
+            o: { type: objectType, value: object }
+          });
+        }
+      }
+    }
+    
+    return triples;
+  } catch (error) {
+    console.error('Error parsing Notor65 triples:', error);
+    return [];
+  }
+}
+
+// Function to parse Notor65 data from the paste.txt file
+function parseNotor65Data() {
+  try {
+    const fileContent = fs.readFileSync(path.join(__dirname, 'paste.txt'), 'utf8');
+    
+    // Extract each Notor65 entity
+    const entries = [];
+    const regex = /notor65:(\d+)\s+a\s+notor65:Notor65_BetaOpti/g;
+    let match;
+    
+    while ((match = regex.exec(fileContent)) !== null) {
+      entries.push({
+        s: { type: 'uri', value: `notor65:${match[1]}` },
+        o: { type: 'uri', value: 'notor65:Notor65_BetaOpti' }
+      });
+    }
+    
+    return entries;
+  } catch (error) {
+    console.error('Error parsing Notor65 data:', error);
+    return [];
+  }
+}
+
 // Utility function for safe SPARQL queries
 function sanitizeSparqlString(str) {
   if (!str) return '';
@@ -65,6 +204,10 @@ function sanitizeSparqlString(str) {
 // Fetch human-readable labels for URIs
 async function fetchLabelsForUris(uris) {
   if (!uris || uris.length === 0) return {};
+  
+  // Filter out system URIs before fetching labels
+  uris = uris.filter(uri => !isSystemResource(uri));
+  if (uris.length === 0) return {};
   
   const labelMap = {};
   
@@ -168,6 +311,8 @@ function extractUrisFromResults(results) {
 
 // Function to get a description or summary for a resource
 async function fetchResourceDescription(uri) {
+  if (isSystemResource(uri)) return null;
+  
   try {
     const safeUri = sanitizeSparqlString(uri);
     const query = `
@@ -206,6 +351,8 @@ async function fetchResourceDescription(uri) {
 
 // Function to get related resources
 async function fetchRelatedResources(uri) {
+  if (isSystemResource(uri)) return [];
+  
   try {
     const safeUri = sanitizeSparqlString(uri);
     const query = `
@@ -231,7 +378,10 @@ async function fetchRelatedResources(uri) {
     });
     
     const bindings = response.data.results.bindings || [];
-    return bindings.map(binding => binding.related.value);
+    const relatedUris = bindings.map(binding => binding.related.value);
+    
+    // Filter out system resources
+    return relatedUris.filter(uri => !isSystemResource(uri));
   } catch (error) {
     console.error('Error fetching related resources:', error);
     return [];
@@ -257,7 +407,10 @@ async function fetchCategories() {
     });
     
     const bindings = response.data.results.bindings || [];
-    return bindings.map(binding => binding.category.value);
+    const categories = bindings.map(binding => binding.category.value);
+    
+    // Filter out system categories
+    return categories.filter(category => !isSystemResource(category));
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];
@@ -266,6 +419,8 @@ async function fetchCategories() {
 
 // Function to fetch resources by category
 async function fetchResourcesByCategory(category) {
+  if (isSystemResource(category)) return [];
+  
   try {
     const safeCategory = sanitizeSparqlString(category);
     const query = `
@@ -284,7 +439,10 @@ async function fetchResourcesByCategory(category) {
     });
     
     const bindings = response.data.results.bindings || [];
-    return bindings.map(binding => binding.resource.value);
+    const resources = bindings.map(binding => binding.resource.value);
+    
+    // Filter out system resources
+    return resources.filter(resource => !isSystemResource(resource));
   } catch (error) {
     console.error('Error fetching resources by category:', error);
     return [];
@@ -330,6 +488,14 @@ app.get('/category', async (req, res, next) => {
       });
     }
     
+    // Skip system categories
+    if (isSystemResource(categoryUri)) {
+      return res.status(400).render('error', {
+        title: 'Error',
+        message: 'Systemkategorier kan inte visas'
+      });
+    }
+    
     // Fetch resources for this category
     const resources = await fetchResourcesByCategory(categoryUri);
     
@@ -359,20 +525,33 @@ app.get('/graphdb', async (req, res, next) => {
   try {
     const showLabels = req.query.showLabels !== 'false'; // Default to true
 
-    const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
-      headers: {
-        'Accept': 'application/sparql-results+json'
-      },
-      params: {
-        query: `
-          SELECT * WHERE {
-            ?s ?p ?o
-          } LIMIT 100
-        `
+    // Use the parsing function to get all triples from the Notor65 data
+    let bindings = parseNotor65Triples();
+    
+    // If there's an error or no data, fall back to the GraphDB query
+    if (bindings.length === 0) {
+      try {
+        const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
+          headers: {
+            'Accept': 'application/sparql-results+json'
+          },
+          params: {
+            query: `
+              SELECT DISTINCT ?s ?p ?o WHERE {
+                ?s ?p ?o
+              } LIMIT 1000
+            `
+          }
+        });
+        
+        bindings = response.data.results.bindings || [];
+      } catch (error) {
+        console.error('Error querying GraphDB:', error);
       }
-    });
-
-    const bindings = response.data.results.bindings || [];
+    }
+    
+    // Filter out system resources if needed
+    bindings = filterSystemResources(bindings);
     
     // Get human-readable labels if needed
     let labelMap = {};
@@ -383,7 +562,7 @@ app.get('/graphdb', async (req, res, next) => {
   
     res.render('graphdb', {
       title: 'GraphDB Data',
-      message: 'Resultat från GraphDB:',
+      message: 'Data from Notor65:',
       rows: bindings,
       labelMap: labelMap,
       showLabels: showLabels
@@ -401,6 +580,14 @@ app.get('/resource', async (req, res, next) => {
     return res.status(400).render('error', {
       title: 'Error',
       message: 'Ingen URI angiven'
+    });
+  }
+  
+  // Skip system resources
+  if (isSystemResource(uri)) {
+    return res.status(400).render('error', {
+      title: 'Error',
+      message: 'Systemresurser kan inte visas'
     });
   }
 
@@ -421,7 +608,14 @@ app.get('/resource', async (req, res, next) => {
       }
     });
 
-    const data = dataResponse.data.results.bindings || [];
+    let data = dataResponse.data.results.bindings || [];
+    
+    // Filter out references to system resources
+    data = data.filter(row => {
+      if (row.object && row.object.type === 'uri' && isSystemResource(row.object.value)) return false;
+      if (row.predicate && row.predicate.type === 'uri' && isSystemResource(row.predicate.value)) return false;
+      return true;
+    });
     
     // Fetch resource description
     const description = await fetchResourceDescription(uri);
@@ -429,21 +623,50 @@ app.get('/resource', async (req, res, next) => {
     // Fetch related resources
     const relatedUris = await fetchRelatedResources(uri);
     
-    // Fetch type/class information
+    // Fetch type/class information - nu med RDF:type och direkta klasser
     const typeResponse = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
       headers: {
         'Accept': 'application/sparql-results+json'
       },
       params: {
         query: `
-          SELECT ?type WHERE {
-            <${safeUri}> a ?type .
+          SELECT DISTINCT ?type WHERE {
+            {
+              <${safeUri}> a ?type .
+            }
+            UNION
+            {
+              <${safeUri}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?type .
+            }
           } LIMIT 10
         `
       }
     });
     
-    const types = typeResponse.data.results.bindings.map(binding => binding.type.value);
+    // Extrahera typer från data och sök även i egenskaperna
+    let types = typeResponse.data.results.bindings.map(binding => binding.type.value);
+    
+    // Filter out system types
+    types = types.filter(type => !isSystemResource(type));
+    
+    // Om inga typer hittades, leta efter andra type-indikationer i data
+    if (types.length === 0) {
+      // Leta efter predicat som kan indikera typ
+      const typePredicates = [
+        'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        'http://www.w3.org/2000/01/rdf-schema#type',
+        'http://purl.org/dc/terms/type'
+      ];
+      
+      data.forEach(row => {
+        if (typePredicates.includes(row.predicate.value) && row.object.type === 'uri') {
+          const type = row.object.value;
+          if (!isSystemResource(type)) {
+            types.push(type);
+          }
+        }
+      });
+    }
     
     // Get human-readable labels
     let labelMap = {};
@@ -487,6 +710,11 @@ app.get('/resource', async (req, res, next) => {
       }
     });
 
+    // Ta bort onödiga/tomma sektioner
+    if (propertyGroups.basic.length === 0) delete propertyGroups.basic;
+    if (propertyGroups.relationships.length === 0) delete propertyGroups.relationships;
+    if (propertyGroups.other.length === 0) delete propertyGroups.other;
+
     res.render('resource', {
       title: 'Resursdetaljer',
       uri: uri,
@@ -522,6 +750,7 @@ app.get('/query', (req, res) => {
 app.post('/query', async (req, res, next) => {
   const query = req.body.query;
   const showLabels = req.body.showLabels !== 'false'; // Default to true
+  const hideSystemResources = req.body.hideSystemResources !== 'false'; // Default to true
   
   if (!query) {
     return res.status(400).render('error', {
@@ -538,8 +767,13 @@ app.post('/query', async (req, res, next) => {
       params: { query }
     });
 
-    const data = response.data.results.bindings || [];
+    let data = response.data.results.bindings || [];
     const headers = data.length > 0 ? Object.keys(data[0]) : [];
+    
+    // Filter system resources if requested
+    if (hideSystemResources) {
+      data = filterSystemResources(data);
+    }
     
     // Get human-readable labels if needed
     let labelMap = {};
@@ -554,6 +788,7 @@ app.post('/query', async (req, res, next) => {
       rows: data,
       labelMap: labelMap,
       showLabels: showLabels,
+      hideSystemResources: hideSystemResources,
       query: query
     });
   } catch (err) {
@@ -577,16 +812,27 @@ app.get('/search', async (req, res, next) => {
   
   try {
     const safeSearchTerm = sanitizeSparqlString(searchTerm);
+    
+    // Använd en enklare sökfråga som fungerar på GraphDB
+    // Söker efter strängar i både etiketter och literalvärden
     const query = `
       SELECT DISTINCT ?resource WHERE {
         {
           ?resource ?p ?o .
-          ?o bif:contains "'${safeSearchTerm}'" .
+          FILTER(ISURI(?resource))
+          FILTER(ISLITERAL(?o))
+          FILTER(CONTAINS(LCASE(STR(?o)), LCASE("${safeSearchTerm}")))
         }
         UNION
         {
           ?resource <http://www.w3.org/2000/01/rdf-schema#label> ?label .
-          FILTER(CONTAINS(LCASE(?label), LCASE("${safeSearchTerm}")))
+          FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${safeSearchTerm}")))
+        }
+        UNION
+        {
+          ?resource ?anyProp ?anyValue .
+          FILTER(ISURI(?resource))
+          FILTER(CONTAINS(STR(?resource), "${safeSearchTerm}"))
         }
       }
       LIMIT 50
@@ -599,7 +845,10 @@ app.get('/search', async (req, res, next) => {
       params: { query }
     });
     
-    const resources = response.data.results.bindings.map(binding => binding.resource.value);
+    let resources = response.data.results.bindings.map(binding => binding.resource.value);
+    
+    // Filter out system resources
+    resources = resources.filter(resource => !isSystemResource(resource));
     
     // Get human-readable labels
     let labelMap = {};
@@ -614,6 +863,34 @@ app.get('/search', async (req, res, next) => {
         label: showLabels && labelMap[resource] ? labelMap[resource] : resource
       })),
       searchTerm: searchTerm,
+      showLabels: showLabels
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Add a specific route for Notor65 data
+app.get('/notor', async (req, res, next) => {
+  try {
+    const showLabels = req.query.showLabels !== 'false';
+    
+    // Get all Notor65 entries from the file
+    const entries = parseNotor65Data();
+    
+    // Convert to a more user-friendly format
+    const notorEntries = entries.map(entry => {
+      const id = entry.s.value.replace('notor65:', '');
+      return {
+        id,
+        uri: entry.s.value,
+        type: entry.o.value
+      };
+    });
+    
+    res.render('notor', {
+      title: 'Notor65 Data',
+      entries: notorEntries,
       showLabels: showLabels
     });
   } catch (err) {

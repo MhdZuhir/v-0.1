@@ -1,0 +1,5 @@
+@prefix notor: <http://www.w3id.org/dpp/fagerhult/notor#> .
+@prefix notor65: <http://www.w3id.org/dpp/fagerhult/notor65/data/#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+# Sample Notor65 data will go here

@@ -14,7 +14,6 @@
   <thead>
     <tr>
       <th>Subject</th>
-      <th>Predicate</th>
       <th>Object</th>
     </tr>
   </thead>
@@ -29,19 +28,6 @@
               </a>
             {{else}}
               <span class="literal-value">{{this.s.value}}</span>
-            {{/if}}
-          {{else}}
-            <em>No value</em>
-          {{/if}}
-        </td>
-        <td>
-          {{#if this.p.value}}
-            {{#if (eq this.p.type "uri")}}
-              <a href="/resource?uri={{encodeURIComponent this.p.value}}&showLabels={{../showLabels}}" class="uri-value">
-                {{getDisplayValue this.p ../showLabels ../labelMap}}
-              </a>
-            {{else}}
-              <span class="literal-value">{{this.p.value}}</span>
             {{/if}}
           {{else}}
             <em>No value</em>
@@ -64,7 +50,7 @@
     {{/each}}
 
     {{#unless rows.length}}
-      <tr><td colspan="3">❌ Ingen information hittades i GraphDB.</td></tr>
+      <tr><td colspan="2">❌ Ingen information hittades i GraphDB.</td></tr>
     {{/unless}}
   </tbody>
 </table>
