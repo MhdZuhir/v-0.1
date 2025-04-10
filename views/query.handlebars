@@ -1,0 +1,54 @@
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<p>Ange din SPARQL-fråga nedan:</p>
+
+<form action="/query" method="post" class="query-form">
+  <div class="form-group">
+    <textarea name="query" rows="10" class="form-control" placeholder="PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+SELECT * WHERE { 
+  ?s ?p ?o 
+} LIMIT 100">SELECT * WHERE { 
+  ?s ?p ?o 
+} LIMIT 100</textarea>
+  </div>
+  <input type="hidden" name="showLabels" id="showLabelsInput" value="{{showLabels}}">
+  <div class="form-group">
+    <button type="submit" class="btn">Kör fråga</button>
+  </div>
+</form>
+
+<script>
+  document.getElementById('displayToggle').addEventListener('change', function() {
+    // Update hidden input value for form submission
+    document.getElementById('showLabelsInput').value = this.checked;
+    
+    // Also store preference in local storage
+    localStorage.setItem('showLabels', this.checked);
+    
+    // Update the text display
+    document.querySelector('.display-mode-text').textContent = this.checked ? 'På' : 'Av';
+  });
+//hej 
+  // Initialize from local storage on page load if not specified in URL
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('showLabels')) {
+      const storedPref = localStorage.getItem('showLabels');
+      if (storedPref !== null) {
+        const showLabels = storedPref === 'true';
+        document.getElementById('displayToggle').checked = showLabels;
+        document.getElementById('showLabelsInput').value = showLabels;
+        document.querySelector('.display-mode-text').textContent = showLabels ? 'På' : 'Av';
+      }
+    }
+  });
+</script>

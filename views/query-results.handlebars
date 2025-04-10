@@ -1,0 +1,113 @@
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      {{#each headers}}
+        <th>{{this}}</th>
+      {{/each}}
+    </tr>
+  </thead>
+  <tbody>
+    {{#each rows}}
+      <tr>
+        {{#each ../headers}}
+          <td>
+            {{#if (lookup ../this this)}}
+              {{#if (lookup (lookup ../this this) 'value')}}
+                {{#if (eq (lookup (lookup ../this this) 'type') 'uri')}}
+                  <a href="/resource?uri={{encodeURIComponent (lookup (lookup ../this this) 'value')}}&showLabels={{../../showLabels}}" class="uri-value">
+                    {{getDisplayValue (lookup ../this this) ../../showLabels ../../labelMap}}
+                  </a>
+                {{else}}
+                  <span class="literal-value">{{lookup (lookup ../this this) 'value'}}</span>
+                {{/if}}
+              {{else}}
+                <em>No value</em>
+              {{/if}}
+            {{else}}
+              <em>No value</em>
+            {{/if}}
+          </td>
+        {{/each}}
+      </tr>
+    {{/each}}
+
+    {{#unless rows.length}}
+      <tr><td colspan="{{headers.length}}">❌ Inga resultat hittades.</td></tr>
+    {{/unless}}
+  </tbody>
+</table>
+
+<form action="/query" method="get" class="query-form">
+  <input type="hidden" name="showLabels" value="{{showLabels}}">
+  <button type="submit" class="btn">Ny fråga</button>
+</form>
+
+<div class="query-display">
+  <h3>Utförd fråga:</h3>
+  <pre>{{query}}</pre>
+</div>
+
+<script>
+  document.getElementById('displayToggle').addEventListener('change', function() {
+    // Resubmit the form with the new display mode
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '/query';
+    
+    const queryInput = document.createElement('input');
+    queryInput.type = 'hidden';
+    queryInput.name = 'query';
+    queryInput.value = `{{query}}`;
+    form.appendChild(queryInput);
+    
+    const showLabelsInput = document.createElement('input');
+    showLabelsInput.type = 'hidden';
+    showLabelsInput.name = 'showLabels';
+    showLabelsInput.value = this.checked;
+    form.appendChild(showLabelsInput);
+    
+    document.body.appendChild(form);
+    
+    // Also store preference in local storage
+    localStorage.setItem('showLabels', this.checked);
+    
+    form.submit();
+  });
+
+  // Initialize from local storage on page load if not specified in URL
+  document.addEventListener('DOMContentLoaded', function() {
+    const storedPref = localStorage.getItem('showLabels');
+    if (storedPref !== null && typeof {{showLabels}} === 'undefined') {
+      const showLabels = storedPref === 'true';
+      const form = document.createElement('form');
+      form.method = 'post';
+      form.action = '/query';
+      
+      const queryInput = document.createElement('input');
+      queryInput.type = 'hidden';
+      queryInput.name = 'query';
+      queryInput.value = `{{query}}`;
+      form.appendChild(queryInput);
+      
+      const showLabelsInput = document.createElement('input');
+      showLabelsInput.type = 'hidden';
+      showLabelsInput.name = 'showLabels';
+      showLabelsInput.value = showLabels;
+      form.appendChild(showLabelsInput);
+      
+      document.body.appendChild(form);
+      form.submit();
+    }
+  });
+</script>

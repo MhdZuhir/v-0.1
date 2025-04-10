@@ -1,0 +1,96 @@
+<h1>{{title}}</h1>
+<p>{{message}}</p>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Subject</th>
+      <th>Predicate</th>
+      <th>Object</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each rows}}
+      <tr>
+        <td>
+          {{#if this.s.value}}
+            {{#if (eq this.s.type "uri")}}
+              <a href="/resource?uri={{encodeURIComponent this.s.value}}&showLabels={{../showLabels}}" class="uri-value">
+                {{getDisplayValue this.s ../showLabels ../labelMap}}
+              </a>
+            {{else}}
+              <span class="literal-value">{{this.s.value}}</span>
+            {{/if}}
+          {{else}}
+            <em>No value</em>
+          {{/if}}
+        </td>
+        <td>
+          {{#if this.p.value}}
+            {{#if (eq this.p.type "uri")}}
+              <a href="/resource?uri={{encodeURIComponent this.p.value}}&showLabels={{../showLabels}}" class="uri-value">
+                {{getDisplayValue this.p ../showLabels ../labelMap}}
+              </a>
+            {{else}}
+              <span class="literal-value">{{this.p.value}}</span>
+            {{/if}}
+          {{else}}
+            <em>No value</em>
+          {{/if}}
+        </td>
+        <td>
+          {{#if this.o.value}} 
+            {{#if (eq this.o.type "uri")}}
+              <a href="/resource?uri={{encodeURIComponent this.o.value}}&showLabels={{../showLabels}}" class="uri-value">
+                {{getDisplayValue this.o ../showLabels ../labelMap}}
+              </a>
+            {{else}}
+              <span class="literal-value">{{this.o.value}}</span>
+            {{/if}}
+          {{else}}
+            <em>No value</em>
+          {{/if}}
+        </td>
+      </tr>
+    {{/each}}
+
+    {{#unless rows.length}}
+      <tr><td colspan="3">❌ Ingen information hittades i GraphDB.</td></tr>
+    {{/unless}}
+  </tbody>
+</table>
+
+<script>
+  document.getElementById('displayToggle').addEventListener('change', function() {
+    // Update the URL and reload the page with the new display mode
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('showLabels', this.checked);
+    window.location.href = currentUrl.toString();
+    
+    // Also store preference in local storage
+    localStorage.setItem('showLabels', this.checked);
+  });
+
+  // Initialize from local storage on page load if not specified in URL
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('showLabels')) {
+      const storedPref = localStorage.getItem('showLabels');
+      if (storedPref !== null) {
+        const showLabels = storedPref === 'true';
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('showLabels', showLabels);
+        window.location.href = currentUrl.toString();
+      }
+    }
+  });
+</script>

@@ -1,0 +1,86 @@
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-title">{{resourceLabel}}</div>
+<div class="resource-uri">URI: {{uri}}</div>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Predicate</th>
+      <th>Object</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each rows}}
+      <tr>
+        <td>
+          {{#if this.predicate.value}}
+            {{#if (eq this.predicate.type "uri")}}
+              <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}" class="uri-value">
+                {{getDisplayValue this.predicate ../showLabels ../labelMap}}
+              </a>
+            {{else}}
+              <span class="literal-value">{{this.predicate.value}}</span>
+            {{/if}}
+          {{else}}
+            <em>No value</em>
+          {{/if}}
+        </td>
+        <td>
+          {{#if this.object.value}}
+            {{#if (eq this.object.type "uri")}}
+              <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}" class="uri-value">
+                {{getDisplayValue this.object ../showLabels ../labelMap}}
+              </a>
+            {{else}}
+              <span class="literal-value">{{this.object.value}}</span>
+            {{/if}}
+          {{else}}
+            <em>No value</em>
+          {{/if}}
+        </td>
+      </tr>
+    {{/each}}
+
+    {{#unless rows.length}}
+      <tr><td colspan="2">❌ Ingen information hittades för denna URI.</td></tr>
+    {{/unless}}
+  </tbody>
+</table>
+
+<a href="/graphdb?showLabels={{showLabels}}" class="btn">Tillbaka till översikt</a>
+
+<script>
+  document.getElementById('displayToggle').addEventListener('change', function() {
+    // Update the URL and reload the page with the new display mode
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('showLabels', this.checked);
+    window.location.href = currentUrl.toString();
+    
+    // Also store preference in local storage
+    localStorage.setItem('showLabels', this.checked);
+  });
+
+  // Initialize from local storage on page load if not specified in URL
+  document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('showLabels')) {
+      const storedPref = localStorage.getItem('showLabels');
+      if (storedPref !== null) {
+        const showLabels = storedPref === 'true';
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('showLabels', showLabels);
+        window.location.href = currentUrl.toString();
+      }
+    }
+  });
+</script>
