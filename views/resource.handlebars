@@ -1,4 +1,10 @@
-<h1>{{title}}</h1>
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  {{#each types}}
+    <li><a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">{{this.label}}</a></li>
+  {{/each}}
+  <li>{{resourceLabel}}</li>
+</ul>
 
 <div class="display-mode">
   <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
@@ -9,78 +15,195 @@
   <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
 </div>
 
-<div class="resource-title">{{resourceLabel}}</div>
-<div class="resource-uri">URI: {{uri}}</div>
-
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>Predicate</th>
-      <th>Object</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{#each rows}}
-      <tr>
-        <td>
-          {{#if this.predicate.value}}
-            {{#if (eq this.predicate.type "uri")}}
-              <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}" class="uri-value">
-                {{getDisplayValue this.predicate ../showLabels ../labelMap}}
-              </a>
-            {{else}}
-              <span class="literal-value">{{this.predicate.value}}</span>
-            {{/if}}
-          {{else}}
-            <em>No value</em>
-          {{/if}}
-        </td>
-        <td>
-          {{#if this.object.value}}
-            {{#if (eq this.object.type "uri")}}
-              <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}" class="uri-value">
-                {{getDisplayValue this.object ../showLabels ../labelMap}}
-              </a>
-            {{else}}
-              <span class="literal-value">{{this.object.value}}</span>
-            {{/if}}
-          {{else}}
-            <em>No value</em>
-          {{/if}}
-        </td>
-      </tr>
-    {{/each}}
-
-    {{#unless rows.length}}
-      <tr><td colspan="2">❌ Ingen information hittades för denna URI.</td></tr>
-    {{/unless}}
-  </tbody>
-</table>
-
-<a href="/graphdb?showLabels={{showLabels}}" class="btn">Tillbaka till översikt</a>
-
-<script>
-  document.getElementById('displayToggle').addEventListener('change', function() {
-    // Update the URL and reload the page with the new display mode
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('showLabels', this.checked);
-    window.location.href = currentUrl.toString();
+<div class="resource-container">
+  <div class="resource-main">
+    <h1 class="resource-title">{{resourceLabel}}</h1>
     
-    // Also store preference in local storage
-    localStorage.setItem('showLabels', this.checked);
-  });
-
-  // Initialize from local storage on page load if not specified in URL
-  document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('showLabels')) {
-      const storedPref = localStorage.getItem('showLabels');
-      if (storedPref !== null) {
-        const showLabels = storedPref === 'true';
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('showLabels', showLabels);
-        window.location.href = currentUrl.toString();
-      }
-    }
-  });
-</script>
+    {{#if description}}
+      <div class="resource-description">
+        {{description}}
+      </div>
+    {{/if}}
+    
+    <!-- Basic properties section -->
+    {{#if propertyGroups.basic.length}}
+      <div class="property-group">
+        <div class="property-group-header">Grundläggande information</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            {{#each propertyGroups.basic}}
+              <tr>
+                <td class="property-name">
+                  {{#if this.predicate.value}}
+                    {{#if (eq this.predicate.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.predicate ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.predicate.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Okänt</em>
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if this.object.value}}
+                    {{#if (eq this.object.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.object ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.object.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Inget värde</em>
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </table>
+        </div>
+      </div>
+    {{/if}}
+    
+    <!-- Relationships section -->
+    {{#if propertyGroups.relationships.length}}
+      <div class="property-group">
+        <div class="property-group-header">Relationer</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            {{#each propertyGroups.relationships}}
+              <tr>
+                <td class="property-name">
+                  {{#if this.predicate.value}}
+                    {{#if (eq this.predicate.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.predicate ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.predicate.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Okänt</em>
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if this.object.value}}
+                    {{#if (eq this.object.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.object ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.object.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Inget värde</em>
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </table>
+        </div>
+      </div>
+    {{/if}}
+    
+    <!-- Other properties section -->
+    {{#if propertyGroups.other.length}}
+      <div class="property-group">
+        <div class="property-group-header">Övriga egenskaper</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            {{#each propertyGroups.other}}
+              <tr>
+                <td class="property-name">
+                  {{#if this.predicate.value}}
+                    {{#if (eq this.predicate.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.predicate ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.predicate.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Okänt</em>
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if this.object.value}}
+                    {{#if (eq this.object.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}">
+                        {{getDisplayValue this.object ../showLabels ../labelMap}}
+                      </a>
+                    {{else}}
+                      {{this.object.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Inget värde</em>
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </table>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="resource-sidebar">
+    <!-- Resource metadata sidebar -->
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Metadata</div>
+      <div class="sidebar-box-content">
+        <div class="resource-uri">
+          <strong>URI:</strong> <code>{{uri}}</code>
+        </div>
+        
+        {{#if types.length}}
+          <div style="margin-top: 10px;">
+            <strong>Typ(er):</strong>
+            <ul style="list-style: none; padding-left: 5px; margin-top: 5px;">
+              {{#each types}}
+                <li>
+                  <a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                    {{this.label}}
+                  </a>
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    
+    <!-- Related resources sidebar -->
+    {{#if related.length}}
+      <div class="sidebar-box">
+        <div class="sidebar-box-header">Relaterade resurser</div>
+        <div class="sidebar-box-content">
+          <ul class="related-resources">
+            {{#each related}}
+              <li>
+                <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                  {{this.label}}
+                </a>
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      </div>
+    {{/if}}
+    
+    <!-- Actions sidebar -->
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
+        </p>
+        <p>
+          <a href="/graphdb?showLabels={{showLabels}}" class="btn" style="width: 100%;">Visa alla data</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

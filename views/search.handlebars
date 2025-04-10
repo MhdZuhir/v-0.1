@@ -1,0 +1,48 @@
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li>Sök</li>
+</ul>
+
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<form action="/search" method="get" class="search-box" style="margin-bottom: 30px;">
+  <input type="text" name="q" placeholder="Sök i databasen..." value="{{searchTerm}}" style="flex-grow: 1; padding: 10px; font-size: 16px;">
+  <input type="hidden" name="showLabels" value="{{showLabels}}">
+  <button type="submit" style="padding: 10px 20px; font-size: 16px;">Sök</button>
+</form>
+
+{{#if searchTerm}}
+  <p>Visar resultat för: <strong>{{searchTerm}}</strong></p>
+  
+  <h2>Sökresultat</h2>
+  
+  <ul class="search-results">
+    {{#each results}}
+      <li>
+        <div class="resource-list-item">
+          <span class="resource-icon {{getIconClass this.label}}"></span>
+          <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+            {{this.label}}
+          </a>
+        </div>
+      </li>
+    {{/each}}
+  
+    {{#unless results.length}}
+      <li>❌ Inga resultat hittades för sökningen "{{searchTerm}}".</li>
+    {{/unless}}
+  </ul>
+{{else}}
+  <p>Ange ett sökord ovan för att hitta resurser i databasen.</p>
+{{/if}}
+
+<a href="/?showLabels={{showLabels}}" class="btn">Tillbaka till startsidan</a>

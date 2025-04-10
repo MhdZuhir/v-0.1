@@ -1,7 +1,34 @@
 <h1>{{title}}</h1>
-<p>{{message}}</p>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<p>Välkommen till WikiGraph, ett Wikipedia-liknande gränssnitt för att utforska din GraphDB-databas. Välj en kategori nedan för att börja utforska.</p>
+
+<h2>Kategorier</h2>
+
+<ul class="category-list">
+  {{#each categories}}
+    <li class="category-item">
+      <a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+        {{this.label}}
+      </a>
+    </li>
+  {{/each}}
+
+  {{#unless categories.length}}
+    <li>❌ Inga kategorier hittades i databasen.</li>
+  {{/unless}}
+</ul>
 
 <div class="action-links">
-  <a href="/graphdb" class="btn">Visa data från GraphDB</a>
-  <a href="/query" class="btn">Kör SPARQL-fråga</a>
+  <a href="/search?showLabels={{showLabels}}" class="btn">Sök i databasen</a>
+  <a href="/graphdb?showLabels={{showLabels}}" class="btn">Visa alla data</a>
+  <a href="/query?showLabels={{showLabels}}" class="btn">Kör anpassad SPARQL-fråga</a>
 </div>
