@@ -521,54 +521,98 @@ app.get('/category', async (req, res, next) => {
   }
 });
 
+// Enhanced GraphDB route with better error handling and debug info
+// Enhanced GraphDB route with detailed diagnostics
 app.get('/graphdb', async (req, res, next) => {
   try {
     const showLabels = req.query.showLabels !== 'false'; // Default to true
+    let bindings = [];
+    let errorMessage = '';
+    let debugInfo = {
+      endpoint: graphdbEndpoint,
+      repository: graphdbRepository,
+      queryExecuted: false,
+      resultCount: 0,
+      filteredCount: 0,
+      timestamp: new Date().toISOString()
+    };
 
-    // Use the parsing function to get all triples from the Notor65 data
-    let bindings = parseNotor65Triples();
-    
-    // If there's an error or no data, fall back to the GraphDB query
-    if (bindings.length === 0) {
-      try {
-        const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
-          headers: {
-            'Accept': 'application/sparql-results+json'
-          },
-          params: {
-            query: `
-              SELECT DISTINCT ?s ?p ?o WHERE {
-                ?s ?p ?o
-              } LIMIT 1000
-            `
-          }
-        });
-        
+    // Directly query GraphDB for all triples - using a simpler query
+    try {
+      console.log(`Querying GraphDB at ${graphdbEndpoint}/repositories/${graphdbRepository}`);
+      const query = `
+        SELECT ?s ?p ?o WHERE {
+          ?s ?p ?o
+        } LIMIT 10
+      `;
+      
+      debugInfo.query = query;
+      
+      console.log(`Executing query: ${query}`);
+      const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
+        headers: {
+          'Accept': 'application/sparql-results+json'
+        },
+        params: { query }
+      });
+      
+      debugInfo.queryExecuted = true;
+      debugInfo.responseStatus = response.status;
+      debugInfo.responseHeaders = response.headers;
+      
+      // Check if the response has the expected structure
+      if (response.data && response.data.results && Array.isArray(response.data.results.bindings)) {
         bindings = response.data.results.bindings || [];
-      } catch (error) {
-        console.error('Error querying GraphDB:', error);
+        debugInfo.resultCount = bindings.length;
+        console.log(`Found ${bindings.length} triples from GraphDB query`);
+        
+        // Add detailed structure info
+        if (bindings.length > 0) {
+          const firstRow = bindings[0];
+          debugInfo.firstRowKeys = Object.keys(firstRow);
+          debugInfo.firstRowStructure = {};
+          
+          for (const key in firstRow) {
+            const cell = firstRow[key];
+            debugInfo.firstRowStructure[key] = {
+              type: cell.type,
+              hasValue: 'value' in cell,
+              value: cell.value ? (cell.value.length > 50 ? cell.value.substring(0, 50) + '...' : cell.value) : null
+            };
+          }
+        }
+      } else {
+        debugInfo.unexpectedResponseStructure = true;
+        debugInfo.responsePreview = JSON.stringify(response.data).substring(0, 500) + '...';
+        errorMessage = "GraphDB response doesn't have the expected structure";
       }
+    } catch (dbErr) {
+      console.error('Error querying GraphDB:', dbErr);
+      errorMessage = "Could not retrieve data from GraphDB. " + dbErr.message;
+      debugInfo.error = dbErr.message;
+      debugInfo.errorStack = dbErr.stack;
     }
     
-    // Filter out system resources if needed
-    bindings = filterSystemResources(bindings);
+    // Skip filtering for now to see raw data
+    debugInfo.originalCount = bindings.length;
     
-    // Get human-readable labels if needed
-    let labelMap = {};
-    if (showLabels) {
-      const uris = extractUrisFromResults(bindings);
-      labelMap = await fetchLabelsForUris(uris);
-    }
-  
+    // We'll still render the page with raw data to see what we're getting
     res.render('graphdb', {
-      title: 'GraphDB Data',
-      message: 'Data from Notor65:',
+      title: 'GraphDB Diagnostic Data',
+      message: errorMessage || 'Raw Data from GraphDB:',
       rows: bindings,
-      labelMap: labelMap,
-      showLabels: showLabels
+      labelMap: {}, // Skip label fetching for diagnostic mode
+      showLabels: false,
+      debug: debugInfo, // Always show debug for diagnostics
+      diagnosticMode: true // Add flag to template
     });
   } catch (err) {
-    next(err);
+    console.error('Unexpected error in /graphdb route:', err);
+    res.status(500).send(`
+      <h1>Server Error</h1>
+      <p>There was an error processing your request:</p>
+      <pre>${err.stack}</pre>
+    `);
   }
 });
 
@@ -935,6 +979,113 @@ if (!fs.existsSync(imagesDir)) {
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
+// Fetch human-readable labels for URIs with batching
+async function fetchLabelsForUris(uris) {
+  if (!uris || uris.length === 0) return {};
+  
+  // Filter out system URIs before fetching labels
+  uris = uris.filter(uri => !isSystemResource(uri));
+  if (uris.length === 0) return {};
+  
+  const labelMap = {};
+  const BATCH_SIZE = 20; // Process URIs in smaller batches to prevent header size issues
+  
+  try {
+    // Split URIs into batches
+    const batches = [];
+    for (let i = 0; i < uris.length; i += BATCH_SIZE) {
+      batches.push(uris.slice(i, i + BATCH_SIZE));
+    }
+    
+    console.log(`Processing ${uris.length} URIs in ${batches.length} batches for label fetching`);
+    
+    // Process each batch
+    for (let batch of batches) {
+      try {
+        // Prepare SPARQL query for this batch
+        const uriValues = batch.map(uri => `<${uri}>`).join(' ');
+        const query = `
+          SELECT ?uri ?label WHERE {
+            VALUES ?uri { ${uriValues} }
+            ?uri ?labelProperty ?label .
+            FILTER(?labelProperty IN (
+              <http://www.w3.org/2000/01/rdf-schema#label>,
+              <http://www.w3.org/2004/02/skos/core#prefLabel>,
+              <http://purl.org/dc/elements/1.1/title>,
+              <http://purl.org/dc/terms/title>,
+              <http://www.w3.org/2004/02/skos/core#altLabel>
+            ))
+            FILTER(LANG(?label) = "" || LANG(?label) = "sv" || LANG(?label) = "en")
+          }
+        `;
+        
+        const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
+          headers: {
+            'Accept': 'application/sparql-results+json'
+          },
+          params: { query }
+        });
+        
+        const bindings = response.data.results.bindings || [];
+        
+        // Process bindings from this batch
+        const uriLabels = new Map();
+        
+        for (const binding of bindings) {
+          const uri = binding.uri.value;
+          const label = binding.label.value;
+          const lang = binding.label['xml:lang'] || '';
+          
+          if (!uriLabels.has(uri)) {
+            uriLabels.set(uri, {});
+          }
+          
+          // Store label by language priority (sv > en > no-lang)
+          if (lang === 'sv') {
+            uriLabels.get(uri).sv = label;
+          } else if (lang === 'en' && !uriLabels.get(uri).sv) {
+            uriLabels.get(uri).en = label;
+          } else if (!lang && !uriLabels.get(uri).sv && !uriLabels.get(uri).en) {
+            uriLabels.get(uri).none = label;
+          }
+        }
+        
+        // Add labels from this batch to the main labelMap
+        for (const uri of batch) {
+          const labels = uriLabels.get(uri) || {};
+          
+          // Use label in priority order: Swedish, English, no language
+          if (labels.sv) {
+            labelMap[uri] = labels.sv;
+          } else if (labels.en) {
+            labelMap[uri] = labels.en;
+          } else if (labels.none) {
+            labelMap[uri] = labels.none;
+          } else {
+            // If no label found, use the last part of the URI as a fallback
+            const lastPart = uri.split(/[/#]/).pop();
+            labelMap[uri] = lastPart || uri;
+          }
+        }
+      } catch (batchError) {
+        console.error(`Error processing batch for label fetching:`, batchError.message);
+        // Continue with next batch, don't fail the entire process
+      }
+    }
+    
+    console.log(`Successfully retrieved ${Object.keys(labelMap).length} labels`);
+    return labelMap;
+  } catch (error) {
+    console.error('Error in fetchLabelsForUris:', error);
+    
+    // Create fallback labels using the last part of the URI
+    for (const uri of uris) {
+      const lastPart = uri.split(/[/#]/).pop();
+      labelMap[uri] = lastPart || uri;
+    }
+    
+    return labelMap;
+  }
+}
 // Export for testing
 module.exports = app;

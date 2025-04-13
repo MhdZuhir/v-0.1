@@ -1,6 +1,8 @@
+<!-- views/graphdb.handlebars -->
 <h1>{{title}}</h1>
 <p>{{message}}</p>
 
+<!-- Always show the labels toggle button -->
 <div class="display-mode">
   <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
   <label class="switch">
@@ -10,52 +12,326 @@
   <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
 </div>
 
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>Subject</th>
-      <th>Object</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{#each rows}}
-      <tr>
-        <td>
-          {{#if this.s.value}}
-            {{#if (eq this.s.type "uri")}}
-              <a href="/resource?uri={{encodeURIComponent this.s.value}}&showLabels={{../showLabels}}" class="uri-value">
-                {{getDisplayValue this.s ../showLabels ../labelMap}}
-              </a>
-            {{else}}
-              <span class="literal-value">{{this.s.value}}</span>
-            {{/if}}
-          {{else}}
-            <em>No value</em>
-          {{/if}}
-        </td>
-        <td>
-          {{#if this.o.value}} 
-            {{#if (eq this.o.type "uri")}}
-              <a href="/resource?uri={{encodeURIComponent this.o.value}}&showLabels={{../showLabels}}" class="uri-value">
-                {{getDisplayValue this.o ../showLabels ../labelMap}}
-              </a>
-            {{else}}
-              <span class="literal-value">{{this.o.value}}</span>
-            {{/if}}
-          {{else}}
-            <em>No value</em>
-          {{/if}}
-        </td>
-      </tr>
-    {{/each}}
+<!-- Debug panel -->
+<div class="debug-panel">
+  <h3>Debug Information <button onclick="toggleDebug()">Toggle Details</button></h3>
+  <div class="debug-summary">
+    <p><strong>Timestamp:</strong> {{debug.timestamp}}</p>
+    <p><strong>GraphDB Endpoint:</strong> {{debug.endpoint}}</p>
+    <p><strong>Repository:</strong> {{debug.repository}}</p>
+    <p><strong>Query Executed:</strong> {{debug.queryExecuted}}</p>
+    <p><strong>Result Count:</strong> {{debug.resultCount}}</p>
+    {{#if debug.error}}
+    <p><strong>Error:</strong> {{debug.error}}</p>
+    {{/if}}
+  </div>
+  
+  <div id="debugInfo" style="display: none;">
+    <h4>Query</h4>
+    <pre>{{debug.query}}</pre>
+    
+    {{#if debug.resultCount}}
+      <h4>Data Structure</h4>
+      <p>First row keys: {{debug.firstRowKeys}}</p>
+      {{#if debug.firstRowStructure}}
+        <table class="debug-table">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Type</th>
+              <th>Has Value</th>
+              <th>Sample Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each debug.firstRowStructure}}
+              <tr>
+                <td>{{@key}}</td>
+                <td>{{this.type}}</td>
+                <td>{{this.hasValue}}</td>
+                <td>{{this.value}}</td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      {{/if}}
+    {{/if}}
+    
+    {{#if debug.unexpectedResponseStructure}}
+      <h4>Unexpected Response Structure</h4>
+      <pre>{{debug.responsePreview}}</pre>
+    {{/if}}
+    
+    {{#if debug.errorStack}}
+      <h4>Error Stack</h4>
+      <pre>{{debug.errorStack}}</pre>
+    {{/if}}
+  </div>
+</div>
 
-    {{#unless rows.length}}
-      <tr><td colspan="2">❌ Ingen information hittades i GraphDB.</td></tr>
-    {{/unless}}
-  </tbody>
-</table>
+<div class="data-container">
+  {{#if rows.length}}
+    <p class="result-count">Showing {{rows.length}} results.</p>
+    
+    <!-- Display data in standard format -->
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Predicate</th>
+          <th>Object</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each rows}}
+          <tr>
+            <td class="subject-cell">
+              {{#if this.s}}
+                {{#if (eq this.s.type "uri")}}
+                  <a href="/resource?uri={{encodeURIComponent this.s.value}}&showLabels={{../showLabels}}" class="uri-value">
+                    {{#if ../showLabels}}
+                      {{getDisplayValue this.s ../showLabels ../labelMap}}
+                    {{else}}
+                      {{this.s.value}}
+                    {{/if}}
+                  </a>
+                {{else}}
+                  <span class="literal-value">{{this.s.value}}</span>
+                {{/if}}
+              {{else}}
+                <em>No subject</em>
+              {{/if}}
+            </td>
+            <td class="predicate-cell">
+              {{#if this.p}}
+                {{#if (eq this.p.type "uri")}}
+                  <a href="/resource?uri={{encodeURIComponent this.p.value}}&showLabels={{../showLabels}}" class="uri-value">
+                    {{#if ../showLabels}}
+                      {{getDisplayValue this.p ../showLabels ../labelMap}}
+                    {{else}}
+                      {{this.p.value}}
+                    {{/if}}
+                  </a>
+                {{else}}
+                  <span class="literal-value">{{this.p.value}}</span>
+                {{/if}}
+              {{else}}
+                <em>No predicate</em>
+              {{/if}}
+            </td>
+            <td class="object-cell">
+              {{#if this.o}} 
+                {{#if (eq this.o.type "uri")}}
+                  <a href="/resource?uri={{encodeURIComponent this.o.value}}&showLabels={{../showLabels}}" class="uri-value">
+                    {{#if ../showLabels}}
+                      {{getDisplayValue this.o ../showLabels ../labelMap}}
+                    {{else}}
+                      {{this.o.value}}
+                    {{/if}}
+                  </a>
+                {{else}}
+                  <span class="literal-value">{{this.o.value}}</span>
+                {{/if}}
+              {{else}}
+                <em>No object</em>
+              {{/if}}
+            </td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  {{else}}
+    <div class="no-data-message">
+      <p>❌ Ingen information hittades i GraphDB.</p>
+      
+      <div class="debug-hint">
+        <p>Möjliga orsaker:</p>
+        <ul>
+          <li>Databasen är tom</li>
+          <li>Alla resurser filtrerades bort som systemresurser</li>
+          <li>Det finns ett problem med anslutningen till GraphDB</li>
+          <li>SPARQL-frågan returnerade inga resultat</li>
+        </ul>
+        <p>Kolla utvecklarkonsolen för mer information.</p>
+      </div>
+    </div>
+  {{/if}}
+</div>
+
+<style>
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .data-table th, .data-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .data-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  
+  .data-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .data-table tr:hover {
+    background-color: #f5f5f5;
+  }
+  
+  .uri-value {
+    color: #0066cc;
+    text-decoration: none;
+    word-break: break-word;
+    max-width: 300px;
+    display: inline-block;
+  }
+  
+  .uri-value:hover {
+    text-decoration: underline;
+  }
+  
+  .literal-value {
+    color: #333;
+    word-break: break-word;
+    max-width: 300px;
+    display: inline-block;
+  }
+  
+  .display-mode {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Switch styles */
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 0 10px;
+  }
+  
+  .switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+  }
+  
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .slider {
+    background-color: #2196F3;
+  }
+  
+  input:checked + .slider:before {
+    transform: translateX(26px);
+  }
+  
+  .debug-panel {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ddd;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+  }
+  
+  .debug-panel h3 {
+    margin-top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .debug-panel button {
+    padding: 5px 10px;
+    background-color: #eee;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  
+  .debug-panel pre {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border: 1px solid #ddd;
+    overflow: auto;
+    border-radius: 3px;
+    max-height: 300px;
+  }
+  
+  .debug-hint {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-left: 4px solid #ccc;
+  }
+  
+  .no-data-message {
+    padding: 20px;
+    text-align: center;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 20px 0;
+  }
+  
+  .result-count {
+    color: #666;
+    font-style: italic;
+  }
+  
+  .debug-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  
+  .debug-table th, .debug-table td {
+    border: 1px solid #ddd;
+    padding: 6px;
+    text-align: left;
+  }
+  
+  .debug-table th {
+    background-color: #eee;
+  }
+</style>
 
 <script>
+  function toggleDebug() {
+    const debugInfo = document.getElementById('debugInfo');
+    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+  }
+
   document.getElementById('displayToggle').addEventListener('change', function() {
     // Update the URL and reload the page with the new display mode
     const currentUrl = new URL(window.location.href);
