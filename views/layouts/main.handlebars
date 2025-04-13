@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{title}} - WikiGraph</title>
   <link rel="stylesheet" href="/css/styles.css">
+  <!-- Include the external JavaScript file -->
+  <script src="/js/script.js"></script>
 </head>
 <body>
   <header>
@@ -31,49 +33,7 @@
   <footer>
     <p>WikiGraph - GraphDB Integration Application &copy; 2025</p>
   </footer>
-  
-  <script>
-    // Initialize display preferences from local storage on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      const displayToggle = document.getElementById('displayToggle');
-      
-      if (displayToggle) {
-        displayToggle.addEventListener('change', function() {
-          // Store preference in local storage
-          localStorage.setItem('showLabels', this.checked);
-          
-          // Update the display text
-          const displayText = document.querySelector('.display-mode-text');
-          if (displayText) {
-            displayText.textContent = this.checked ? 'På' : 'Av';
-          }
-          
-          // Update the URL and reload the page with the new display mode
-          const currentUrl = new URL(window.location.href);
-          currentUrl.searchParams.set('showLabels', this.checked);
-          window.location.href = currentUrl.toString();
-        });
-        
-        // If not specified in URL, load from local storage
-        const urlParams = new URLSearchParams(window.location.search);
-        if (!urlParams.has('showLabels')) {
-          const storedPref = localStorage.getItem('showLabels');
-          if (storedPref !== null) {
-            const showLabels = storedPref === 'true';
-            displayToggle.checked = showLabels;
-            
-            const displayText = document.querySelector('.display-mode-text');
-            if (displayText) {
-              displayText.textContent = showLabels ? 'På' : 'Av';
-            }
-            
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.set('showLabels', showLabels);
-            window.location.href = currentUrl.toString();
-          }
-        }
-      }
-    });
-  </script>
+
 </body>
+
 </html>

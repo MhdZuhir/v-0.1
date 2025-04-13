@@ -25,30 +25,3 @@ SELECT * WHERE {
     <button type="submit" class="btn">Kör fråga</button>
   </div>
 </form>
-
-<script>
-  document.getElementById('displayToggle').addEventListener('change', function() {
-    // Update hidden input value for form submission
-    document.getElementById('showLabelsInput').value = this.checked;
-    
-    // Also store preference in local storage
-    localStorage.setItem('showLabels', this.checked);
-    
-    // Update the text display
-    document.querySelector('.display-mode-text').textContent = this.checked ? 'På' : 'Av';
-  });
-//hej 
-  // Initialize from local storage on page load if not specified in URL
-  document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('showLabels')) {
-      const storedPref = localStorage.getItem('showLabels');
-      if (storedPref !== null) {
-        const showLabels = storedPref === 'true';
-        document.getElementById('displayToggle').checked = showLabels;
-        document.getElementById('showLabelsInput').value = showLabels;
-        document.querySelector('.display-mode-text').textContent = showLabels ? 'På' : 'Av';
-      }
-    }
-  });
-</script>

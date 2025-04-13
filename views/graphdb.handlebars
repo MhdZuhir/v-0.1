@@ -325,34 +325,3 @@
     background-color: #eee;
   }
 </style>
-
-<script>
-  function toggleDebug() {
-    const debugInfo = document.getElementById('debugInfo');
-    debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-  }
-
-  document.getElementById('displayToggle').addEventListener('change', function() {
-    // Update the URL and reload the page with the new display mode
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.set('showLabels', this.checked);
-    window.location.href = currentUrl.toString();
-    
-    // Also store preference in local storage
-    localStorage.setItem('showLabels', this.checked);
-  });
-
-  // Initialize from local storage on page load if not specified in URL
-  document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (!urlParams.has('showLabels')) {
-      const storedPref = localStorage.getItem('showLabels');
-      if (storedPref !== null) {
-        const showLabels = storedPref === 'true';
-        const currentUrl = new URL(window.location.href);
-        currentUrl.searchParams.set('showLabels', showLabels);
-        window.location.href = currentUrl.toString();
-      }
-    }
-  });
-</script>
