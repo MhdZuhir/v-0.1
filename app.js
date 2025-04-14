@@ -641,39 +641,57 @@ app.get('/search', async (req, res, next) => {
   
   try {
     const safeSearchTerm = sanitizeSparqlString(searchTerm);
+    
+    // Simplified query with better error handling
     const query = `
       SELECT DISTINCT ?resource WHERE {
         {
           ?resource ?p ?o .
           FILTER(ISURI(?resource))
-          FILTER(ISLITERAL(?o))
           FILTER(CONTAINS(LCASE(STR(?o)), LCASE("${safeSearchTerm}")))
         }
         UNION
         {
-          ?resource <http://www.w3.org/2000/01/rdf-schema#label> ?label .
-          FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${safeSearchTerm}")))
-        }
-        UNION
-        {
-          ?resource ?anyProp ?anyValue .
+          ?resource ?p ?o .
           FILTER(ISURI(?resource))
-          FILTER(CONTAINS(STR(?resource), "${safeSearchTerm}"))
+          FILTER(CONTAINS(LCASE(STR(?resource)), LCASE("${safeSearchTerm}")))
         }
       }
       LIMIT 50
     `;
+    
+    console.log('Executing search query:', query);
     
     const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
       headers: { 'Accept': 'application/sparql-results+json' },
       params: { query }
     });
     
-    let resources = response.data.results.bindings.map(binding => binding.resource.value)
-      .filter(resource => !isSystemResource(resource));
+    console.log('Search response status:', response.status);
+    
+    // Improved error checking for the response structure
+    if (!response.data || !response.data.results || !Array.isArray(response.data.results.bindings)) {
+      console.error('Unexpected response structure:', JSON.stringify(response.data).substring(0, 200));
+      throw new Error('Unexpected response structure from GraphDB');
+    }
+    
+    const bindings = response.data.results.bindings;
+    console.log(`Found ${bindings.length} results before filtering`);
+    
+    // Extract resources with more robust handling
+    let resources = [];
+    bindings.forEach(binding => {
+      if (binding.resource && binding.resource.value) {
+        resources.push(binding.resource.value);
+      }
+    });
+    
+    // Filter system resources
+    resources = resources.filter(resource => !isSystemResource(resource));
+    console.log(`Found ${resources.length} results after filtering`);
     
     let labelMap = {};
-    if (showLabels) {
+    if (showLabels && resources.length > 0) {
       labelMap = await fetchLabelsForUris(resources);
     }
     
@@ -687,7 +705,13 @@ app.get('/search', async (req, res, next) => {
       showLabels
     });
   } catch (err) {
-    next(err);
+    console.error('Search error:', err);
+    res.render('search', {
+      title: 'Sökfel',
+      error: `Ett fel uppstod vid sökning: ${err.message}`,
+      searchTerm,
+      showLabels
+    });
   }
 });
 
