@@ -627,11 +627,8 @@ app.post('/query', async (req, res, next) => {
 });
 
 app.get('/search', async (req, res, next) => {
-  let searchTerm = req.query.q || '';
+  const searchTerm = req.query.q;
   const showLabels = req.query.showLabels !== 'false';
-  
-  // Trim whitespace from the search term
-  searchTerm = searchTerm.trim();
   
   if (!searchTerm) {
     return res.render('search', {
@@ -645,59 +642,25 @@ app.get('/search', async (req, res, next) => {
   try {
     const safeSearchTerm = sanitizeSparqlString(searchTerm);
     
-    // Enhanced search query to find more relevant results
-    // Using direct equals comparison for exact matches like product numbers
+    // Simplified query with better error handling
     const query = `
       SELECT DISTINCT ?resource WHERE {
         {
-          # Exact match in literals (for codes, IDs, etc.)
-          ?resource ?p ?exactMatch .
-          FILTER(ISURI(?resource))
-          FILTER(STR(?exactMatch) = "${safeSearchTerm}")
-        }
-        UNION
-        {
-          # Search in literals (object values)
           ?resource ?p ?o .
           FILTER(ISURI(?resource))
           FILTER(CONTAINS(LCASE(STR(?o)), LCASE("${safeSearchTerm}")))
         }
         UNION
         {
-          # Search in URI paths
           ?resource ?p ?o .
           FILTER(ISURI(?resource))
           FILTER(CONTAINS(LCASE(STR(?resource)), LCASE("${safeSearchTerm}")))
         }
-        UNION
-        {
-          # Specific search in labels with exact match
-          ?resource <http://www.w3.org/2000/01/rdf-schema#label> ?label .
-          FILTER(STR(?label) = "${safeSearchTerm}")
-        }
-        UNION
-        {
-          # Specific search in labels
-          ?resource <http://www.w3.org/2000/01/rdf-schema#label> ?label .
-          FILTER(CONTAINS(LCASE(STR(?label)), LCASE("${safeSearchTerm}")))
-        }
-        UNION
-        {
-          # Search in any alternate labels
-          ?resource <http://www.w3.org/2004/02/skos/core#altLabel> ?altLabel .
-          FILTER(CONTAINS(LCASE(STR(?altLabel)), LCASE("${safeSearchTerm}")))
-        }
-        UNION
-        {
-          # Search in titles
-          ?resource <http://purl.org/dc/terms/title> ?title .
-          FILTER(CONTAINS(LCASE(STR(?title)), LCASE("${safeSearchTerm}")))
-        }
       }
-      LIMIT 100
+      LIMIT 50
     `;
     
-    console.log('Executing search query for term:', safeSearchTerm);
+    console.log('Executing search query:', query);
     
     const response = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
       headers: { 'Accept': 'application/sparql-results+json' },
@@ -723,94 +686,21 @@ app.get('/search', async (req, res, next) => {
       }
     });
     
-    // Remove duplicates
-    resources = [...new Set(resources)];
-    
     // Filter system resources
     resources = resources.filter(resource => !isSystemResource(resource));
     console.log(`Found ${resources.length} results after filtering`);
-    
-    // Try a fallback search if no results found
-    if (resources.length === 0 && safeSearchTerm.length > 3) {
-      console.log('No results found, trying fallback tokenized search');
-      
-      // Create a tokenized version of the search term
-      const tokens = safeSearchTerm.split(/\s+/).filter(t => t.length > 2);
-      
-      if (tokens.length > 0) {
-        // Create a SPARQL query with individual token matches
-        const tokenFilters = tokens.map(token => 
-          `CONTAINS(LCASE(STR(?o)), LCASE("${sanitizeSparqlString(token)}"))`
-        ).join(' || ');
-        
-        const fallbackQuery = `
-          SELECT DISTINCT ?resource WHERE {
-            ?resource ?p ?o .
-            FILTER(ISURI(?resource))
-            FILTER(${tokenFilters})
-          }
-          LIMIT 100
-        `;
-        
-        console.log('Executing fallback search');
-        
-        const fallbackResponse = await axios.get(`${graphdbEndpoint}/repositories/${graphdbRepository}`, {
-          headers: { 'Accept': 'application/sparql-results+json' },
-          params: { query: fallbackQuery }
-        });
-        
-        if (fallbackResponse.data && fallbackResponse.data.results && Array.isArray(fallbackResponse.data.results.bindings)) {
-          const fallbackBindings = fallbackResponse.data.results.bindings;
-          fallbackBindings.forEach(binding => {
-            if (binding.resource && binding.resource.value) {
-              resources.push(binding.resource.value);
-            }
-          });
-          
-          // Remove duplicates again
-          resources = [...new Set(resources)];
-          
-          // Filter system resources
-          resources = resources.filter(resource => !isSystemResource(resource));
-          console.log(`Found ${resources.length} results after fallback search`);
-        }
-      }
-    }
     
     let labelMap = {};
     if (showLabels && resources.length > 0) {
       labelMap = await fetchLabelsForUris(resources);
     }
     
-    // Add resource type icons - Simple type detection based on URI patterns
-    const resourcesWithLabels = resources.map(resource => {
-      const label = showLabels && labelMap[resource] ? labelMap[resource] : resource;
-      const uri = resource.toLowerCase();
-      
-      // Default type detection based on common patterns
-      let type = 'default';
-      if (uri.includes('person') || uri.includes('agent') || uri.includes('author') || uri.includes('creator')) {
-        type = 'person';
-      } else if (uri.includes('place') || uri.includes('location') || uri.includes('area') || uri.includes('region')) {
-        type = 'place';
-      } else if (uri.includes('event') || uri.includes('activity')) {
-        type = 'event';
-      } else if (uri.includes('organization') || uri.includes('institution') || uri.includes('company')) {
-        type = 'organization';
-      } else if (uri.includes('concept') || uri.includes('topic') || uri.includes('subject')) {
-        type = 'concept';
-      }
-      
-      return {
-        uri: resource,
-        label,
-        type
-      };
-    });
-    
     res.render('search', {
       title: 'Sökresultat',
-      results: resourcesWithLabels,
+      results: resources.map(resource => ({
+        uri: resource,
+        label: showLabels && labelMap[resource] ? labelMap[resource] : resource
+      })),
       searchTerm,
       showLabels
     });
