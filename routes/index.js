@@ -4,7 +4,7 @@ const router = express.Router();
 const labelMiddleware = require('../middlewares/labelMiddleware');
 
 // Import route modules
-const homeRoutes = require('./homeRoutes');
+const ontologyRoutes = require('./ontologyRoutes');
 const resourceRoutes = require('./resourceRoutes');
 const categoryRoutes = require('./categoryRoutes');
 const queryRoutes = require('./queryRoutes');
@@ -12,11 +12,17 @@ const searchRoutes = require('./searchRoutes');
 const graphdbRoutes = require('./graphdbRoutes');
 const notorRoutes = require('./notorRoutes');
 
+// Import controllers
+const ontologyController = require('../controllers/ontologyController');
+
 // Apply label middleware to all routes
 router.use(labelMiddleware);
 
+// Home page now shows ontologies
+router.get('/', ontologyController.getOntologyListPage);
+
 // Mount routes
-router.use('/', homeRoutes);
+router.use('/ontology', ontologyRoutes);
 router.use('/resource', resourceRoutes);
 router.use('/category', categoryRoutes);
 router.use('/query', queryRoutes);

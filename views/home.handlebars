@@ -9,23 +9,61 @@
   <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
 </div>
 
-<p>Välkommen till WikiGraph, ett Wikipedia-liknande gränssnitt för att utforska din GraphDB-databas. Välj en kategori nedan för att börja utforska.</p>
+<section class="intro-section">
+  <p>
+    Välkommen till Ontology Browser, ett verktyg för att utforska och ladda ner ontologier från GraphDB-databasen.
+  </p>
+  
+  <div class="info-box">
+    <h3>Vad är en ontologi?</h3>
+    <p>
+      En ontologi är en formell representation av kunskap inom ett visst område som definierar begrepp, relationer och 
+      egenskaper. Ontologier används för att organisera information, möjliggöra semantisk interoperabilitet och 
+      stödja dataintegration genom att tillhandahålla ett gemensamt vokabulär.
+    </p>
+    <p>
+      I denna databas finns olika ontologier som kan laddas ner i flera format som RDF/XML, Turtle, N-Triples och JSON-LD.
+    </p>
+  </div>
+</section>
 
-<h2>Kategorier</h2>
+<h2>Tillgängliga ontologier</h2>
 
-<ul class="category-list">
-  {{#each categories}}
-    <li class="category-item">
-      <a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
-        {{this.label}}
-      </a>
-    </li>
+<div class="ontology-grid">
+  {{#each ontologies}}
+    <div class="ontology-card">
+      <div class="ontology-card-header">
+        <h3>
+          <a href="/ontology/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+            {{this.title}}
+          </a>
+        </h3>
+      </div>
+      <div class="ontology-card-body">
+        {{#if this.description}}
+          <p class="description">{{truncate this.description 150}}</p>
+        {{else}}
+          <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
+        {{/if}}
+        
+        <div class="ontology-stats">
+          <span class="stat"><strong>Klasser:</strong> {{this.stats.classes}}</span>
+          <span class="stat"><strong>Egenskaper:</strong> {{this.stats.properties}}</span>
+          <span class="stat"><strong>Individer:</strong> {{this.stats.individuals}}</span>
+        </div>
+      </div>
+      <div class="ontology-card-footer">
+        <a href="/ontology/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa detaljer</a>
+      </div>
+    </div>
   {{/each}}
 
-  {{#unless categories.length}}
-    <li>❌ Inga kategorier hittades i databasen.</li>
+  {{#unless ontologies.length}}
+    <div class="no-data-message">
+      <p>❌ Inga ontologier hittades i databasen.</p>
+    </div>
   {{/unless}}
-</ul>
+</div>
 
 <div class="action-links">
   <a href="/search?showLabels={{showLabels}}" class="btn">Sök i databasen</a>
