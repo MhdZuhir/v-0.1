@@ -1,32 +1,32 @@
 
-<h1>{{title}}</h1>
-
-<div class="filter-options">
+  <h1>{{title}}</h1>
+  <div class="filter-options">
   <a href="?showLabels=true" class="{{#if showLabels}}active{{/if}}">Visa med etiketter</a> |
-  <a href="?showLabels=false" class="{{#unless showLabels}}active{{/unless}}">Visa utan etiketter</a>
-</div>
+    <a href="?showLabels=false" class="{{#unless showLabels}}active{{/unless}}">Visa utan etiketter</a>
+  </div>
 
-<table class="data-table">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Artikelnummer</th>
-      <th>Färg</th>
-      <th>Lumen</th>
-      <th>CCT</th>
-      <th>Länk</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{#each entries}}
+  <table class="data-table">
+    <thead>
       <tr>
-        <td>{{id}}</td>
-        <td>{{articleNumber}}</td>
-        <td>{{color}}</td>
-        <td>{{lumenOutput}}</td>
-        <td>{{cct}}</td>
-        <td><a href="/resource?uri={{encodeURIComponent uri}}&showLabels={{../showLabels}}">Visa</a></td>
+        <th>ID</th>
+        <th>Artikelnummer</th>
+        <th>Färg</th>
+        <th>Lumen</th>
+        <th>CCT</th>
+        <th>Länk</th>
       </tr>
-    {{/each}}
-  </tbody>
-</table>
+    </thead>
+    <tbody>
+      {{#each entries}}
+        <tr>
+          <td>{{id}}</td>
+          <td>{{articleNumber}}</td>
+          <td>{{color}}</td>
+          <td>{{lumenOutput}}</td>
+          <td>{{cct}}</td>
+          <td><a href="/resource?uri={{encodeURIComponent uri}}&showLabels={{../showLabels}}">Visa</a></td>
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+  
