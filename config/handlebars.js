@@ -31,6 +31,17 @@ exports.setup = (app) => {
       truncate: (text, length) => {
         if (!text) return '';
         return text.length <= length ? text : text.substring(0, length) + '...';
+      },
+      // New helper for concatenating strings
+      concat: function() {
+        let result = '';
+        for (let i = 0; i < arguments.length; i++) {
+          if (typeof arguments[i] === 'string' || typeof arguments[i] === 'number') {
+            result += arguments[i];
+          }
+        }
+        // Remove the last argument which is the Handlebars options object
+        return result;
       }
     }
   }));

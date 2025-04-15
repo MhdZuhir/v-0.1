@@ -1,3 +1,4 @@
+// views/ontology-detail.handlebars
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   <li>{{ontology.title}}</li>
@@ -81,6 +82,37 @@
             <td>{{ontology.stats.individuals}}</td>
           </tr>
         </table>
+      </div>
+    </div>
+    
+    <!-- Add debugging tool to explore classes -->
+    <div class="property-group">
+      <div class="property-group-header">Utforska ontologin</div>
+      <div class="property-group-content">
+        <p>Använd dessa länkar för att utforska innehållet i ontologin:</p>
+        
+        <ul style="list-style: none; padding-left: 0; margin-top: 15px;">
+          <li style="margin-bottom: 10px;">
+            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?class ?label WHERE { { ?class a <http://www.w3.org/2002/07/owl#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } UNION { ?class a <http://www.w3.org/2000/01/rdf-schema#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?class LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
+              Visa klasser
+            </a>
+          </li>
+          <li style="margin-bottom: 10px;">
+            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?property ?label WHERE { { ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?property LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
+              Visa egenskaper
+            </a>
+          </li>
+          <li style="margin-bottom: 10px;">
+            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?individual ?label WHERE { { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> . FILTER(STRSTARTS(STR(?individual), STR(<' ontology.uri '>))) } UNION { ?individual a ?class . ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> } } OPTIONAL { ?individual <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?individual LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
+              Visa individer
+            </a>
+          </li>
+          <li>
+            <a href="/graphdb?query={{encodeURIComponent (concat 'SELECT * WHERE { ?s ?p ?o . FILTER(STRSTARTS(STR(?s), STR(<' ontology.uri '>))) } LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
+              Visa alla triplar
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   </div>

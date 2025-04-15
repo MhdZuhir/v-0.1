@@ -156,40 +156,71 @@ async function getOntologyStats(uri) {
   try {
     const safeUri = sanitizeSparqlString(uri);
     
-    // Query to count classes in the ontology
+    // Query to count classes in the ontology - IMPROVED
     const classesQuery = `
       SELECT (COUNT(DISTINCT ?class) AS ?count) WHERE {
         {
           ?class a <http://www.w3.org/2002/07/owl#Class> .
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          {
+            ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+          }
         } UNION {
           ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          {
+            ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+          }
         }
       }
     `;
     
-    // Query to count properties in the ontology
+    // Query to count properties in the ontology - IMPROVED
     const propertiesQuery = `
       SELECT (COUNT(DISTINCT ?property) AS ?count) WHERE {
         {
           ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> .
-          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          {
+            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
+          }
         } UNION {
           ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> .
-          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          {
+            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
+          }
         } UNION {
           ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> .
-          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          {
+            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
+          }
         }
       }
     `;
     
-    // Query to count individuals in the ontology
+    // Query to count individuals in the ontology - IMPROVED
     const individualsQuery = `
       SELECT (COUNT(DISTINCT ?individual) AS ?count) WHERE {
-        ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
-        ?individual <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+        {
+          ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
+          {
+            ?individual <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?individual), STR(<${safeUri}>)))
+          }
+        } UNION {
+          # Also count instances of classes defined in the ontology
+          ?individual a ?class .
+          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> }
+        }
       }
     `;
     
@@ -223,7 +254,7 @@ async function getOntologyStats(uri) {
 /**
  * Get download URL for an ontology in a specific format
  * @param {string} uri - Ontology URI
- * @param {string} format - Download format (e.g., 'rdf', 'ttl', 'json-ld')
+ * @param {string} format - Download format MIME type (e.g., 'application/rdf+xml')
  * @returns {string} - Download URL
  */
 function getDownloadUrl(uri, format) {

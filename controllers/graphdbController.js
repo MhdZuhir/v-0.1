@@ -20,9 +20,20 @@ exports.getDiagnosticPage = async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
+    // Allow a custom query for diagnostics
+    const customQuery = req.query.query;
+    const query = customQuery || `
+      SELECT ?s ?p ?o WHERE { 
+        ?s ?p ?o 
+        FILTER(STRSTARTS(STR(?s), "http://www.w3id.org/")) 
+      } 
+      LIMIT 20
+    `;
+    
+    debugInfo.query = query;
+    
     try {
-      const query = `SELECT ?s ?p ?o WHERE { ?s ?p ?o } LIMIT 10`;
-      debugInfo.query = query;
+      console.log(`Executing diagnostic query: ${query}`);
       
       const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
         headers: { 'Accept': 'application/sparql-results+json' },
@@ -39,15 +50,93 @@ exports.getDiagnosticPage = async (req, res) => {
         if (bindings.length > 0) {
           const firstRow = bindings[0];
           debugInfo.firstRowKeys = Object.keys(firstRow);
+          
+          // Inspect the structure of the first row more deeply
+          debugInfo.firstRowStructure = {};
+          for (const key in firstRow) {
+            const cell = firstRow[key];
+            debugInfo.firstRowStructure[key] = {
+              type: cell.type,
+              hasValue: cell.value !== undefined,
+              value: cell.value ? cell.value.substring(0, 50) + (cell.value.length > 50 ? '...' : '') : null
+            };
+          }
         }
       } else {
         debugInfo.unexpectedResponseStructure = true;
+        debugInfo.responsePreview = JSON.stringify(response.data).substring(0, 500);
         errorMessage = "GraphDB response doesn't have the expected structure";
       }
     } catch (dbErr) {
       console.error('Error querying GraphDB:', dbErr);
       errorMessage = "Could not retrieve data from GraphDB. " + dbErr.message;
       debugInfo.error = dbErr.message;
+      debugInfo.errorStack = dbErr.stack;
+    }
+    
+    // Add ontology detection for debugging
+    try {
+      const ontologyQuery = `
+        SELECT DISTINCT ?ontology WHERE {
+          {
+            ?ontology a <http://www.w3.org/2002/07/owl#Ontology> .
+          } UNION {
+            ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?ontology .
+          } UNION {
+            ?s <http://www.w3.org/2002/07/owl#imports> ?ontology .
+          }
+        }
+        LIMIT 10
+      `;
+      
+      const ontologyResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+        headers: { 'Accept': 'application/sparql-results+json' },
+        params: { query: ontologyQuery }
+      });
+      
+      if (ontologyResponse.data && ontologyResponse.data.results && Array.isArray(ontologyResponse.data.results.bindings)) {
+        const ontologies = ontologyResponse.data.results.bindings.map(binding => binding.ontology.value);
+        debugInfo.detectedOntologies = ontologies;
+        
+        // For the first ontology, get class and property counts to debug the stats issue
+        if (ontologies.length > 0) {
+          const testOntology = ontologies[0];
+          
+          // Test the class counting query
+          const classTestQuery = `
+            SELECT (COUNT(DISTINCT ?class) AS ?count) WHERE {
+              {
+                ?class a <http://www.w3.org/2002/07/owl#Class> .
+                {
+                  ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${testOntology}> .
+                } UNION {
+                  FILTER(STRSTARTS(STR(?class), STR(<${testOntology}>)))
+                }
+              } UNION {
+                ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
+                {
+                  ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${testOntology}> .
+                } UNION {
+                  FILTER(STRSTARTS(STR(?class), STR(<${testOntology}>)))
+                }
+              }
+            }
+          `;
+          
+          const classResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+            headers: { 'Accept': 'application/sparql-results+json' },
+            params: { query: classTestQuery }
+          });
+          
+          if (classResponse.data && classResponse.data.results && classResponse.data.results.bindings.length > 0) {
+            debugInfo.testOntology = testOntology;
+            debugInfo.testClassCount = classResponse.data.results.bindings[0].count?.value || '0';
+          }
+        }
+      }
+    } catch (ontErr) {
+      console.error('Error in ontology detection:', ontErr);
+      debugInfo.ontologyError = ontErr.message;
     }
     
     debugInfo.originalCount = bindings.length;
@@ -58,7 +147,8 @@ exports.getDiagnosticPage = async (req, res) => {
       rows: bindings,
       labelMap: {},
       debug: debugInfo,
-      diagnosticMode: true
+      diagnosticMode: true,
+      showLabels: req.showLabels
     });
   } catch (err) {
     console.error('Unexpected error in /graphdb route:', err);
