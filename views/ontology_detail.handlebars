@@ -1,0 +1,125 @@
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li>{{ontology.title}}</li>
+</ul>
+
+<h1>{{ontology.title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-container">
+  <div class="resource-main">
+    {{#if ontology.description}}
+      <div class="resource-description">
+        {{ontology.description}}
+      </div>
+    {{/if}}
+    
+    <div class="property-group">
+      <div class="property-group-header">Metadata</div>
+      <div class="property-group-content">
+        <table class="property-table">
+          {{#if ontology.creator}}
+            <tr>
+              <td class="property-name">Skapare</td>
+              <td>{{ontology.creator}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if ontology.publisher}}
+            <tr>
+              <td class="property-name">Utgivare</td>
+              <td>{{ontology.publisher}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if ontology.created}}
+            <tr>
+              <td class="property-name">Skapad</td>
+              <td>{{ontology.created}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if ontology.modified}}
+            <tr>
+              <td class="property-name">Senast ändrad</td>
+              <td>{{ontology.modified}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if ontology.version}}
+            <tr>
+              <td class="property-name">Version</td>
+              <td>{{ontology.version}}</td>
+            </tr>
+          {{/if}}
+        </table>
+      </div>
+    </div>
+    
+    <div class="property-group">
+      <div class="property-group-header">Statistik</div>
+      <div class="property-group-content">
+        <table class="property-table">
+          <tr>
+            <td class="property-name">Klasser</td>
+            <td>{{ontology.stats.classes}}</td>
+          </tr>
+          <tr>
+            <td class="property-name">Egenskaper</td>
+            <td>{{ontology.stats.properties}}</td>
+          </tr>
+          <tr>
+            <td class="property-name">Individer</td>
+            <td>{{ontology.stats.individuals}}</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="resource-sidebar">
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Nedladdningslänkar</div>
+      <div class="sidebar-box-content">
+        <ul class="download-links" style="list-style: none; padding: 0;">
+          {{#each downloadLinks}}
+            <li style="margin-bottom: 10px;">
+              <a href="{{this.url}}" class="btn" style="width: 100%; text-align: center;" download="ontology.{{this.extension}}">
+                Ladda ner som {{this.format}}
+              </a>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">URI</div>
+      <div class="sidebar-box-content">
+        <div class="resource-uri">
+          <code>{{ontology.uri}}</code>
+        </div>
+      </div>
+    </div>
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
+        </p>
+        <p>
+          <a href="/query?showLabels={{showLabels}}" class="btn" style="width: 100%;">Kör anpassad SPARQL-fråga</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
