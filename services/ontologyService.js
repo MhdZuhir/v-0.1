@@ -258,8 +258,8 @@ async function getOntologyStats(uri) {
  * @returns {string} - Download URL
  */
 function getDownloadUrl(uri, format) {
-  // GraphDB export URL - this may need to be adapted to your GraphDB setup
-  return `${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}/statements?infer=false&context=<${encodeURIComponent(uri)}>&format=${format}`;
+  // GraphDB export URL with Content-Disposition header parameter
+  return `${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}/statements?infer=false&context=<${encodeURIComponent(uri)}>&format=${encodeURIComponent(format)}&filename=ontology`;
 }
 
 module.exports = {

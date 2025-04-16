@@ -1,4 +1,4 @@
-// views/ontology-detail.handlebars
+<!-- views/ontology-detail.handlebars -->
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   <li>{{ontology.title}}</li>
@@ -124,7 +124,9 @@
         <ul class="download-links" style="list-style: none; padding: 0;">
           {{#each downloadLinks}}
             <li style="margin-bottom: 10px;">
-              <a href="{{this.url}}" class="btn" style="width: 100%; text-align: center;" download="ontology.{{this.extension}}">
+              <a href="{{this.url}}" 
+                 class="btn" 
+                 style="width: 100%; text-align: center;">
                 Ladda ner som {{this.format}}
               </a>
             </li>

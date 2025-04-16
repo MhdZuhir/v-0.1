@@ -6,4 +6,7 @@ const ontologyController = require('../controllers/ontologyController');
 // Ontology detail route
 router.get('/detail', ontologyController.getOntologyDetailPage);
 
-module.exports = router;
+// Add new download route
+router.get('/download', ontologyController.downloadOntology);
+
+module.exports = router;    
