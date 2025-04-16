@@ -106,10 +106,10 @@ exports.downloadOntology = async (req, res, next) => {
     
     // Map the format parameter to the correct MIME type and file extension
     const formatMap = {
-      'rdf': { contentType: 'application/rdf+xml', extension: 'rdf', mimeType: 'application/rdf+xml' },
-      'ttl': { contentType: 'text/turtle', extension: 'ttl', mimeType: 'text/turtle' },
-      'nt': { contentType: 'application/n-triples', extension: 'nt', mimeType: 'text/plain' },
-      'jsonld': { contentType: 'application/ld+json', extension: 'jsonld', mimeType: 'application/ld+json' }
+      'rdf': { contentType: 'application/rdf+xml', extension: 'rdf', acceptHeader: 'application/rdf+xml' },
+      'ttl': { contentType: 'text/turtle', extension: 'ttl', acceptHeader: 'text/turtle' },
+      'nt': { contentType: 'application/n-triples', extension: 'nt', acceptHeader: 'application/n-triples' },
+      'jsonld': { contentType: 'application/ld+json', extension: 'jsonld', acceptHeader: 'application/ld+json' }
     };
     
     const formatInfo = formatMap[format] || formatMap['rdf']; // Default to RDF if invalid format
@@ -124,37 +124,180 @@ exports.downloadOntology = async (req, res, next) => {
     
     const filename = `${filenameBase}.${formatInfo.extension}`;
     
-    // Create the GraphDB URL for fetching the ontology data
-    const graphdbUrl = `${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}/statements`;
+    // Create a SPARQL CONSTRUCT query instead of using the statements endpoint
+    const constructQuery = `
+      CONSTRUCT {
+        ?s ?p ?o
+      } WHERE {
+        {
+          # Get triples where the ontology URI is the subject
+          <${uri}> ?p ?o .
+          BIND(<${uri}> AS ?s)
+        } UNION {
+          # Get triples for classes defined in this ontology
+          ?s a ?type .
+          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${uri}> .
+          ?s ?p ?o .
+          FILTER(?type IN (<http://www.w3.org/2002/07/owl#Class>, <http://www.w3.org/2000/01/rdf-schema#Class>))
+        } UNION {
+          # Get triples for properties defined in this ontology
+          ?s a ?type .
+          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${uri}> .
+          ?s ?p ?o .
+          FILTER(?type IN (<http://www.w3.org/2002/07/owl#ObjectProperty>, <http://www.w3.org/2002/07/owl#DatatypeProperty>, <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>))
+        } UNION {
+          # Get triples for individuals defined in this ontology
+          ?s a ?type .
+          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${uri}> .
+          ?s ?p ?o .
+          FILTER(?type IN (<http://www.w3.org/2002/07/owl#NamedIndividual>))
+        } UNION {
+          # Get triples based on namespace
+          ?s ?p ?o .
+          FILTER(STRSTARTS(STR(?s), STR(<${uri}>)))
+        }
+      }
+    `;
     
     try {
-      // Fetch the data from GraphDB
-      const response = await axios.get(graphdbUrl, {
+      console.log(`Executing CONSTRUCT query for ontology download: ${uri} in format ${format}`);
+      
+      // Use the CONSTRUCT query approach instead of statements endpoint
+      const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
         params: {
-          infer: false,
-          context: `<${uri}>`,
-          format: formatInfo.mimeType
+          query: constructQuery
         },
         responseType: 'stream',
         headers: {
-          'Accept': formatInfo.contentType
+          'Accept': formatInfo.acceptHeader
         }
       });
       
-      // Set the response headers for proper download
-      res.setHeader('Content-Type', formatInfo.contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      // Check if the response is valid
+      if (response.status !== 200) {
+        throw new Error(`GraphDB returned status code ${response.status}`);
+      }
       
-      // Pipe the response stream to the client
-      response.data.pipe(res);
+      // Add some debugging to capture empty responses
+      let chunks = [];
+      let hasData = false;
+      let responseComplete = false;
+      
+      response.data.on('data', chunk => {
+        hasData = true;
+        chunks.push(chunk);
+      });
+      
+      response.data.on('end', () => {
+        responseComplete = true;
+        
+        // If we got no data at all, log this and return an error
+        if (!hasData || (chunks.length === 0)) {
+          console.error(`Empty response from GraphDB for ontology ${uri} in format ${format}`);
+          // Only send error if we haven't already sent headers
+          if (!res.headersSent) {
+            res.status(404).render('error', {
+              title: 'Error',
+              message: 'No data was returned for the requested ontology. The ontology may not exist or may not have any triples.'
+            });
+          }
+          return;
+        }
+        
+        // Otherwise, send the response to the client if we haven't already
+        if (!res.headersSent) {
+          // Set the response headers for proper download
+          res.setHeader('Content-Type', formatInfo.contentType);
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          
+          // Create a new stream from our chunks and pipe it to the response
+          const { Readable } = require('stream');
+          const dataStream = new Readable();
+          chunks.forEach(chunk => dataStream.push(chunk));
+          dataStream.push(null); // Signal the end of the stream
+          dataStream.pipe(res);
+        }
+      });
+      
+      response.data.on('error', (err) => {
+        console.error(`Stream error for ontology ${uri} in format ${format}:`, err);
+        if (!res.headersSent) {
+          res.status(500).render('error', {
+            title: 'Error',
+            message: 'Error streaming data from GraphDB: ' + err.message
+          });
+        }
+      });
+      
+      // Set a timeout to catch perpetually pending responses
+      setTimeout(() => {
+        if (!responseComplete && !res.headersSent) {
+          console.error(`Request timed out for ontology ${uri} in format ${format}`);
+          res.status(504).render('error', {
+            title: 'Error',
+            message: 'Request timed out waiting for data from GraphDB'
+          });
+        }
+      }, 30000); // 30 second timeout
     } catch (error) {
       console.error('Error fetching ontology data from GraphDB:', error);
       return res.status(500).render('error', {
         title: 'Error',
-        message: 'Failed to retrieve ontology data'
+        message: 'Failed to retrieve ontology data: ' + error.message
       });
     }
   } catch (err) {
     next(err);
+  }
+};
+
+/**
+ * Handle test download for debugging
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.testDownload = (req, res) => {
+  const { format = 'ttl' } = req.query;
+  
+  const formatMap = {
+    'rdf': { 
+      contentType: 'application/rdf+xml', 
+      data: '<?xml version="1.0"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ex="http://example.org/"><rdf:Description rdf:about="http://example.org/test"><rdf:type rdf:resource="http://example.org/Test"/></rdf:Description></rdf:RDF>' 
+    },
+    'ttl': { 
+      contentType: 'text/turtle', 
+      data: '@prefix ex: <http://example.org/> .\n@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n\nex:test rdf:type ex:Test .\n' 
+    },
+    'nt': { 
+      contentType: 'application/n-triples', 
+      data: '<http://example.org/test> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.org/Test> .\n' 
+    },
+    'jsonld': { 
+      contentType: 'application/ld+json', 
+      data: '{\n  "@context": {\n    "ex": "http://example.org/",\n    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"\n  },\n  "@id": "ex:test",\n  "@type": "ex:Test"\n}\n' 
+    }
+  };
+  
+  const formatInfo = formatMap[format] || formatMap['ttl'];
+  
+  res.setHeader('Content-Type', formatInfo.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="test.${format}"`);
+  res.send(formatInfo.data);
+};
+
+/**
+ * Get supported formats from GraphDB
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.getSupportedFormats = async (req, res) => {
+  try {
+    const formatResponse = await axios.get(`${graphdbConfig.endpoint}/protocol`);
+    res.json(formatResponse.data);
+  } catch (error) {
+    res.status(500).json({ 
+      error: error.message,
+      endpoint: graphdbConfig.endpoint
+    });
   }
 };
