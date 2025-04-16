@@ -242,6 +242,198 @@ async function fetchResourceProperties(uri) {
     return [];
   }
 }
+// Modified services/graphdbService.js
+// Add this new function to fetch products
+
+/**
+ * Fetch all products from the repository
+ * @returns {Promise<Array>} - Array of product objects
+ */
+async function fetchProducts() {
+  try {
+    console.log('Fetching products from GraphDB...');
+    
+    // Query to find products - adjust the product class URI based on your data model
+    // This example assumes products have a type/class of 'Product' or similar
+    const query = `
+      SELECT DISTINCT ?product ?name ?description ?category WHERE {
+        {
+          # Find entities with common product properties
+          ?product a ?type .
+          FILTER(?type IN (
+            <http://schema.org/Product>, 
+            <http://purl.org/goodrelations/v1#ProductOrService>,
+            <http://www.w3.org/ns/prov#Entity>,
+            <http://www.ontologi2025.se/product#Product>
+          ))
+          
+          # Get basic properties if available
+          OPTIONAL { 
+            ?product <http://schema.org/name> ?name .
+          }
+          OPTIONAL { 
+            ?product <http://schema.org/description> ?description .
+          }
+          OPTIONAL { 
+            ?product <http://schema.org/category> ?category .
+          }
+        }
+        UNION
+        {
+          # Alternative approach - find entities with typical product properties
+          ?product ?nameProperty ?name .
+          FILTER(?nameProperty IN (
+            <http://schema.org/name>,
+            <http://purl.org/dc/terms/title>,
+            <http://www.w3.org/2000/01/rdf-schema#label>
+          ))
+          
+          OPTIONAL {
+            ?product ?descProperty ?description .
+            FILTER(?descProperty IN (
+              <http://schema.org/description>,
+              <http://purl.org/dc/terms/description>,
+              <http://www.w3.org/2000/01/rdf-schema#comment>
+            ))
+          }
+          
+          OPTIONAL {
+            ?product ?catProperty ?category .
+            FILTER(?catProperty IN (
+              <http://schema.org/category>,
+              <http://purl.org/dc/terms/subject>
+            ))
+          }
+        }
+      }
+      ORDER BY ?product
+      LIMIT 100
+    `;
+    
+    const data = await executeQuery(query);
+    
+    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
+      console.error('Unexpected response structure from GraphDB when fetching products');
+      return [];
+    }
+    
+    console.log(`Found ${data.results.bindings.length} potential products`);
+    
+    // Process results
+    const products = data.results.bindings.map(binding => {
+      return {
+        uri: binding.product?.value || '',
+        name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Unnamed Product',
+        description: binding.description?.value || '',
+        category: binding.category?.value || ''
+      };
+    });
+    
+    return products;
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch detailed product information
+ * @param {string} uri - Product URI
+ * @returns {Promise<Object>} - Product details
+ */
+async function fetchProductDetails(uri) {
+  if (!uri) return null;
+  
+  try {
+    console.log(`Fetching details for product: ${uri}`);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to get all properties of the product
+    const query = `
+      SELECT ?property ?value WHERE {
+        <${safeUri}> ?property ?value .
+      }
+    `;
+    
+    const data = await executeQuery(query);
+    
+    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
+      console.error('Unexpected response structure from GraphDB when fetching product details');
+      return null;
+    }
+    
+    // Transform into a more usable structure
+    const details = {
+      uri: uri,
+      properties: {}
+    };
+    
+    // Group known property types
+    const propertyGroups = {
+      basic: ['http://schema.org/name', 'http://schema.org/description', 'http://www.w3.org/2000/01/rdf-schema#label'],
+      category: ['http://schema.org/category', 'http://purl.org/dc/terms/subject'],
+      price: ['http://schema.org/price', 'http://purl.org/goodrelations/v1#hasPriceSpecification'],
+      image: ['http://schema.org/image'],
+      // Add more property groups as needed
+    };
+    
+    // Initialize details object
+    details.name = '';
+    details.description = '';
+    details.category = '';
+    details.price = '';
+    details.image = '';
+    details.otherProperties = [];
+    
+    // Process each property
+    data.results.bindings.forEach(binding => {
+      const property = binding.property.value;
+      const value = binding.value;
+      
+      // Store in the appropriate place based on property URI
+      if (propertyGroups.basic.includes(property)) {
+        if (property.includes('name') || property.includes('label')) {
+          details.name = value.value;
+        } else if (property.includes('description')) {
+          details.description = value.value;
+        }
+      } else if (propertyGroups.category.includes(property)) {
+        details.category = value.value;
+      } else if (propertyGroups.price.includes(property)) {
+        details.price = value.value;
+      } else if (propertyGroups.image.includes(property)) {
+        details.image = value.value;
+      } else {
+        // Store other properties
+        details.otherProperties.push({
+          property: property,
+          value: value.value,
+          type: value.type
+        });
+      }
+      
+      // Also store raw properties
+      details.properties[property] = value.value;
+    });
+    
+    // If we don't have a name yet, use the last part of the URI
+    if (!details.name) {
+      details.name = uri.split(/[/#]/).pop() || uri;
+    }
+    
+    return details;
+  } catch (error) {
+    console.error(`Error fetching product details for ${uri}:`, error);
+    return null;
+  }
+}
+
+// Export the new functions
+module.exports = {
+  // ... existing exports
+  fetchProducts,
+  fetchProductDetails
+};
 
 module.exports = {
   executeQuery,

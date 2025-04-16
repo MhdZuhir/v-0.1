@@ -1,0 +1,131 @@
+<!-- views/products.handlebars -->
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<section class="intro-section">
+  <p>
+    Bläddra bland alla produkter i databasen.
+  </p>
+</section>
+
+<h2>Produkter</h2>
+
+<div class="product-grid">
+  {{#each products}}
+    <div class="product-card">
+      <div class="product-card-header">
+        <h3>
+          <a href="/products/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+            {{this.displayName}}
+          </a>
+        </h3>
+      </div>
+      <div class="product-card-body">
+        {{#if this.description}}
+          <p class="description">{{truncate this.description 150}}</p>
+        {{else}}
+          <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
+        {{/if}}
+        
+        {{#if this.category}}
+          <div class="product-category">
+            <span class="stat"><strong>Kategori:</strong> {{this.category}}</span>
+          </div>
+        {{/if}}
+      </div>
+      <div class="product-card-footer">
+        <a href="/products/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa detaljer</a>
+      </div>
+    </div>
+  {{/each}}
+
+  {{#unless products.length}}
+    <div class="no-data-message">
+      <p>❌ Inga produkter hittades i databasen.</p>
+      <p>Försök att bläddra bland <a href="/ontology">ontologier</a> istället.</p>
+    </div>
+  {{/unless}}
+</div>
+
+<div class="action-links">
+  <a href="/search?showLabels={{showLabels}}" class="btn">Sök i databasen</a>
+  <a href="/graphdb?showLabels={{showLabels}}" class="btn">Visa alla data</a>
+  <a href="/query?showLabels={{showLabels}}" class="btn">Kör anpassad SPARQL-fråga</a>
+  <a href="/ontology?showLabels={{showLabels}}" class="btn">Bläddra bland ontologier</a>
+</div>
+
+<style>
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 20px;
+    margin: 20px 0;
+  }
+  
+  .product-card {
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background-color: #fff;
+  }
+  
+  .product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .product-card-header {
+    padding: 15px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #f8f9fa;
+  }
+  
+  .product-card-header h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+  
+  .product-card-body {
+    padding: 15px;
+  }
+  
+  .product-card-body .description {
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #555;
+    height: 60px;
+    overflow: hidden;
+  }
+  
+  .product-category {
+    padding: 10px 0;
+    border-top: 1px solid #eaecf0;
+    font-size: 13px;
+  }
+  
+  .product-card-footer {
+    padding: 15px;
+    border-top: 1px solid #eaecf0;
+    text-align: center;
+  }
+  
+  .product-card-footer .btn {
+    width: 100%;
+  }
+  
+  @media (max-width: 768px) {
+    .product-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

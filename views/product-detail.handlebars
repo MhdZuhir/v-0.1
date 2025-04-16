@@ -1,0 +1,148 @@
+<!-- views/product-detail.handlebars -->
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li><a href="/products?showLabels={{showLabels}}">Produkter</a></li>
+  <li>{{product.name}}</li>
+</ul>
+
+<h1>{{product.name}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-container">
+  <div class="resource-main">
+    {{#if product.description}}
+      <div class="resource-description">
+        {{product.description}}
+      </div>
+    {{/if}}
+    
+    {{#if product.category}}
+      <div class="property-group">
+        <div class="property-group-header">Kategori</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            <tr>
+              <td>{{product.category}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    {{/if}}
+    
+    {{#if product.price}}
+      <div class="property-group">
+        <div class="property-group-header">Pris</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            <tr>
+              <td>{{product.price}}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    {{/if}}
+    
+    {{#if product.otherProperties.length}}
+      <div class="property-group">
+        <div class="property-group-header">Övriga egenskaper</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            {{#each product.otherProperties}}
+              <tr>
+                <td class="property-name">
+                  {{#if (eq this.type "uri")}}
+                    <a href="/resource?uri={{encodeURIComponent this.property}}&showLabels={{../showLabels}}">
+                      {{#if ../showLabels}}
+                        {{lookup ../labelMap this.property}}
+                      {{else}}
+                        {{this.property}}
+                      {{/if}}
+                    </a>
+                  {{else}}
+                    {{this.property}}
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if (eq this.type "uri")}}
+                    <a href="/resource?uri={{encodeURIComponent this.value}}&showLabels={{../showLabels}}">
+                      {{#if ../showLabels}}
+                        {{lookup ../labelMap this.value}}
+                      {{else}}
+                        {{this.value}}
+                      {{/if}}
+                    </a>
+                  {{else}}
+                    {{this.value}}
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </table>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="resource-sidebar">
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Produktinformation</div>
+      <div class="sidebar-box-content">
+        <div class="resource-uri">
+          <strong>URI:</strong> <code>{{product.uri}}</code>
+        </div>
+      </div>
+    </div>
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/products?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Alla produkter</a>
+        </p>
+        <p>
+          <a href="/resource?uri={{encodeURIComponent product.uri}}&showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Visa som resurs</a>
+        </p>
+        <p>
+          <a href="/query?showLabels={{showLabels}}" class="btn" style="width: 100%;">Kör anpassad SPARQL-fråga</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Additional product-specific styling */
+  .product-image {
+    max-width: 100%;
+    height: auto;
+    margin-bottom: 20px;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+  }
+  
+  .product-price {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 15px 0;
+  }
+  
+  .product-category-tag {
+    display: inline-block;
+    background-color: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+    padding: 5px 10px;
+    font-size: 0.9em;
+    margin-right: 5px;
+    margin-bottom: 5px;
+  }
+</style>

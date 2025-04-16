@@ -10,6 +10,7 @@ const { sanitizeSparqlString } = require('../utils/sparqlUtils');
  */
 async function executeQuery(query) {
   try {
+    console.log('Executing query:', query);
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
       headers: { 'Accept': 'application/sparql-results+json' },
       params: { query }
@@ -17,7 +18,12 @@ async function executeQuery(query) {
     
     return response.data;
   } catch (error) {
-    console.error('Error executing GraphDB query:', error);
+    console.error('Error executing GraphDB query:', error.message);
+    // Print more details if available
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
     throw error;
   }
 }
@@ -28,37 +34,72 @@ async function executeQuery(query) {
  */
 async function fetchOntologies() {
   try {
-    // Query to find all ontology IRIs
+    // Improved query to find all ontology IRIs with better UNION structure
     const query = `
       SELECT DISTINCT ?ontology WHERE {
         {
           ?ontology a <http://www.w3.org/2002/07/owl#Ontology> .
-        } UNION {
+        } 
+        UNION 
+        {
           ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?ontology .
-        } UNION {
+        } 
+        UNION 
+        {
           ?s <http://www.w3.org/2002/07/owl#imports> ?ontology .
         }
       }
       ORDER BY ?ontology
     `;
     
+    console.log('Fetching all ontologies...');
     const data = await executeQuery(query);
-    const ontologyUris = data.results.bindings.map(binding => binding.ontology.value);
     
-    // Get metadata for each ontology
-    const ontologies = await Promise.all(
-      ontologyUris.map(async uri => {
-        const metadata = await fetchOntologyMetadata(uri);
-        return {
-          uri,
-          ...metadata
-        };
-      })
-    );
+    if (!data || !data.results || !data.results.bindings) {
+      console.error('Unexpected response format when fetching ontologies:', JSON.stringify(data).substring(0, 500));
+      return [];
+    }
     
-    return ontologies;
+    console.log(`Found ${data.results.bindings.length} ontologies`);
+    const ontologyUris = data.results.bindings
+      .filter(binding => binding.ontology && binding.ontology.value)
+      .map(binding => binding.ontology.value);
+    
+    // Get metadata for each ontology using Promise.all for parallel processing
+    // but with a limit to prevent overwhelming the server
+    const results = [];
+    const batchSize = 5; // Process 5 ontologies at a time
+    
+    for (let i = 0; i < ontologyUris.length; i += batchSize) {
+      const batch = ontologyUris.slice(i, i + batchSize);
+      const batchResults = await Promise.all(
+        batch.map(async uri => {
+          try {
+            const metadata = await fetchOntologyMetadata(uri);
+            return {
+              uri,
+              ...metadata
+            };
+          } catch (err) {
+            console.error(`Error fetching metadata for ${uri}:`, err.message);
+            return {
+              uri,
+              title: uri.split(/[/#]/).pop() || uri,
+              description: "Could not load ontology metadata",
+              error: true,
+              stats: { classes: 0, properties: 0, individuals: 0 }
+            };
+          }
+        })
+      );
+      
+      results.push(...batchResults);
+    }
+    
+    console.log(`Successfully processed ${results.length} ontologies`);
+    return results;
   } catch (error) {
-    console.error('Error fetching ontologies:', error);
+    console.error('Error fetching ontologies:', error.message);
     return [];
   }
 }
@@ -70,6 +111,7 @@ async function fetchOntologies() {
  */
 async function fetchOntologyMetadata(uri) {
   try {
+    console.log(`Fetching metadata for ontology: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     const query = `
       SELECT ?p ?o WHERE {
@@ -93,7 +135,18 @@ async function fetchOntologyMetadata(uri) {
     `;
     
     const data = await executeQuery(query);
+    
+    if (!data || !data.results || !data.results.bindings) {
+      console.error('Unexpected response format when fetching ontology metadata:', JSON.stringify(data).substring(0, 500));
+      return {
+        title: uri.split(/[/#]/).pop() || uri,
+        description: null,
+        stats: { classes: 0, properties: 0, individuals: 0 }
+      };
+    }
+    
     const results = data.results.bindings;
+    console.log(`Found ${results.length} metadata properties for ${uri}`);
     
     // Extract metadata from results
     const metadata = {
@@ -133,98 +186,111 @@ async function fetchOntologyMetadata(uri) {
       metadata.title = uriParts[uriParts.length - 1] || uri;
     }
     
-    // Count classes, properties, and individuals
-    const stats = await getOntologyStats(uri);
-    metadata.stats = stats;
+    // Count classes, properties, and individuals with improved queries
+    try {
+      const stats = await getOntologyStats(uri);
+      metadata.stats = stats;
+    } catch (statsError) {
+      console.error(`Error getting stats for ${uri}:`, statsError.message);
+      metadata.stats = { classes: 0, properties: 0, individuals: 0 };
+    }
     
     return metadata;
   } catch (error) {
-    console.error(`Error fetching metadata for ontology ${uri}:`, error);
+    console.error(`Error fetching metadata for ontology ${uri}:`, error.message);
     return {
       title: uri.split(/[/#]/).pop() || uri,
-      description: null
+      description: null,
+      stats: { classes: 0, properties: 0, individuals: 0 }
     };
   }
 }
 
 /**
- * Get statistics for an ontology
+ * Get statistics for an ontology with improved and simplified queries
  * @param {string} uri - Ontology URI
  * @returns {Promise<Object>} - Ontology statistics
  */
 async function getOntologyStats(uri) {
   try {
+    console.log(`Getting stats for ontology: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     
-    // Query to count classes in the ontology - IMPROVED
+    // Simplified query to count classes in the ontology
     const classesQuery = `
       SELECT (COUNT(DISTINCT ?class) AS ?count) WHERE {
         {
           ?class a <http://www.w3.org/2002/07/owl#Class> .
-          {
-            ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-          }
-        } UNION {
+          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+        } 
+        UNION 
+        {
           ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
-          {
-            ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-          }
+          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+        }
+        UNION
+        {
+          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?class a ?type .
+          FILTER(?type IN (<http://www.w3.org/2002/07/owl#Class>, <http://www.w3.org/2000/01/rdf-schema#Class>))
         }
       }
     `;
     
-    // Query to count properties in the ontology - IMPROVED
+    // Simplified query to count properties
     const propertiesQuery = `
       SELECT (COUNT(DISTINCT ?property) AS ?count) WHERE {
         {
-          ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> .
-          {
-            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
-          }
-        } UNION {
-          ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> .
-          {
-            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
-          }
-        } UNION {
-          ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> .
-          {
-            ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
-          }
+          ?property a ?type .
+          FILTER(?type IN (
+            <http://www.w3.org/2002/07/owl#ObjectProperty>, 
+            <http://www.w3.org/2002/07/owl#DatatypeProperty>,
+            <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>
+          ))
+          FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
+        }
+        UNION
+        {
+          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?property a ?type .
+          FILTER(?type IN (
+            <http://www.w3.org/2002/07/owl#ObjectProperty>, 
+            <http://www.w3.org/2002/07/owl#DatatypeProperty>,
+            <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>
+          ))
         }
       }
     `;
     
-    // Query to count individuals in the ontology - IMPROVED
+    // Simplified query to count individuals
     const individualsQuery = `
       SELECT (COUNT(DISTINCT ?individual) AS ?count) WHERE {
         {
           ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
-          {
-            ?individual <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?individual), STR(<${safeUri}>)))
-          }
-        } UNION {
-          # Also count instances of classes defined in the ontology
+          FILTER(STRSTARTS(STR(?individual), STR(<${safeUri}>)))
+        }
+        UNION
+        {
+          ?individual <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
+        }
+        UNION
+        {
           ?individual a ?class .
           ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> }
+          FILTER NOT EXISTS { 
+            ?individual a <http://www.w3.org/2002/07/owl#Class> .
+            ?individual a <http://www.w3.org/2000/01/rdf-schema#Class> .
+            ?individual a <http://www.w3.org/2002/07/owl#ObjectProperty> .
+            ?individual a <http://www.w3.org/2002/07/owl#DatatypeProperty> .
+            ?individual a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> .
+          }
         }
       }
     `;
     
     // Execute all queries in parallel
+    console.log('Executing ontology stats queries...');
     const [classesResult, propertiesResult, individualsResult] = await Promise.all([
       executeQuery(classesQuery),
       executeQuery(propertiesQuery),
@@ -232,17 +298,19 @@ async function getOntologyStats(uri) {
     ]);
     
     // Extract counts from results
-    const classesCount = classesResult.results.bindings[0]?.count?.value || 0;
-    const propertiesCount = propertiesResult.results.bindings[0]?.count?.value || 0;
-    const individualsCount = individualsResult.results.bindings[0]?.count?.value || 0;
+    const classesCount = classesResult?.results?.bindings[0]?.count?.value || 0;
+    const propertiesCount = propertiesResult?.results?.bindings[0]?.count?.value || 0;
+    const individualsCount = individualsResult?.results?.bindings[0]?.count?.value || 0;
+    
+    console.log(`Stats for ${uri}: Classes=${classesCount}, Properties=${propertiesCount}, Individuals=${individualsCount}`);
     
     return {
-      classes: parseInt(classesCount),
-      properties: parseInt(propertiesCount),
-      individuals: parseInt(individualsCount)
+      classes: parseInt(classesCount, 10),
+      properties: parseInt(propertiesCount, 10),
+      individuals: parseInt(individualsCount, 10)
     };
   } catch (error) {
-    console.error(`Error getting stats for ontology ${uri}:`, error);
+    console.error(`Error getting stats for ontology ${uri}:`, error.message);
     return {
       classes: 0,
       properties: 0,
