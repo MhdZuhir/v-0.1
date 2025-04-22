@@ -142,3 +142,83 @@ function initializeDisplayToggle() {
       debugToggleBtn.addEventListener('click', toggleDebug);
     }
   });
+/**
+ * Ontology Visualization JavaScript
+ * Provides functionality for displaying relationships between ontology elements
+ */
+
+// Initialize ontology visualization functionality
+function initOntologyVisualization() {
+  console.log('Initializing ontology visualization features');
+  
+  // Setup event listeners for relationship visualization buttons
+  setupRelationshipVisualizers();
+  
+  // Setup product display enhancements
+  enhanceProductDisplay();
+}
+
+// Set up event listeners for relationship visualizer buttons
+function setupRelationshipVisualizers() {
+  const vizButtons = document.querySelectorAll('.viz-btn');
+  
+  vizButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      // Store the clicked state to highlight active visualization
+      vizButtons.forEach(btn => btn.classList.remove('active-viz'));
+      this.classList.add('active-viz');
+      
+      // We're using link navigation so we don't need additional handling here
+      // The SPARQL query embedded in the link will handle the data retrieval
+    });
+  });
+}
+
+// Enhance product display with additional hover effects and functionality
+function enhanceProductDisplay() {
+  const productCards = document.querySelectorAll('.product-card');
+  
+  productCards.forEach(card => {
+    // Add hover animations and effects
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-5px)';
+      this.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.1)';
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+      this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
+    });
+  });
+}
+
+// Function to display relationship details
+function showRelationshipDetails(relationshipId) {
+  // Find the relationship details element
+  const detailsElement = document.getElementById(`relationship-details-${relationshipId}`);
+  
+  if (detailsElement) {
+    // Toggle visibility
+    const isHidden = detailsElement.style.display === 'none' || !detailsElement.style.display;
+    detailsElement.style.display = isHidden ? 'block' : 'none';
+    
+    // Update the button text
+    const button = document.querySelector(`[data-relationship-id="${relationshipId}"]`);
+    if (button) {
+      button.textContent = isHidden ? 'Hide Details' : 'View Details';
+    }
+  }
+}
+
+// Initialize when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+  initOntologyVisualization();
+  
+  // Add event listener to the display toggle to refresh visualizations when labels are toggled
+  const displayToggle = document.getElementById('displayToggle');
+  if (displayToggle) {
+    displayToggle.addEventListener('change', function() {
+      // Current page may reload due to label toggle, so no additional handling needed
+    });
+  }
+});

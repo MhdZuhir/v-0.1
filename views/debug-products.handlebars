@@ -1,0 +1,134 @@
+<!-- views/debug-products.handlebars -->
+<h1>{{title}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<h2>Alla produkter ({{products.length}})</h2>
+
+<div class="filter-panel">
+  <input type="text" id="productFilter" placeholder="Filtrera produkter..." class="form-control">
+</div>
+
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>URI</th>
+      <th>Namn</th>
+      <th>Beskrivning</th>
+      <th>Typ</th>
+      <th>Åtgärder</th>
+    </tr>
+  </thead>
+  <tbody id="productTableBody">
+    {{#each products}}
+      <tr class="product-row">
+        <td><code class="product-uri">{{this.uri}}</code></td>
+        <td class="product-name">{{this.name}}</td>
+        <td>{{truncate this.description 100}}</td>
+        <td>
+          {{#if this.isNotor}}
+            <span class="product-tag notor-tag">Notor65</span>
+          {{else}}
+            <span class="product-tag generic-tag">Generisk</span>
+          {{/if}}
+        </td>
+        <td>
+          <a href="/product/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn btn-small">Visa</a>
+        </td>
+      </tr>
+    {{/each}}
+    
+    {{#unless products.length}}
+      <tr><td colspan="5" class="no-data">Inga produkter hittades.</td></tr>
+    {{/unless}}
+  </tbody>
+</table>
+
+<div class="action-links">
+  <a href="/?showLabels={{showLabels}}" class="btn">Tillbaka till startsidan</a>
+  <a href="/ontology/rebuild-products?showLabels={{showLabels}}" class="btn">Återskapa produktindex</a>
+</div>
+
+<script>
+  // Client-side filtering functionality
+  document.addEventListener('DOMContentLoaded', function() {
+    const filterInput = document.getElementById('productFilter');
+    
+    if (filterInput) {
+      filterInput.addEventListener('input', function() {
+        const filterValue = this.value.toLowerCase();
+        const rows = document.querySelectorAll('.product-row');
+        
+        rows.forEach(row => {
+          const uri = row.querySelector('.product-uri').textContent.toLowerCase();
+          const name = row.querySelector('.product-name').textContent.toLowerCase();
+          
+          if (uri.includes(filterValue) || name.includes(filterValue)) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      });
+    }
+  });
+</script>
+
+<style>
+  .filter-panel {
+    margin: 20px 0;
+  }
+  
+  .filter-panel input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+  }
+  
+  .product-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .notor-tag {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+  
+  .generic-tag {
+    background-color: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .btn-small {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+  
+  .no-data {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-style: italic;
+  }
+  
+  .action-links {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+  }
+</style>

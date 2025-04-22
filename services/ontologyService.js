@@ -251,14 +251,193 @@ async function fetchOntologyMetadata(uri) {
       metadata.stats = { classes: 0, properties: 0, individuals: 0 };
     }
     
+    // Fetch products related to this ontology
+    try {
+      const products = await fetchProductsForOntology(uri);
+      metadata.products = products;
+    } catch (productsError) {
+      console.error(`Error fetching products for ${uri}:`, productsError.message);
+      metadata.products = [];
+    }
+    
+    // Fetch key relationships in the ontology
+    try {
+      const relationships = await fetchOntologyRelationships(uri);
+      metadata.relationships = relationships;
+    } catch (relError) {
+      console.error(`Error fetching relationships for ${uri}:`, relError.message);
+      metadata.relationships = [];
+    }
+    
     return metadata;
   } catch (error) {
     console.error(`Error fetching metadata for ontology ${uri}:`, error.message);
     return {
       title: uri.split(/[/#]/).pop() || uri,
       description: generateFallbackDescription(uri),
-      stats: { classes: 0, properties: 0, individuals: 0 }
+      stats: { classes: 0, properties: 0, individuals: 0 },
+      products: [],
+      relationships: []
     };
+  }
+}
+
+/**
+ * Fetch products related to a specific ontology
+ * @param {string} uri - Ontology URI
+ * @returns {Promise<Array>} - Array of products
+ */
+async function fetchProductsForOntology(uri) {
+  try {
+    console.log(`Fetching products for ontology: ${uri}`);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    const query = `
+      SELECT DISTINCT ?product ?name ?description ?type WHERE {
+        # Products defined by this ontology (using classes from this ontology)
+        {
+          ?product a ?type .
+          ?type <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          
+          # Get basic information
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
+        }
+        UNION
+        {
+          # Products with predicates from this ontology
+          ?product ?predicate ?object .
+          ?predicate <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          
+          # Get type information
+          OPTIONAL { ?product a ?type . }
+          
+          # Get basic information
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
+        }
+        UNION
+        {
+          # Special case for Notor65 products
+          ?product a <http://www.ontologi2025.se/notor65#Notor65_BetaOpti> .
+          FILTER(CONTAINS(STR(<${safeUri}>), "notor65"))
+          
+          BIND(<http://www.ontologi2025.se/notor65#Notor65_BetaOpti> AS ?type)
+          
+          # Get basic information
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
+        }
+      }
+      LIMIT 25
+    `;
+    
+    const data = await executeQuery(query);
+    
+    if (!data || !data.results || !data.results.bindings) {
+      return [];
+    }
+    
+    const products = data.results.bindings.map(binding => {
+      const productUri = binding.product?.value || '';
+      return {
+        uri: productUri,
+        name: binding.name?.value || productUri.split(/[/#]/).pop() || 'Unnamed Product',
+        description: binding.description?.value || '',
+        type: binding.type?.value || ''
+      };
+    });
+    
+    return products;
+  } catch (error) {
+    console.error(`Error fetching products for ontology ${uri}:`, error.message);
+    return [];
+  }
+}
+
+/**
+ * Fetch key relationships defined in the ontology
+ * @param {string} uri - Ontology URI
+ * @returns {Promise<Array>} - Array of relationships
+ */
+async function fetchOntologyRelationships(uri) {
+  try {
+    console.log(`Fetching relationships for ontology: ${uri}`);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to get object properties and their domains/ranges
+    const query = `
+      SELECT DISTINCT ?property ?propertyLabel ?domain ?domainLabel ?range ?rangeLabel WHERE {
+        # Get object properties defined in this ontology
+        {
+          ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> .
+          FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
+          
+          # Get domain and range if available
+          OPTIONAL { 
+            ?property <http://www.w3.org/2000/01/rdf-schema#domain> ?domain .
+            OPTIONAL { ?domain <http://www.w3.org/2000/01/rdf-schema#label> ?domainLabel . }
+          }
+          OPTIONAL { 
+            ?property <http://www.w3.org/2000/01/rdf-schema#range> ?range .
+            OPTIONAL { ?range <http://www.w3.org/2000/01/rdf-schema#label> ?rangeLabel . }  
+          }
+          OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?propertyLabel . }
+        }
+        UNION
+        {
+          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> .
+          
+          # Get domain and range if available
+          OPTIONAL { 
+            ?property <http://www.w3.org/2000/01/rdf-schema#domain> ?domain .
+            OPTIONAL { ?domain <http://www.w3.org/2000/01/rdf-schema#label> ?domainLabel . }
+          }
+          OPTIONAL { 
+            ?property <http://www.w3.org/2000/01/rdf-schema#range> ?range .
+            OPTIONAL { ?range <http://www.w3.org/2000/01/rdf-schema#label> ?rangeLabel . }  
+          }
+          OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?propertyLabel . }
+        }
+      }
+      LIMIT 50
+    `;
+    
+    const data = await executeQuery(query);
+    
+    if (!data || !data.results || !data.results.bindings) {
+      return [];
+    }
+    
+    const relationships = data.results.bindings.map(binding => {
+      const propertyUri = binding.property?.value || '';
+      const domainUri = binding.domain?.value || '';
+      const rangeUri = binding.range?.value || '';
+      
+      return {
+        property: {
+          uri: propertyUri,
+          label: binding.propertyLabel?.value || propertyUri.split(/[/#]/).pop() || 'Unnamed Property'
+        },
+        domain: {
+          uri: domainUri,
+          label: binding.domainLabel?.value || domainUri.split(/[/#]/).pop() || ''
+        },
+        range: {
+          uri: rangeUri,
+          label: binding.rangeLabel?.value || rangeUri.split(/[/#]/).pop() || ''
+        }
+      };
+    });
+    
+    return relationships;
+  } catch (error) {
+    console.error(`Error fetching relationships for ontology ${uri}:`, error.message);
+    return [];
   }
 }
 
@@ -430,5 +609,7 @@ module.exports = {
   fetchOntologies,
   fetchOntologyMetadata,
   getOntologyStats,
-  getDownloadUrl
+  getDownloadUrl,
+  fetchProductsForOntology,
+  fetchOntologyRelationships
 };

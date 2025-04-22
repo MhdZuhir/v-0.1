@@ -1,6 +1,7 @@
 // controllers/ontologyController.js
 const ontologyService = require('../services/ontologyService');
 const productService = require('../services/productService');
+const labelService = require('../services/labelService');
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 
@@ -73,17 +74,84 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       }
     ];
     
-    // Fetch products related to this ontology
-    const relatedProducts = await productService.fetchProductsByOntology(uri);
+    // Fetch additional data for enhanced ontology view
+    let products = [];
+    let relationships = [];
+    let labelMap = {};
+    
+    try {
+      // Get products related to this ontology 
+      if (!metadata.products) {
+        products = await ontologyService.fetchProductsForOntology(uri);
+      } else {
+        products = metadata.products;
+      }
+      
+      // Get relationships defined in this ontology
+      if (!metadata.relationships) {
+        relationships = await ontologyService.fetchOntologyRelationships(uri);
+      } else {
+        relationships = metadata.relationships;
+      }
+      
+      // Fetch labels for all URIs if needed
+      if (req.showLabels) {
+        // Collect all URIs that need labels
+        const urisToLabel = [uri];
+        
+        // Add product URIs 
+        products.forEach(product => {
+          urisToLabel.push(product.uri);
+          if (product.type) urisToLabel.push(product.type);
+        });
+        
+        // Add relationship URIs
+        relationships.forEach(rel => {
+          urisToLabel.push(rel.property.uri);
+          if (rel.domain.uri) urisToLabel.push(rel.domain.uri);
+          if (rel.range.uri) urisToLabel.push(rel.range.uri);
+        });
+        
+        // Fetch labels
+        labelMap = await labelService.fetchLabelsForUris(urisToLabel);
+        
+        // Update with fetched labels
+        products = products.map(product => ({
+          ...product,
+          name: labelMap[product.uri] || product.name,
+          typeLabel: product.type && labelMap[product.type] ? labelMap[product.type] : undefined
+        }));
+        
+        relationships = relationships.map(rel => ({
+          property: {
+            uri: rel.property.uri,
+            label: labelMap[rel.property.uri] || rel.property.label
+          },
+          domain: {
+            uri: rel.domain.uri,
+            label: rel.domain.uri && labelMap[rel.domain.uri] ? labelMap[rel.domain.uri] : rel.domain.label
+          },
+          range: {
+            uri: rel.range.uri,
+            label: rel.range.uri && labelMap[rel.range.uri] ? labelMap[rel.range.uri] : rel.range.label
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching additional ontology data:', error);
+      // Continue with what we have even if there was an error
+    }
     
     res.render('ontology-detail', {
       title: metadata.title || 'Ontology Details',
       ontology: {
         uri,
-        ...metadata
+        ...metadata,
+        products: products || [],
+        relationships: relationships || []
       },
       downloadLinks,
-      relatedProducts,
+      labelMap,
       showLabels: req.showLabels,
       showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });
@@ -257,7 +325,69 @@ exports.downloadOntology = async (req, res, next) => {
 };
 
 /**
- * Handle test download for debugging
+ * Fetch object relationships for an ontology
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.getOntologyRelationships = async (req, res, next) => {
+  try {
+    const { uri } = req.query;
+    
+    if (!uri) {
+      return res.status(400).json({
+        error: 'Missing ontology URI parameter'
+      });
+    }
+    
+    const relationships = await ontologyService.fetchOntologyRelationships(uri);
+    
+    res.json({
+      uri,
+      relationships,
+      count: relationships.length
+    });
+  } catch (err) {
+    console.error('Error getting ontology relationships:', err);
+    res.status(500).json({
+      error: 'Failed to fetch relationships: ' + err.message
+    });
+  }
+};
+
+/**
+ * Fetch products associated with an ontology
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.getOntologyProducts = async (req, res, next) => {
+  try {
+    const { uri } = req.query;
+    
+    if (!uri) {
+      return res.status(400).json({
+        error: 'Missing ontology URI parameter'
+      });
+    }
+    
+    const products = await ontologyService.fetchProductsForOntology(uri);
+    
+    res.json({
+      uri,
+      products,
+      count: products.length
+    });
+  } catch (err) {
+    console.error('Error getting ontology products:', err);
+    res.status(500).json({
+      error: 'Failed to fetch products: ' + err.message
+    });
+  }
+};
+
+/**
+ * Test download route for debugging
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
@@ -304,5 +434,93 @@ exports.getSupportedFormats = async (req, res) => {
       error: error.message,
       endpoint: graphdbConfig.endpoint
     });
+  }
+};
+// controllers/ontologyController.js - Add these additional functions
+
+/**
+ * Debug endpoint to list all products
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.debugProducts = async (req, res, next) => {
+  try {
+    const allProducts = await productService.fetchProducts();
+    
+    res.render('debug-products', {
+      title: 'Debug Products',
+      products: allProducts,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * View products related to a specific ontology
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.getOntologyProducts = async (req, res, next) => {
+  try {
+    const uri = req.query.uri;
+    
+    if (!uri) {
+      return res.status(400).render('error', {
+        title: 'Error',
+        message: 'No ontology URI provided'
+      });
+    }
+    
+    const metadata = await ontologyService.fetchOntologyMetadata(uri);
+    const products = await productService.fetchProductsByOntology(uri);
+    
+    res.render('ontology-products', {
+      title: `Products for ${metadata.title || 'Ontology'}`,
+      ontology: {
+        uri,
+        title: metadata.title || uri.split(/[/#]/).pop() || uri
+      },
+      products,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Rebuild product index by scanning for common product patterns
+ * This improved version actually scans the database for products
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.rebuildProductIndex = async (req, res, next) => {
+  try {
+    // First, detect products using the enhanced detection method
+    // This assumes you've added the detectProducts function to productService
+    console.log('Starting product index rebuild...');
+    const detectedProducts = await productService.detectProducts();
+    
+    console.log(`Detection complete. Found ${detectedProducts.length} products.`);
+    
+    // Render a results page instead of just redirecting
+    res.render('rebuild-results', {
+      title: 'Product Index Rebuild',
+      products: detectedProducts,
+      count: detectedProducts.length,
+      timestamp: new Date().toISOString(),
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    console.error('Error in rebuildProductIndex:', err);
+    next(err);
   }
 };
