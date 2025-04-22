@@ -1,5 +1,6 @@
 // controllers/ontologyController.js
 const ontologyService = require('../services/ontologyService');
+const productService = require('../services/productService');
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 
@@ -72,6 +73,9 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       }
     ];
     
+    // Fetch products related to this ontology
+    const relatedProducts = await productService.fetchProductsByOntology(uri);
+    
     res.render('ontology-detail', {
       title: metadata.title || 'Ontology Details',
       ontology: {
@@ -79,6 +83,7 @@ exports.getOntologyDetailPage = async (req, res, next) => {
         ...metadata
       },
       downloadLinks,
+      relatedProducts,
       showLabels: req.showLabels,
       showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });

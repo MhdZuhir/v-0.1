@@ -11,12 +11,10 @@ const queryRoutes = require('./queryRoutes');
 const searchRoutes = require('./searchRoutes');
 const graphdbRoutes = require('./graphdbRoutes');
 const notorRoutes = require('./notorRoutes');
-// We'll comment out the product routes until they're fully implemented
-// const productRoutes = require('./productRoutes'); 
+const productRoutes = require('./productRoutes');
 
 // Import controllers
 const ontologyController = require('../controllers/ontologyController');
-// const productController = require('../controllers/productController');
 
 // Apply label middleware to all routes
 router.use(labelMiddleware);
@@ -32,6 +30,6 @@ router.use('/query', queryRoutes);
 router.use('/search', searchRoutes);
 router.use('/graphdb', graphdbRoutes);
 router.use('/notor', notorRoutes);
-// router.use('/products', productRoutes); // We'll uncomment this later
+router.use('/products', productRoutes); // We're now using the product routes
 
 module.exports = router;

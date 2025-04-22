@@ -1,5 +1,5 @@
 // controllers/productController.js
-const graphdbService = require('../services/graphdbService');
+const productService = require('../services/productService');
 const labelService = require('../services/labelService');
 
 /**
@@ -12,9 +12,19 @@ exports.getProductListPage = async (req, res, next) => {
   try {
     console.log('Handling product list page request...');
     
-    // Fetch products from GraphDB
-    const products = await graphdbService.fetchProducts();
-    console.log(`Retrieved ${products.length} products to display`);
+    // Check if we're looking for a specific type of product
+    const productType = req.query.type;
+    let products = [];
+    
+    if (productType === 'notor') {
+      // Fetch Notor65 products specifically
+      products = await productService.fetchNotorProducts();
+      console.log(`Retrieved ${products.length} Notor65 products to display`);
+    } else {
+      // Fetch all products from GraphDB
+      products = await productService.fetchProducts();
+      console.log(`Retrieved ${products.length} products to display`);
+    }
     
     // Fetch labels if needed
     let labelMap = {};
@@ -29,11 +39,15 @@ exports.getProductListPage = async (req, res, next) => {
       displayName: req.showLabels && labelMap[product.uri] ? labelMap[product.uri] : product.name
     }));
     
-    res.render('products', {
-      title: 'Produkter',
+    // Determine which template to use based on product type
+    const viewTemplate = productType === 'notor' ? 'notor-products' : 'products';
+    
+    res.render(viewTemplate, {
+      title: productType === 'notor' ? 'Notor65 Produkter' : 'Produkter',
       products: enhancedProducts,
       showLabels: req.showLabels,
-      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+      showLabelsToggleState: req.showLabels ? 'false' : 'true',
+      productType: productType || 'all'
     });
   } catch (err) {
     console.error('Error in getProductListPage:', err);
@@ -59,7 +73,7 @@ exports.getProductDetailPage = async (req, res, next) => {
     }
     
     console.log(`Fetching product details for ${uri}`);
-    const productDetails = await graphdbService.fetchProductDetails(uri);
+    const productDetails = await productService.fetchProductDetails(uri);
     
     if (!productDetails) {
       return res.status(404).render('error', {
@@ -83,7 +97,10 @@ exports.getProductDetailPage = async (req, res, next) => {
       labelMap = await labelService.fetchLabelsForUris(uris);
     }
     
-    res.render('product-detail', {
+    // Determine which template to use based on product type
+    const viewTemplate = productDetails.isNotor ? 'notor-detail' : 'product-detail';
+    
+    res.render(viewTemplate, {
       title: productDetails.name,
       product: productDetails,
       labelMap,
@@ -92,6 +109,32 @@ exports.getProductDetailPage = async (req, res, next) => {
     });
   } catch (err) {
     console.error('Error in getProductDetailPage:', err);
+    next(err);
+  }
+};
+
+/**
+ * Handle notor products list page
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.getNotorProductsPage = async (req, res, next) => {
+  try {
+    console.log('Handling Notor65 products list request...');
+    
+    // Fetch Notor65 products specifically
+    const products = await productService.fetchNotorProducts();
+    console.log(`Retrieved ${products.length} Notor65 products to display`);
+    
+    res.render('notor-products', {
+      title: 'Notor65 Produkter',
+      products: products,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    console.error('Error in getNotorProductsPage:', err);
     next(err);
   }
 };
