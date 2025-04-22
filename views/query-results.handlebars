@@ -1,3 +1,4 @@
+<!-- views/query-results.handlebars -->
 <h1>{{title}}</h1>
 
 <div class="display-mode">
@@ -9,51 +10,123 @@
   <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
 </div>
 
-<table class="data-table">
-  <thead>
-    <tr>
-      {{#each headers}}
-        <th>{{this}}</th>
-      {{/each}}
-    </tr>
-  </thead>
-  <tbody>
-    {{#each rows}}
-      <tr>
-        {{#each ../headers}}
-          <td>
-            {{#if (lookup ../this this)}}
-              {{#if (lookup (lookup ../this this) 'value')}}
-                {{#if (eq (lookup (lookup ../this this) 'type') 'uri')}}
-                  <a href="/resource?uri={{encodeURIComponent (lookup (lookup ../this this) 'value')}}&showLabels={{../../showLabels}}" class="uri-value">
-                    {{getDisplayValue (lookup ../this this) ../../showLabels ../../labelMap}}
-                  </a>
-                {{else}}
-                  <span class="literal-value">{{lookup (lookup ../this this) 'value'}}</span>
-                {{/if}}
-              {{else}}
-                <em>No value</em>
-              {{/if}}
-            {{else}}
-              <em>No value</em>
-            {{/if}}
-          </td>
-        {{/each}}
-      </tr>
-    {{/each}}
-
-    {{#unless rows.length}}
-      <tr><td colspan="{{headers.length}}">❌ Inga resultat hittades.</td></tr>
-    {{/unless}}
-  </tbody>
-</table>
-
-<form action="/query" method="get" class="query-form">
-  <input type="hidden" name="showLabels" value="{{showLabels}}">
-  <button type="submit" class="btn">Ny fråga</button>
-</form>
-
 <div class="query-display">
   <h3>Utförd fråga:</h3>
   <pre>{{query}}</pre>
 </div>
+
+{{#if rows.length}}
+  <p class="result-count">Visar {{rows.length}} resultat</p>
+  
+  <table class="data-table">
+    <thead>
+      <tr>
+        {{#each headers}}
+          <th>{{this}}</th>
+        {{/each}}
+      </tr>
+    </thead>
+    <tbody>
+      {{#each rows}}
+        <tr>
+          {{#each ../headers}}
+            <td>
+              {{#if (lookup ../this this)}}
+                {{#if (eq (lookup (lookup ../this this) "type") "uri")}}
+                  <a href="/resource?uri={{encodeURIComponent (lookup (lookup ../this this) "value")}}&showLabels={{../../showLabels}}" class="uri-value">
+                    {{#if ../../showLabels}}
+                      {{#if (lookup ../../labelMap (lookup (lookup ../this this) "value"))}}
+                        {{lookup ../../labelMap (lookup (lookup ../this this) "value")}}
+                      {{else}}
+                        {{lookup (lookup ../this this) "value"}}
+                      {{/if}}
+                    {{else}}
+                      {{lookup (lookup ../this this) "value"}}
+                    {{/if}}
+                  </a>
+                {{else}}
+                  <span class="literal-value">{{lookup (lookup ../this this) "value"}}</span>
+                {{/if}}
+              {{else}}
+                <em>-</em>
+              {{/if}}
+            </td>
+          {{/each}}
+        </tr>
+      {{/each}}
+    </tbody>
+  </table>
+{{else}}
+  <div class="no-data-message">
+    <p>❌ Inga resultat hittades för denna fråga.</p>
+    <p>Detta kan bero på något av följande:</p>
+    <ul>
+      <li>Frågan matchade inga data i databasen</li>
+      <li>Syntaxfel i SPARQL-frågan</li>
+      <li>Systemresurser filtrerades bort (alla resultat kan vara systemresurser)</li>
+    </ul>
+    
+    <div class="query-options">
+      <form action="/query" method="post" style="display: inline-block; margin-right: 10px;">
+        <input type="hidden" name="query" value="{{query}}">
+        <input type="hidden" name="hideSystemResources" value="false">
+        <input type="hidden" name="showLabels" value="{{showLabels}}">
+        <button type="submit" class="btn">Visa även systemresurser</button>
+      </form>
+      
+      <a href="/graphdb?query={{encodeURIComponent query}}&showLabels={{showLabels}}" class="btn">
+        Visa i GraphDB-diagnostik
+      </a>
+    </div>
+  </div>
+{{/if}}
+
+<div class="action-links">
+  <form action="/query" method="get" class="query-form" style="display: inline-block; margin-right: 10px;">
+    <input type="hidden" name="showLabels" value="{{showLabels}}">
+    <button type="submit" class="btn">Ny fråga</button>
+  </form>
+  
+  <a href="/?showLabels={{showLabels}}" class="btn">Tillbaka till startsidan</a>
+</div>
+
+<style>
+  .query-display {
+    margin: 20px 0;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    padding: 15px;
+  }
+  
+  .query-display pre {
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: monospace;
+  }
+  
+  .result-count {
+    margin: 20px 0;
+    font-style: italic;
+    color: #666;
+  }
+  
+  .action-links {
+    margin-top: 20px;
+  }
+  
+  .no-data-message {
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 20px 0;
+  }
+  
+  .query-options {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+  }
+</style>

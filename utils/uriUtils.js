@@ -1,4 +1,5 @@
-// utils/uriUtils.js
+// Updated utils/uriUtils.js - with improved filtering
+
 const { systemNamespaces } = require('../config/db');
 
 /**
@@ -12,17 +13,35 @@ const isSystemResource = uri => {
 };
 
 /**
- * Filter out system resources from query results
+ * Filter out system resources from query results with special handling
  * @param {Array} data - Array of data rows from SPARQL query
  * @returns {Array} - Filtered results
  */
 const filterSystemResources = data => {
-  return data.filter(row => {
-    for (const key in row) {
-      if (row[key]?.type === 'uri' && isSystemResource(row[key].value)) return false;
-    }
-    return true;
+  // If there are only a few results, don't filter (to avoid empty results)
+  if (data.length <= 20) {
+    console.log('Only a few results, skipping system resource filtering to avoid empty results');
+    return data;
+  }
+
+  const filtered = data.filter(row => {
+    // Only filter if all subject, predicate and object are system resources
+    const allSystem = 
+      (!row.s || (row.s.type === 'uri' && isSystemResource(row.s.value))) &&
+      (!row.p || (row.p.type === 'uri' && isSystemResource(row.p.value))) &&
+      (!row.o || (row.o.type === 'uri' && isSystemResource(row.o.value)));
+      
+    // Keep the row if not all values are system resources
+    return !allSystem;
   });
+  
+  // If filtering would remove all results, return the original data
+  if (filtered.length === 0 && data.length > 0) {
+    console.log('Filtering would remove all results, returning original data');
+    return data;
+  }
+  
+  return filtered;
 };
 
 /**

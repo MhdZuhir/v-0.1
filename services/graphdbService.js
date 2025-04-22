@@ -11,14 +11,46 @@ const { isSystemResource } = require('../utils/uriUtils');
  */
 async function executeQuery(query) {
   try {
+    console.log(`Sending query to GraphDB: ${query}`);
+    
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
       headers: { 'Accept': 'application/sparql-results+json' },
       params: { query }
     });
     
+    // Log the status and check for success
+    console.log(`GraphDB response status: ${response.status}`);
+    
+    if (!response.data) {
+      console.error('GraphDB returned empty data');
+      throw new Error('No data returned from GraphDB');
+    }
+    
+    // Check for basic structure
+    if (!response.data.results) {
+      console.error('GraphDB response missing results object:', response.data);
+      throw new Error('Invalid response format from GraphDB');
+    }
+    
+    // Ensure bindings is always an array
+    if (!Array.isArray(response.data.results.bindings)) {
+      console.warn('GraphDB response missing bindings array, creating empty array');
+      response.data.results.bindings = [];
+    }
+    
     return response.data;
   } catch (error) {
+    // Enhanced error logging
     console.error('Error executing GraphDB query:', error);
+    
+    if (error.response) {
+      // The request was made and the server responded with a non-2xx status
+      console.error('GraphDB error response:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received from GraphDB');
+    }
+    
     throw error;
   }
 }

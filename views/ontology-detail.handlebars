@@ -1,4 +1,4 @@
-<!-- views/ontology-detail.handlebars -->
+'<!-- views/ontology-detail.handlebars -->
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   <li>{{ontology.title}}</li>
@@ -69,27 +69,128 @@
         <table class="property-table">
           <tr>
             <td class="property-name">Klasser</td>
-            <td>{{ontology.stats.classes}}</td>
+            <td>
+              {{ontology.stats.classes}}
+              {{#if ontology.stats.classes}}
+                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?class ?label WHERE { { ?class a <http://www.w3.org/2002/07/owl#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } UNION { ?class a <http://www.w3.org/2000/01/rdf-schema#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?class LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
+              {{/if}}
+            </td>
           </tr>
           <tr>
             <td class="property-name">Egenskaper</td>
-            <td>{{ontology.stats.properties}}</td>
+            <td>
+              {{ontology.stats.properties}}
+              {{#if ontology.stats.properties}}
+                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?property ?label WHERE { { ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?property LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
+              {{/if}}
+            </td>
           </tr>
           <tr>
             <td class="property-name">Individer</td>
-            <td>{{ontology.stats.individuals}}</td>
+            <td>
+              {{ontology.stats.individuals}}
+              {{#if ontology.stats.individuals}}
+                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?individual ?label WHERE { { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> . FILTER(STRSTARTS(STR(?individual), STR(<' ontology.uri '>))) } UNION { ?individual a ?class . ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#Class> } } OPTIONAL { ?individual <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?individual LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
+              {{/if}}
+            </td>
           </tr>
         </table>
       </div>
     </div>
     
-    <!-- Add the products section here -->
-    {{#if relatedProducts.length}}
+    <!-- Relationships section - with interactive display -->
+    {{#if ontology.relationships.length}}
+    <div class="property-group">
+      <div class="property-group-header">Objektrelationer</div>
+      <div class="property-group-content">
+        <p>Dessa relationer definieras i ontologin för att beskriva samband mellan olika klasser och koncept:</p>
+        
+        <table class="relationships-table">
+          <thead>
+            <tr>
+              <th>Relation</th>
+              <th>Domän</th>
+              <th>Range</th>
+              <th>Detaljer</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each ontology.relationships}}
+              <tr>
+                <td>
+                  <a href="/resource?uri={{encodeURIComponent this.property.uri}}&showLabels={{../showLabels}}">
+                    {{this.property.label}}
+                  </a>
+                </td>
+                <td>
+                  {{#if this.domain.uri}}
+                    <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
+                      {{this.domain.label}}
+                    </a>
+                  {{else}}
+                    <em>Ospecificerad</em>
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if this.range.uri}}
+                    <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
+                      {{this.range.label}}
+                    </a>
+                  {{else}}
+                    <em>Ospecificerad</em>
+                  {{/if}}
+                </td>
+                <td>
+                  <button class="btn btn-small" data-relationship-id="{{@index}}" onclick="showRelationshipDetails('{{@index}}')">Visa detaljer</button>
+                </td>
+              </tr>
+              <tr id="relationship-details-{{@index}}" style="display: none;">
+                <td colspan="4" class="relationship-details">
+                  <div class="relationship-diagram">
+                    {{#if this.domain.uri}}
+                      <div class="object-relation domain">{{this.domain.label}}</div>
+                    {{else}}
+                      <div class="object-relation domain">Godtycklig klass</div>
+                    {{/if}}
+                    
+                    <div class="relation-arrow">→</div>
+                    
+                    <div class="object-relation property">{{this.property.label}}</div>
+                    
+                    <div class="relation-arrow">→</div>
+                    
+                    {{#if this.range.uri}}
+                      <div class="object-relation range">{{this.range.label}}</div>
+                    {{else}}
+                      <div class="object-relation range">Godtycklig klass</div>
+                    {{/if}}
+                  </div>
+                  
+                  <div class="relationship-description">
+                    <p>URI: <code>{{this.property.uri}}</code></p>
+                    <p>Exempel på SPARQL-användning:</p>
+                    <pre>SELECT ?subject ?object WHERE {
+  ?subject <{{this.property.uri}}> ?object .
+}</pre>
+                    
+                    <a href="/query?query={{encodeURIComponent (concat 'SELECT ?subject ?object WHERE { ?subject <' this.property.uri '> ?object . } LIMIT 10')}}&showLabels={{../showLabels}}" class="btn btn-small">Testa denna fråga</a>
+                  </div>
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {{/if}}
+    
+    <!-- Products section -->
+    {{#if ontology.products.length}}
     <div class="property-group">
       <div class="property-group-header">Relaterade Produkter</div>
       <div class="property-group-content">
         <div class="product-grid">
-          {{#each relatedProducts}}
+          {{#each ontology.products}}
             <div class="product-card">
               <div class="product-card-header">
                 <h3>
@@ -105,65 +206,69 @@
                   <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
                 {{/if}}
                 
-                {{#if this.isNotor}}
-                  <span class="product-tag notor-tag">Notor65</span>
+                {{#if this.type}}
+                  <div class="product-type">
+                    <span class="type-label">Typ:</span>
+                    {{#if this.typeLabel}}
+                      <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.typeLabel}}</a>
+                    {{else}}
+                      <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.type}}</a>
+                    {{/if}}
+                  </div>
                 {{/if}}
+              </div>
+              <div class="product-card-footer">
+                <a href="/product/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa detaljer</a>
               </div>
             </div>
           {{/each}}
+        </div>
+        
+        <div class="view-more-container">
+          <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}&showLabels={{showLabels}}" class="btn">Visa alla produkter</a>
         </div>
       </div>
     </div>
     {{/if}}
     
-    <!-- Add debugging tool to explore classes -->
+    <!-- Triple explorer -->
     <div class="property-group">
-      <div class="property-group-header">Utforska ontologin</div>
+      <div class="property-group-header">Utforska triples</div>
       <div class="property-group-content">
-        <p>Använd dessa länkar för att utforska innehållet i ontologin:</p>
+        <p>Utforska triple-mönster där denna ontologi är inblandad:</p>
         
-        <ul style="list-style: none; padding-left: 0; margin-top: 15px;">
-          <li style="margin-bottom: 10px;">
-            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?class ?label WHERE { { ?class a <http://www.w3.org/2002/07/owl#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } UNION { ?class a <http://www.w3.org/2000/01/rdf-schema#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?class LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
-              Visa klasser
-            </a>
-          </li>
-          <li style="margin-bottom: 10px;">
-            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?property ?label WHERE { { ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?property LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
-              Visa egenskaper
-            </a>
-          </li>
-          <li style="margin-bottom: 10px;">
-            <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?individual ?label WHERE { { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> . FILTER(STRSTARTS(STR(?individual), STR(<' ontology.uri '>))) } UNION { ?individual a ?class . ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> } } OPTIONAL { ?individual <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?individual LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
-              Visa individer
-            </a>
-          </li>
-          <li>
-            <a href="/graphdb?query={{encodeURIComponent (concat 'SELECT * WHERE { ?s ?p ?o . FILTER(STRSTARTS(STR(?s), STR(<' ontology.uri '>))) } LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
-              Visa alla triplar
-            </a>
-          </li>
-          <li style="margin-top: 10px;">
-            <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">
-              Visa alla produkter för denna ontologi
-            </a>
-          </li>
-        </ul>
+        <div class="exploration-links">
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?p ?o WHERE { <' ontology.uri '> ?p ?o }')}}&showLabels={{showLabels}}" class="btn exploration-btn">
+            <strong>Ontologin som subjekt</strong> <br>
+            <small><code>&lt;{{ontology.uri}}&gt; ?p ?o</code></small>
+          </a>
+          
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?s ?o WHERE { ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . ?s ?p ?o } LIMIT 100')}}&showLabels={{showLabels}}" class="btn exploration-btn">
+            <strong>Resurser definierade av denna ontologi</strong> <br>
+            <small><code>?s rdfs:isDefinedBy &lt;{{ontology.uri}}&gt;</code></small>
+          </a>
+          
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?s ?p WHERE { ?s ?p <' ontology.uri '> }')}}&showLabels={{showLabels}}" class="btn exploration-btn">
+            <strong>Ontologin som objekt</strong> <br>
+            <small><code>?s ?p &lt;{{ontology.uri}}&gt;</code></small>
+          </a>
+        </div>
       </div>
     </div>
   </div>
   
-  <div class="resource-sidebar">
+  <div class="resource-sidebar ontology-sidebar">
     <div class="sidebar-box">
-      <div class="sidebar-box-header">Nedladdningslänkar</div>
+      <div class="sidebar-box-header">Nedladdning</div>
       <div class="sidebar-box-content">
         <ul class="download-links" style="list-style: none; padding: 0;">
           {{#each downloadLinks}}
             <li style="margin-bottom: 10px;">
               <a href="{{this.url}}" 
                  class="btn" 
+                 download="{{../ontology.title}}.{{this.extension}}"
                  style="width: 100%; text-align: center;">
-                Ladda ner som {{this.format}}
+                <span class="download-icon">⬇️</span> {{this.format}}
               </a>
             </li>
           {{/each}}
@@ -181,6 +286,25 @@
     </div>
     
     <div class="sidebar-box">
+      <div class="sidebar-box-header">Visualisering</div>
+      <div class="sidebar-box-content">
+        <div class="class-hierarchy-container">
+          <p>Utforska hierarkier och relationer:</p>
+          
+          <div class="visualization-links">
+            <a href="/query?query={{encodeURIComponent (concat 'SELECT ?subClass ?superClass WHERE { ?subClass <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?superClass . FILTER(STRSTARTS(STR(?subClass), STR(<' ontology.uri '>))) }')}}&showLabels={{showLabels}}" class="btn viz-btn">
+              Klasshierarki
+            </a>
+            
+            <a href="/query?query={{encodeURIComponent (concat 'SELECT ?property ?domain ?range WHERE { ?property <http://www.w3.org/2000/01/rdf-schema#domain> ?domain . ?property <http://www.w3.org/2000/01/rdf-schema#range> ?range . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) }')}}&showLabels={{showLabels}}" class="btn viz-btn">
+              Domän och Range
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="sidebar-box">
       <div class="sidebar-box-header">Åtgärder</div>
       <div class="sidebar-box-content">
         <p>
@@ -190,7 +314,7 @@
           <a href="/query?showLabels={{showLabels}}" class="btn" style="width: 100%;">Kör anpassad SPARQL-fråga</a>
         </p>
         <p>
-          <a href="/ontology/debug-products?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-top: 8px;">Visa alla produkter i systemet</a>
+          <a href="/class/browse?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-top: 8px;">Bläddra i klasser</a>
         </p>
       </div>
     </div>
@@ -213,6 +337,10 @@
     display: flex;
     align-items: center;  
     justify-content: center;
+  }
+  
+  .download-icon {
+    margin-right: 10px;
   }
   
   .sidebar-box .resource-uri {
@@ -239,6 +367,9 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     background-color: #fff;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
   }
   
   .product-card:hover {
@@ -260,28 +391,215 @@
   
   .product-card-body {
     padding: 12px 15px;
-    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
   }
   
   .product-card-body .description {
-    margin: 0;
+    margin: 0 0 12px 0;
     font-size: 14px;
     color: #555;
     line-height: 1.5;
-    margin-bottom: 8px;
   }
   
-  .product-tag {
+  .product-type {
+    margin-top: auto;
+    font-size: 13px;
+    color: #666;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 8px;
+  }
+  
+  .product-card-footer {
+    padding: 12px 15px;
+    border-top: 1px solid #eaecf0;
+  }
+  
+  .product-card-footer .btn {
+    width: 100%;
+  }
+  
+  .view-more-container {
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  /* Relationship styles */
+  .relationships-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  
+  .relationships-table th, 
+  .relationships-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eaecf0;
+  }
+  
+  .relationships-table th {
+    background-color: #f5f7fa;
+    font-weight: 600;
+  }
+  
+  .relationship-details {
+    background-color: #f8f9fa;
+    padding: 15px;
+  }
+  
+  .relationship-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .object-relation {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 6px 12px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
   }
   
-  .notor-tag {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
+  .object-relation.domain {
+    background-color: #e6f3ff;
+    border: 1px solid #b3d9ff;
+  }
+  
+  .object-relation.property {
+    background-color: #fff0e6;
+    border: 1px solid #ffd9b3;
+  }
+  
+  .object-relation.range {
+    background-color: #e6fff0;
+    border: 1px solid #b3f0d1;
+  }
+  
+  .relation-arrow {
+    font-size: 20px;
+    color: #666;
+  }
+  
+  .relationship-description {
+    border-top: 1px solid #eaecf0;
+    margin-top: 15px;
+    padding-top: 15px;
+  }
+  
+  .relationship-description pre {
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  
+  /* Exploration links */
+  .exploration-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  
+  .exploration-btn {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    padding: 12px;
+  }
+  
+  .exploration-btn small {
+    font-size: 12px;
+    display: block;
+    margin-top: 5px;
+    font-family: monospace;
+  }
+  
+  /* Button styles */
+  .btn-small {
+    padding: 3px 8px;
+    font-size: 12px;
+  }
+  
+  /* Visualizations */
+  .class-hierarchy-container {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+  
+  .visualization-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 15px;
+  }
+  
+  .viz-btn {
+    text-align: center;
+    padding: 8px;
+  }
+  
+  .viz-btn.active-viz {
+    background-color: #0056b3;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .product-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .exploration-links {
+      flex-direction: column;
+    }
+    
+    .relationship-diagram {
+      flex-direction: column;
+    }
+    
+    .relation-arrow {
+      transform: rotate(90deg);
+    }
   }
 </style>
+
+<script>
+  function showRelationshipDetails(relationshipId) {
+    // Find the relationship details element
+    const detailsElement = document.getElementById(`relationship-details-${relationshipId}`);
+    
+    if (detailsElement) {
+      // Toggle visibility
+      const isHidden = detailsElement.style.display === 'none' || !detailsElement.style.display;
+      detailsElement.style.display = isHidden ? 'table-row' : 'none';
+      
+      // Update the button text
+      const button = document.querySelector(`[data-relationship-id="${relationshipId}"]`);
+      if (button) {
+        button.textContent = isHidden ? 'Dölj detaljer' : 'Visa detaljer';
+      }
+    }
+  }
+  
+  // Initialize the feature for toggling active visualization
+  document.addEventListener('DOMContentLoaded', function() {
+    const vizButtons = document.querySelectorAll('.viz-btn');
+    
+    vizButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        vizButtons.forEach(btn => btn.classList.remove('active-viz'));
+        this.classList.add('active-viz');
+      });
+    });
+  });
+</script>'
