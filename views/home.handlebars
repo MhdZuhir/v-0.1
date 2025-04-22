@@ -40,11 +40,7 @@
         </h3>
       </div>
       <div class="ontology-card-body">
-        {{#if this.description}}
-          <p class="description">{{truncate this.description 150}}</p>
-        {{else}}
-          <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
-        {{/if}}
+        <p class="description">{{truncate this.description 150}}</p>
         
         <div class="ontology-stats">
           <span class="stat"><strong>Klasser:</strong> {{this.stats.classes}}</span>
@@ -70,3 +66,32 @@
   <a href="/graphdb?showLabels={{showLabels}}" class="btn">Visa alla data</a>
   <a href="/query?showLabels={{showLabels}}" class="btn">Kör anpassad SPARQL-fråga</a>
 </div>
+
+<style>
+  .ontology-card-body .description {
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #333;
+    max-height: 80px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+  }
+  
+  .ontology-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .ontology-card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .ontology-stats {
+    margin-top: auto;
+  }
+</style>

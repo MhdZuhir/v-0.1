@@ -2,6 +2,8 @@
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
+// Import the description utilities
+const { generateOntologyDescription } = require('../utils/descriptionUtils');
 
 /**
  * Execute a SPARQL query against GraphDB
@@ -85,7 +87,7 @@ async function fetchOntologies() {
             return {
               uri,
               title: uri.split(/[/#]/).pop() || uri,
-              description: "Could not load ontology metadata",
+              description: generateFallbackDescription(uri),
               error: true,
               stats: { classes: 0, properties: 0, individuals: 0 }
             };
@@ -105,6 +107,15 @@ async function fetchOntologies() {
 }
 
 /**
+ * Generate a fallback description for ontologies without descriptions
+ * @param {string} uri - Ontology URI
+ * @returns {string} - Generated description
+ */
+function generateFallbackDescription(uri) {
+  return generateOntologyDescription(uri);
+}
+
+/**
  * Fetch metadata for a specific ontology
  * @param {string} uri - Ontology URI
  * @returns {Promise<Object>} - Ontology metadata
@@ -113,9 +124,14 @@ async function fetchOntologyMetadata(uri) {
   try {
     console.log(`Fetching metadata for ontology: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
+    
+    // Expanded query to capture more description predicates
     const query = `
-      SELECT ?p ?o WHERE {
+      SELECT ?p ?o ?lang WHERE {
         <${safeUri}> ?p ?o .
+        OPTIONAL { 
+          BIND(LANG(?o) AS ?lang) 
+        }
         FILTER(?p IN (
           <http://www.w3.org/2000/01/rdf-schema#label>,
           <http://www.w3.org/2000/01/rdf-schema#comment>,
@@ -123,6 +139,11 @@ async function fetchOntologyMetadata(uri) {
           <http://purl.org/dc/elements/1.1/title>,
           <http://purl.org/dc/terms/description>,
           <http://purl.org/dc/elements/1.1/description>,
+          <http://www.w3.org/2004/02/skos/core#definition>,
+          <http://www.w3.org/ns/prov#description>,
+          <http://schema.org/description>,
+          <http://purl.org/vocab/vann/description>,
+          <http://purl.org/dc/terms/abstract>,
           <http://purl.org/dc/terms/creator>,
           <http://purl.org/dc/elements/1.1/creator>,
           <http://purl.org/dc/terms/publisher>,
@@ -140,7 +161,7 @@ async function fetchOntologyMetadata(uri) {
       console.error('Unexpected response format when fetching ontology metadata:', JSON.stringify(data).substring(0, 500));
       return {
         title: uri.split(/[/#]/).pop() || uri,
-        description: null,
+        description: generateFallbackDescription(uri),
         stats: { classes: 0, properties: 0, individuals: 0 }
       };
     }
@@ -148,10 +169,12 @@ async function fetchOntologyMetadata(uri) {
     const results = data.results.bindings;
     console.log(`Found ${results.length} metadata properties for ${uri}`);
     
-    // Extract metadata from results
+    // Enhanced metadata extraction with language preference
     const metadata = {
       title: null,
+      titlesByLang: { sv: null, en: null, default: null },
       description: null,
+      descriptionsByLang: { sv: null, en: null, default: null },
       creator: null,
       publisher: null,
       created: null,
@@ -159,15 +182,29 @@ async function fetchOntologyMetadata(uri) {
       version: null
     };
     
+    // First pass: collect all values grouped by predicate and language
     results.forEach(result => {
       const predicate = result.p.value;
       const value = result.o.value;
+      const lang = result.lang ? result.lang.value : 'default';
       
+      // Group labels and titles
       if (predicate.includes('label') || predicate.includes('title')) {
-        metadata.title = value;
-      } else if (predicate.includes('comment') || predicate.includes('description')) {
-        metadata.description = value;
-      } else if (predicate.includes('creator')) {
+        if (lang === 'sv') metadata.titlesByLang.sv = value;
+        else if (lang === 'en') metadata.titlesByLang.en = value;
+        else if (!metadata.titlesByLang.default) metadata.titlesByLang.default = value;
+      } 
+      // Group descriptions, comments, definitions, abstracts
+      else if (predicate.includes('comment') || 
+              predicate.includes('description') || 
+              predicate.includes('definition') || 
+              predicate.includes('abstract')) {
+        if (lang === 'sv') metadata.descriptionsByLang.sv = value;
+        else if (lang === 'en') metadata.descriptionsByLang.en = value;
+        else if (!metadata.descriptionsByLang.default) metadata.descriptionsByLang.default = value;
+      } 
+      // Handle other properties
+      else if (predicate.includes('creator')) {
         metadata.creator = value;
       } else if (predicate.includes('publisher')) {
         metadata.publisher = value;
@@ -180,10 +217,29 @@ async function fetchOntologyMetadata(uri) {
       }
     });
     
-    // If title is not found, use the last part of the URI
+    // Second pass: select the best value with language preference (Swedish > English > default)
+    metadata.title = metadata.titlesByLang.sv || metadata.titlesByLang.en || metadata.titlesByLang.default;
+    metadata.description = metadata.descriptionsByLang.sv || metadata.descriptionsByLang.en || metadata.descriptionsByLang.default;
+    
+    // If title is still not found, use the last part of the URI
     if (!metadata.title) {
       const uriParts = uri.split(/[/#]/);
       metadata.title = uriParts[uriParts.length - 1] || uri;
+    }
+    
+    // If description is not found, generate a fallback
+    if (!metadata.description) {
+      metadata.description = generateFallbackDescription(uri);
+    }
+    
+    // Try to explore more even if there's no direct metadata
+    if (!metadata.description) {
+      try {
+        metadata.description = await generateDescriptionFromContent(uri);
+      } catch (descError) {
+        console.error(`Error generating description from content for ${uri}:`, descError.message);
+        metadata.description = generateFallbackDescription(uri);
+      }
     }
     
     // Count classes, properties, and individuals with improved queries
@@ -200,9 +256,49 @@ async function fetchOntologyMetadata(uri) {
     console.error(`Error fetching metadata for ontology ${uri}:`, error.message);
     return {
       title: uri.split(/[/#]/).pop() || uri,
-      description: null,
+      description: generateFallbackDescription(uri),
       stats: { classes: 0, properties: 0, individuals: 0 }
     };
+  }
+}
+
+/**
+ * Try to generate a description by analyzing ontology content
+ * @param {string} uri - Ontology URI
+ * @returns {Promise<string>} - Generated description
+ */
+async function generateDescriptionFromContent(uri) {
+  const safeUri = sanitizeSparqlString(uri);
+  
+  // Extract some class names to get a sense of the domain
+  const classQuery = `
+    SELECT ?class ?label
+    WHERE {
+      {
+        ?class a <http://www.w3.org/2002/07/owl#Class> .
+        FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+      } 
+      UNION 
+      {
+        ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
+        FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
+      }
+      OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label }
+    } 
+    LIMIT 5
+  `;
+  
+  const classData = await executeQuery(classQuery);
+  const classNames = classData.results.bindings.map(binding => 
+    binding.label ? binding.label.value : binding.class.value.split(/[/#]/).pop()
+  );
+  
+  const name = uri.split(/[/#]/).pop() || 'ontology';
+  
+  if (classNames.length > 0) {
+    return `The ${name} ontology includes concepts such as ${classNames.join(', ')}. This structured vocabulary provides semantic definitions for knowledge representation in its domain.`;
+  } else {
+    return generateFallbackDescription(uri);
   }
 }
 
