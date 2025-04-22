@@ -27,6 +27,7 @@ router.use('/resource', resourceRoutes);
 router.use('/query', queryRoutes);
 router.use('/search', searchRoutes);
 router.use('/graphdb', graphdbRoutes);
+router.use('/product', productRoutes);  // Make sure product routes are mounted
 router.use('/class', classRoutes);  // Mount the class routes
 
 module.exports = router;

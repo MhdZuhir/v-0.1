@@ -1,0 +1,188 @@
+<!-- views/product-detail.handlebars -->
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li><a href="/product/?showLabels={{showLabels}}">Produkter</a></li>
+  <li>{{product.name}}</li>
+</ul>
+
+<h1 class="resource-title">{{product.name}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-container">
+  <div class="resource-main">
+    <div class="resource-uri">
+      <code>{{product.uri}}</code>
+    </div>
+    
+    {{#if product.description}}
+      <div class="resource-description">
+        {{product.description}}
+      </div>
+    {{/if}}
+    
+    <div class="property-group">
+      <div class="property-group-header">Produktdetaljer</div>
+      <div class="property-group-content">
+        <table class="property-table">
+          {{#if product.articleNumber}}
+            <tr>
+              <td class="property-name">Artikelnummer</td>
+              <td>{{product.articleNumber}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if product.color}}
+            <tr>
+              <td class="property-name">Färg</td>
+              <td>{{product.color}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if product.cct}}
+            <tr>
+              <td class="property-name">Färgtemperatur</td>
+              <td>{{product.cct}}</td>
+            </tr>
+          {{/if}}
+          
+          {{#if product.lumen}}
+            <tr>
+              <td class="property-name">Ljusflöde</td>
+              <td>{{product.lumen}} lumen</td>
+            </tr>
+          {{/if}}
+          
+          {{#if product.height}}
+            <tr>
+              <td class="property-name">Höjd</td>
+              <td>{{product.height}} mm</td>
+            </tr>
+          {{/if}}
+          
+          {{#if product.length}}
+            <tr>
+              <td class="property-name">Längd</td>
+              <td>{{product.length}} mm</td>
+            </tr>
+          {{/if}}
+        </table>
+      </div>
+    </div>
+    
+    {{#if product.otherProperties.length}}
+      <div class="property-group">
+        <div class="property-group-header">Andra egenskaper</div>
+        <div class="property-group-content">
+          <table class="property-table">
+            {{#each product.otherProperties}}
+              <tr>
+                <td class="property-name">
+                  {{this.property}}
+                </td>
+                <td>
+                  {{#if (eq this.type "uri")}}
+                    <a href="/resource?uri={{encodeURIComponent this.value}}&showLabels={{../showLabels}}">
+                      {{#if ../showLabels}}
+                        {{#if (lookup ../labelMap this.value)}}
+                          {{lookup ../labelMap this.value}}
+                        {{else}}
+                          {{this.value}}
+                        {{/if}}
+                      {{else}}
+                        {{this.value}}
+                      {{/if}}
+                    </a>
+                  {{else}}
+                    {{this.value}}
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </table>
+        </div>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="resource-sidebar">
+    {{#if product.isNotor}}
+      <div class="sidebar-box">
+        <div class="sidebar-box-header">Produkttyp</div>
+        <div class="sidebar-box-content">
+          <div class="product-badge notor-badge">
+            Notor65
+          </div>
+        </div>
+      </div>
+    {{/if}}
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/product?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till produktlistan</a>
+        </p>
+        <p>
+          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%;">Tillbaka till startsidan</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .resource-uri {
+    color: #777;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+    word-break: break-all;
+    font-family: monospace;
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  
+  .property-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .property-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: top;
+  }
+  
+  .property-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .property-name {
+    width: 30%;
+    font-weight: 600;
+    color: #555;
+  }
+  
+  .product-badge {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-align: center;
+    width: 100%;
+  }
+  
+  .notor-badge {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+</style>
