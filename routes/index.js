@@ -6,12 +6,11 @@ const labelMiddleware = require('../middlewares/labelMiddleware');
 // Import route modules
 const ontologyRoutes = require('./ontologyRoutes');
 const resourceRoutes = require('./resourceRoutes');
-const categoryRoutes = require('./categoryRoutes');
 const queryRoutes = require('./queryRoutes');
 const searchRoutes = require('./searchRoutes');
 const graphdbRoutes = require('./graphdbRoutes');
-const notorRoutes = require('./notorRoutes');
 const productRoutes = require('./productRoutes');
+const classRoutes = require('./classRoutes');  // Add the new class routes
 
 // Import controllers
 const ontologyController = require('../controllers/ontologyController');
@@ -25,11 +24,9 @@ router.get('/', ontologyController.getOntologyListPage);
 // Mount routes
 router.use('/ontology', ontologyRoutes);
 router.use('/resource', resourceRoutes);
-router.use('/category', categoryRoutes);
 router.use('/query', queryRoutes);
 router.use('/search', searchRoutes);
 router.use('/graphdb', graphdbRoutes);
-router.use('/notor', notorRoutes);
-router.use('/products', productRoutes); // We're now using the product routes
+router.use('/class', classRoutes);  // Mount the class routes
 
 module.exports = router;

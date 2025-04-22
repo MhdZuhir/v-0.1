@@ -1,0 +1,178 @@
+<!-- views/browse-classes.handlebars -->
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li>Bläddra i klasser</li>
+</ul>
+
+<h1>Bläddra i klasser</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="form-container">
+  <form action="/class/browse" method="get" class="search-form">
+    <div class="form-group">
+      <label for="classType">Välj typ av klasser:</label>
+      <select id="classType" name="classType" class="form-control">
+        <option value="owl" {{#if (eq classType "owl")}}selected{{/if}}>OWL-klasser</option>
+        <option value="rdfs" {{#if (eq classType "rdfs")}}selected{{/if}}>RDFS-klasser</option>
+        <option value="all" {{#if (eq classType "all")}}selected{{/if}}>Alla klasser</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="filter">Filter (valfritt):</label>
+      <input type="text" id="filter" name="filter" class="form-control" placeholder="Filtrera efter namn" value="{{filter}}">
+    </div>
+    <input type="hidden" name="showLabels" value="{{showLabels}}">
+    <div class="form-group">
+      <button type="submit" class="btn">Sök klasser</button>
+    </div>
+  </form>
+</div>
+
+<h2>Resultat</h2>
+
+<div class="class-grid">
+  {{#each classes}}
+    <div class="class-card">
+      <div class="class-card-header">
+        <h3>
+          <a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+            {{this.label}}
+          </a>
+        </h3>
+      </div>
+      <div class="class-card-body">
+        {{#if this.description}}
+          <p class="description">{{truncate this.description 150}}</p>
+        {{else}}
+          <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
+        {{/if}}
+        
+        <div class="class-stats">
+          <span class="stat"><strong>Individer:</strong> {{this.individualCount}}</span>
+        </div>
+      </div>
+      <div class="class-card-footer">
+        <a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa individer</a>
+      </div>
+    </div>
+  {{/each}}
+
+  {{#unless classes.length}}
+    <div class="no-data-message">
+      <p>❌ Inga klasser hittades som matchar dina kriterier.</p>
+    </div>
+  {{/unless}}
+</div>
+
+<style>
+  .form-container {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border: 1px solid #eaecf0;
+  }
+  
+  .search-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+  }
+  
+  .form-group {
+    flex: 1;
+    min-width: 200px;
+  }
+  
+  .form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  .class-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-gap: 25px;
+    margin: 20px 0;
+  }
+  
+  .class-card {
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .class-card-header {
+    padding: 15px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #f8f9fa;
+  }
+  
+  .class-card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .class-card-body {
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .class-card-body .description {
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #555;
+    max-height: 80px;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    line-height: 1.5;
+  }
+  
+  .class-stats {
+    margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eaecf0;
+    font-size: 13px;
+  }
+  
+  .class-card-footer {
+    padding: 15px;
+    border-top: 1px solid #eaecf0;
+    text-align: center;
+  }
+  
+  .class-card-footer .btn {
+    width: 100%;
+  }
+  
+  @media (max-width: 768px) {
+    .class-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -453,6 +453,161 @@ async function fetchProductDetails(uri) {
   }
 }
 
+/**
+ * Fetch basic information about a class
+ * @param {string} uri - Class URI
+ * @returns {Promise<Object>} - Class information
+ */
+async function fetchClassInfo(uri) {
+  if (isSystemResource(uri)) return null;
+  
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    const query = `
+      SELECT ?p ?o WHERE {
+        <${safeUri}> ?p ?o .
+        FILTER(?p IN (
+          <http://www.w3.org/2000/01/rdf-schema#label>,
+          <http://www.w3.org/2000/01/rdf-schema#comment>,
+          <http://purl.org/dc/terms/description>,
+          <http://purl.org/dc/elements/1.1/description>,
+          <http://www.w3.org/2004/02/skos/core#definition>,
+          <http://www.w3.org/2000/01/rdf-schema#subClassOf>,
+          <http://www.w3.org/2002/07/owl#equivalentClass>
+        ))
+      }
+    `;
+    
+    const data = await executeQuery(query);
+    const properties = {};
+    
+    if (data && data.results && data.results.bindings) {
+      data.results.bindings.forEach(binding => {
+        const predicate = binding.p.value;
+        const object = binding.o;
+        
+        // Group by predicate type
+        if (predicate.includes('label')) {
+          properties.label = object.value;
+        } else if (predicate.includes('comment') || predicate.includes('description') || predicate.includes('definition')) {
+          properties.description = object.value;
+        } else if (predicate.includes('subClassOf')) {
+          if (!properties.superClasses) properties.superClasses = [];
+          properties.superClasses.push(object.value);
+        } else if (predicate.includes('equivalentClass')) {
+          if (!properties.equivalentClasses) properties.equivalentClasses = [];
+          properties.equivalentClasses.push(object.value);
+        }
+      });
+    }
+    
+    return properties;
+  } catch (error) {
+    console.error(`Error fetching class info for ${uri}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetch individuals of a specific class
+ * @param {string} classUri - Class URI
+ * @returns {Promise<Array>} - Array of individuals with their properties
+ */
+async function fetchClassIndividuals(classUri) {
+  if (isSystemResource(classUri)) return [];
+  
+  try {
+    const safeClassUri = sanitizeSparqlString(classUri);
+    
+    // First query to get individuals of this class
+    const individualsQuery = `
+      SELECT DISTINCT ?individual WHERE {
+        ?individual a <${safeClassUri}> .
+      }
+      ORDER BY ?individual
+      LIMIT 100
+    `;
+    
+    const data = await executeQuery(individualsQuery);
+    const individualUris = [];
+    
+    if (data && data.results && data.results.bindings) {
+      data.results.bindings.forEach(binding => {
+        if (binding.individual && binding.individual.value) {
+          individualUris.push(binding.individual.value);
+        }
+      });
+    }
+    
+    // Get properties for each individual
+    const individuals = await Promise.all(
+      individualUris.map(async uri => {
+        const properties = await fetchIndividualProperties(uri);
+        return {
+          uri,
+          properties
+        };
+      })
+    );
+    
+    return individuals;
+  } catch (error) {
+    console.error(`Error fetching individuals for class ${classUri}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch properties of an individual
+ * @param {string} uri - Individual URI
+ * @returns {Promise<Array>} - Array of property objects
+ */
+async function fetchIndividualProperties(uri) {
+  if (isSystemResource(uri)) return [];
+  
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to get all properties except rdf:type
+    const propertiesQuery = `
+      SELECT ?predicate ?object ?objectType WHERE {
+        <${safeUri}> ?predicate ?object .
+        FILTER(?predicate != <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>)
+        BIND(IF(isURI(?object), "uri", "literal") AS ?objectType)
+      }
+      ORDER BY ?predicate
+      LIMIT 100
+    `;
+    
+    const data = await executeQuery(propertiesQuery);
+    const properties = [];
+    
+    if (data && data.results && data.results.bindings) {
+      data.results.bindings.forEach(binding => {
+        if (binding.predicate && binding.object) {
+          const property = {
+            predicateUri: binding.predicate.value,
+            objectValue: binding.object.value,
+            objectType: binding.objectType.value
+          };
+          
+          // Add objectUri for URI objects
+          if (binding.objectType.value === 'uri') {
+            property.objectUri = binding.object.value;
+          }
+          
+          properties.push(property);
+        }
+      });
+    }
+    
+    return properties;
+  } catch (error) {
+    console.error(`Error fetching properties for individual ${uri}:`, error);
+    return [];
+  }
+}
+
 // Export all functions
 module.exports = {
   executeQuery,
@@ -464,5 +619,9 @@ module.exports = {
   fetchResourceTypes,
   fetchResourceProperties,
   fetchProducts,
-  fetchProductDetails
+  fetchProductDetails,
+  // New methods for class and individual handling
+  fetchClassInfo,
+  fetchClassIndividuals,
+  fetchIndividualProperties
 };

@@ -1,0 +1,170 @@
+<!-- views/individual.handlebars -->
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  {{#each classes}}
+    <li><a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">{{this.label}}</a></li>
+  {{/each}}
+  <li>{{individualLabel}}</li>
+</ul>
+
+<h1 class="resource-title">{{individualLabel}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-container">
+  <div class="resource-main">
+    <div class="resource-uri">
+      <code>{{uri}}</code>
+    </div>
+    
+    <h2>Egenskaper</h2>
+    
+    <div class="property-group">
+      <div class="property-group-header">Alla egenskaper</div>
+      <div class="property-group-content">
+        <table class="property-table">
+          <tbody>
+            {{#each properties}}
+              <tr>
+                <td class="property-name">
+                  {{#if this.predicate.value}}
+                    {{#if (eq this.predicate.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}">
+                        {{#if ../showLabels}}
+                          {{#if (lookup ../labelMap this.predicate.value)}}
+                            {{lookup ../labelMap this.predicate.value}}
+                          {{else}}
+                            {{this.predicate.value}}
+                          {{/if}}
+                        {{else}}
+                          {{this.predicate.value}}
+                        {{/if}}
+                      </a>
+                    {{else}}
+                      {{this.predicate.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>Unknown</em>
+                  {{/if}}
+                </td>
+                <td>
+                  {{#if this.object.value}}
+                    {{#if (eq this.object.type "uri")}}
+                      <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}">
+                        {{#if ../showLabels}}
+                          {{#if (lookup ../labelMap this.object.value)}}
+                            {{lookup ../labelMap this.object.value}}
+                          {{else}}
+                            {{this.object.value}}
+                          {{/if}}
+                        {{else}}
+                          {{this.object.value}}
+                        {{/if}}
+                      </a>
+                    {{else}}
+                      {{this.object.value}}
+                    {{/if}}
+                  {{else}}
+                    <em>No value</em>
+                  {{/if}}
+                </td>
+              </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <div class="resource-sidebar">
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Klasser</div>
+      <div class="sidebar-box-content">
+        <ul class="related-resources">
+          {{#each classes}}
+            <li>
+              <a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                {{this.label}}
+              </a>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+    
+    {{#if related.length}}
+      <div class="sidebar-box">
+        <div class="sidebar-box-header">Relaterade resurser</div>
+        <div class="sidebar-box-content">
+          <ul class="related-resources">
+            {{#each related}}
+              <li>
+                <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                  {{this.label}}
+                </a>
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      </div>
+    {{/if}}
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
+        </p>
+        <p>
+          {{#if classes.0}}
+            <a href="/class?uri={{encodeURIComponent classes.0.uri}}&showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till klass</a>
+          {{/if}}
+        </p>
+        <p>
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?p ?o WHERE { <' uri '> ?p ?o }')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">Visa alla predikat</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .resource-uri {
+    color: #777;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+    word-break: break-all;
+    font-family: monospace;
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  
+  .property-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .property-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: top;
+  }
+  
+  .property-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .property-name {
+    width: 30%;
+    font-weight: 600;
+    color: #555;
+  }
+</style>

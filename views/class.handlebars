@@ -1,0 +1,200 @@
+<!-- views/class.handlebars -->
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li>Klass: {{classLabel}}</li>
+</ul>
+
+<h1>{{classLabel}}</h1>
+
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
+
+<div class="resource-container">
+  <div class="resource-main">
+    {{#if classInfo.description}}
+      <div class="resource-description">
+        {{classInfo.description}}
+      </div>
+    {{/if}}
+    
+    <h2>Individer i klassen</h2>
+    
+    {{#if individuals.length}}
+      <div class="individuals-list">
+        {{#each individuals}}
+          <div class="individual-card">
+            <div class="individual-card-header">
+              <h3>
+                <a href="/class/individual?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                  {{this.label}}
+                </a>
+              </h3>
+            </div>
+            <div class="individual-card-body">
+              <table class="property-table">
+                <tbody>
+                  {{#each this.properties}}
+                    <tr>
+                      <td class="property-name">{{this.predicateLabel}}</td>
+                      <td>
+                        {{#if this.objectUri}}
+                          <a href="/resource?uri={{encodeURIComponent this.objectUri}}&showLabels={{../../showLabels}}">
+                            {{this.objectLabel}}
+                          </a>
+                        {{else}}
+                          {{this.objectValue}}
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            </div>
+            <div class="individual-card-footer">
+              <a href="/class/individual?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa alla egenskaper</a>
+            </div>
+          </div>
+        {{/each}}
+      </div>
+    {{else}}
+      <div class="no-data-message">
+        <p>❌ Inga individer hittades för denna klass.</p>
+      </div>
+    {{/if}}
+  </div>
+  
+  <div class="resource-sidebar">
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Klassdetaljer</div>
+      <div class="sidebar-box-content">
+        <div class="resource-uri">
+          <strong>URI:</strong> <code>{{classUri}}</code>
+        </div>
+        
+        {{#if classInfo.superClasses}}
+          <div style="margin-top: 15px;">
+            <strong>Överklasser:</strong>
+            <ul style="list-style: none; padding-left: 5px; margin-top: 5px;">
+              {{#each classInfo.superClasses}}
+                <li>
+                  <a href="/class?uri={{encodeURIComponent this}}&showLabels={{../showLabels}}">
+                    {{#if ../showLabels}}
+                      {{#if (lookup ../labelMap this)}}
+                        {{lookup ../labelMap this}}
+                      {{else}}
+                        {{this}}
+                      {{/if}}
+                    {{else}}
+                      {{this}}
+                    {{/if}}
+                  </a>
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/if}}
+        
+        {{#if classInfo.equivalentClasses}}
+          <div style="margin-top: 15px;">
+            <strong>Ekvivalenta klasser:</strong>
+            <ul style="list-style: none; padding-left: 5px; margin-top: 5px;">
+              {{#each classInfo.equivalentClasses}}
+                <li>
+                  <a href="/class?uri={{encodeURIComponent this}}&showLabels={{../showLabels}}">
+                    {{#if ../showLabels}}
+                      {{#if (lookup ../labelMap this)}}
+                        {{lookup ../labelMap this}}
+                      {{else}}
+                        {{this}}
+                      {{/if}}
+                    {{else}}
+                      {{this}}
+                    {{/if}}
+                  </a>
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        {{/if}}
+      </div>
+    </div>
+    
+    <div class="sidebar-box">
+      <div class="sidebar-box-header">Åtgärder</div>
+      <div class="sidebar-box-content">
+        <p>
+          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
+        </p>
+        <p>
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?p ?o WHERE { <' classUri '> ?p ?o }')}}&showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Visa alla klasspredikat</a>
+        </p>
+        <p>
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?individual WHERE { ?individual a <' classUri '> }')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">SPARQL för individer</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .individuals-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-gap: 25px;
+    margin: 20px 0;
+  }
+  
+  .individual-card {
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .individual-card-header {
+    padding: 15px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #f8f9fa;
+  }
+  
+  .individual-card-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+  }
+  
+  .individual-card-body {
+    padding: 15px;
+    flex-grow: 1;
+    font-size: 14px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .individual-card-footer {
+    padding: 15px;
+    border-top: 1px solid #eaecf0;
+    text-align: center;
+  }
+  
+  .individual-card-footer .btn {
+    width: 100%;
+    padding: 8px;
+  }
+  
+  @media (max-width: 768px) {
+    .individuals-list {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

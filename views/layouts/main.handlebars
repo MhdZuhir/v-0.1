@@ -11,12 +11,16 @@
 <body>
   <header>
     <nav>
-      <ul>
-        <li><a href="/">Hem</a></li>
-        <li><a href="/graphdb">GraphDB Data</a></li>
-        <li><a href="/query">SPARQL Query</a></li>
-        <li><a href="/search">Sök</a></li>
-      </ul>
+     <!-- Update to views/layouts/main.handlebars -->
+<!-- Add this to the navigation menu -->
+<ul>
+  <li><a href="/">Hem</a></li>
+  <li><a href="/graphdb">GraphDB Data</a></li>
+  <li><a href="/query">SPARQL Query</a></li>
+  <li><a href="/search">Sök</a></li>
+  <!-- Add this new link -->
+  <li><a href="/class/browse?showLabels=true">Klasser</a></li>
+</ul>
     </nav>
     
     <form action="/search" method="get" class="search-box">
