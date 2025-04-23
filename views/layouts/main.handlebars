@@ -4,40 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{title}} - WikiGraph</title>
-  <link rel="stylesheet" href="/css/styles.css">
-  <!-- Include the external JavaScript file -->
-  <script src="/js/script.js"></script>
+  <link rel="stylesheet" href="/css/styles.css" >
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="/js/script.js" defer></script>
 </head>
 <body>
-  <header>
-    <nav>
-     <!-- Update to views/layouts/main.handlebars -->
-<!-- Add this to the navigation menu -->
-<ul>
-  <li><a href="/">Hem</a></li>
-  <li><a href="/graphdb">GraphDB Data</a></li>
-  <li><a href="/query">SPARQL Query</a></li>
-  <li><a href="/search">Sök</a></li>
-  <!-- Add this new link -->
-  <li><a href="/class/browse?showLabels=true">Klasser</a></li>
+  <header class="site-header">
+    <nav class="navbar">
+      <ul class="nav-menu">
+  <li><a href="/"><span class="material-icons">home</span> Hem</a></li>
+  <li><a href="/graphdb"><span class="material-icons">bar_chart</span> GraphDB Data</a></li>
+  <li><a href="/query"><span class="material-icons">search</span> SPARQL Query</a></li>
+  <li><a href="/search"><span class="material-icons">travel_explore</span> Sök</a></li>
 </ul>
     </nav>
-    
-    <form action="/search" method="get" class="search-box">
-      <input type="text" name="q" placeholder="Sök i databasen..." value="{{searchTerm}}">
-      <input type="hidden" name="showLabels" value="{{showLabels}}">
-      <button type="submit">Sök</button>
-    </form>
   </header>
-  
-  <main>
+
+  <main class="site-main">
     {{{body}}}
   </main>
-  
-  <footer>
-    <p>WikiGraph - GraphDB Integration Application &copy; 2025</p>
+
+  <footer class="site-footer">
+    <p>&copy; 2025 WikiGraph - GraphDB Integration Application</p>
   </footer>
-
 </body>
-
 </html>

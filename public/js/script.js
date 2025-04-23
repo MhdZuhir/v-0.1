@@ -1,10 +1,3 @@
-/**
- * WikiGraph Application JavaScript
- * 
- * This file contains all client-side functionality for the WikiGraph application.
- * Completely rewritten toggle handling for maximum compatibility.
- */
-
 // Document ready handler
 document.addEventListener('DOMContentLoaded', function() {
   console.log('DOM loaded, initializing application...');
@@ -22,7 +15,29 @@ document.addEventListener('DOMContentLoaded', function() {
   if (typeof initOntologyVisualization === 'function') {
     initOntologyVisualization();
   }
+
+  // Initialize search validation
+  initializeSearchValidation();
 });
+
+// Function to initialize search validation
+function initializeSearchValidation() {
+  const searchForm = document.getElementById('searchForm');
+  const searchInput = document.getElementById('searchInput');
+  const errorMessage = document.getElementById('searchError');
+
+  searchForm.addEventListener('submit', function(e) {
+    const value = searchInput.value.trim();
+    if (!value) {
+      e.preventDefault(); // Prevent form submission if the input is empty
+      searchInput.classList.add('input-error'); // Add error style to input
+      errorMessage.style.display = 'block'; // Show error message
+    } else {
+      searchInput.classList.remove('input-error'); // Remove error style
+      errorMessage.style.display = 'none'; // Hide error message
+    }
+  });
+}
 
 // Handle display toggle for human-readable labels
 function initializeDisplayToggle() {
@@ -173,73 +188,5 @@ function toggleDebug() {
   const debugInfo = document.getElementById('debugInfo');
   if (debugInfo) {
     debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
-  }
-}
-
-/**
- * Ontology Visualization JavaScript
- * Provides functionality for displaying relationships between ontology elements
- */
-
-// Initialize ontology visualization functionality
-function initOntologyVisualization() {
-  console.log('Initializing ontology visualization features');
-  
-  // Setup event listeners for relationship visualization buttons
-  setupRelationshipVisualizers();
-  
-  // Setup product display enhancements
-  enhanceProductDisplay();
-}
-
-// Set up event listeners for relationship visualizer buttons
-function setupRelationshipVisualizers() {
-  const vizButtons = document.querySelectorAll('.viz-btn');
-  
-  vizButtons.forEach(button => {
-    button.addEventListener('click', function(e) {
-      // Store the clicked state to highlight active visualization
-      vizButtons.forEach(btn => btn.classList.remove('active-viz'));
-      this.classList.add('active-viz');
-      
-      // We're using link navigation so we don't need additional handling here
-      // The SPARQL query embedded in the link will handle the data retrieval
-    });
-  });
-}
-
-// Enhance product display with additional hover effects and functionality
-function enhanceProductDisplay() {
-  const productCards = document.querySelectorAll('.product-card');
-  
-  productCards.forEach(card => {
-    // Add hover animations and effects
-    card.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-5px)';
-      this.style.boxShadow = '0 6px 12px rgba(0, 0, 0, 0.1)';
-    });
-    
-    card.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0)';
-      this.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
-    });
-  });
-}
-
-// Function to display relationship details
-function showRelationshipDetails(relationshipId) {
-  // Find the relationship details element
-  const detailsElement = document.getElementById(`relationship-details-${relationshipId}`);
-  
-  if (detailsElement) {
-    // Toggle visibility
-    const isHidden = detailsElement.style.display === 'none' || !detailsElement.style.display;
-    detailsElement.style.display = isHidden ? 'block' : 'none';
-    
-    // Update the button text
-    const button = document.querySelector(`[data-relationship-id="${relationshipId}"]`);
-    if (button) {
-      button.textContent = isHidden ? 'Hide Details' : 'View Details';
-    }
   }
 }
