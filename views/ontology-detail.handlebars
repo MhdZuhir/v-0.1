@@ -1,4 +1,4 @@
-'<!-- views/ontology-detail.handlebars -->
+<!-- views/ontology-detail.handlebars - Updated version with subject products section -->
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   <li>{{ontology.title}}</li>
@@ -98,7 +98,7 @@
       </div>
     </div>
     
-    <!-- Relationships section - with interactive display -->
+    <!-- Relationships section -->
     {{#if ontology.relationships.length}}
     <div class="property-group">
       <div class="property-group-header">Objektrelationer</div>
@@ -184,14 +184,21 @@
     </div>
     {{/if}}
     
-    <!-- Products section -->
+    <!-- Products section - Updated with tabs -->
     {{#if ontology.products.length}}
     <div class="property-group">
       <div class="property-group-header">Relaterade Produkter</div>
       <div class="property-group-content">
+        <!-- Product filter tabs -->
+        <div class="product-tabs">
+          <button class="tab-btn active" onclick="filterProducts('all')">Alla produkter</button>
+          <button class="tab-btn" onclick="filterProducts('object')">Produkter som objekt</button>
+          <button class="tab-btn" onclick="filterProducts('subject')">Produkter som subjekt</button>
+        </div>
+        
         <div class="product-grid">
           {{#each ontology.products}}
-            <div class="product-card">
+            <div class="product-card {{#if this.isSubject}}subject-product{{else}}object-product{{/if}}">
               <div class="product-card-header">
                 <h3>
                   <a href="/product/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
@@ -206,16 +213,32 @@
                   <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
                 {{/if}}
                 
-                {{#if this.type}}
-                  <div class="product-type">
-                    <span class="type-label">Typ:</span>
-                    {{#if this.typeLabel}}
-                      <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.typeLabel}}</a>
-                    {{else}}
-                      <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.type}}</a>
-                    {{/if}}
-                  </div>
-                {{/if}}
+                <!-- Product type tags -->
+                <div class="product-meta">
+                  <!-- Subject/Object indicator -->
+                  {{#if this.isSubject}}
+                    <span class="product-tag subject-tag">Subjekt</span>
+                  {{else}}
+                    <span class="product-tag object-tag">Objekt</span>
+                  {{/if}}
+                  
+                  <!-- Notor indicator -->
+                  {{#if this.isNotor}}
+                    <span class="product-tag notor-tag">Notor65</span>
+                  {{/if}}
+                  
+                  <!-- Type if available -->
+                  {{#if this.type}}
+                    <div class="product-type">
+                      <span class="type-label">Typ:</span>
+                      {{#if this.typeLabel}}
+                        <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.typeLabel}}</a>
+                      {{else}}
+                        <a href="/resource?uri={{encodeURIComponent this.type}}&showLabels={{../showLabels}}">{{this.type}}</a>
+                      {{/if}}
+                    </div>
+                  {{/if}}
+                </div>
               </div>
               <div class="product-card-footer">
                 <a href="/product/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa detaljer</a>
@@ -377,6 +400,16 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
   
+  /* Special styling for subject products */
+  .product-card.subject-product {
+    border-left: 4px solid #7986cb;
+  }
+  
+  /* Special styling for object products */
+  .product-card.object-product {
+    border-left: 4px solid #4db6ac;
+  }
+  
   .product-card-header {
     padding: 12px 15px;
     border-bottom: 1px solid #eaecf0;
@@ -403,12 +436,25 @@
     line-height: 1.5;
   }
   
-  .product-type {
+  .product-meta {
     margin-top: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+  }
+  
+  .product-type {
+    margin-top: 5px;
     font-size: 13px;
     color: #666;
-    border-top: 1px solid #f0f0f0;
-    padding-top: 8px;
+    width: 100%;
+  }
+  
+  .type-label {
+    font-weight: 600;
+    margin-right: 5px;
   }
   
   .product-card-footer {
@@ -501,6 +547,61 @@
     margin: 10px 0;
   }
   
+  /* Product tabs */
+  .product-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .tab-btn {
+    padding: 8px 15px;
+    background-color: #f5f7fa;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .tab-btn:hover {
+    background-color: #eaecf0;
+  }
+  
+  .tab-btn.active {
+    background-color: #0645ad;
+    color: white;
+    border-color: #0645ad;
+  }
+  
+  /* Product tag styles */
+  .product-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .subject-tag {
+    background-color: #e8eaf6;
+    color: #3f51b5;
+    border: 1px solid #c5cae9;
+  }
+  
+  .object-tag {
+    background-color: #e0f2f1;
+    color: #009688;
+    border: 1px solid #b2dfdb;
+  }
+  
+  .notor-tag {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+  
   /* Exploration links */
   .exploration-links {
     display: flex;
@@ -570,10 +671,15 @@
     .relation-arrow {
       transform: rotate(90deg);
     }
+    
+    .product-tabs {
+      flex-direction: column;
+    }
   }
 </style>
 
 <script>
+  // Function to show relationship details
   function showRelationshipDetails(relationshipId) {
     // Find the relationship details element
     const detailsElement = document.getElementById(`relationship-details-${relationshipId}`);
@@ -591,6 +697,40 @@
     }
   }
   
+  // Function to filter products by type
+  function filterProducts(type) {
+    // Get all product cards
+    const productCards = document.querySelectorAll('.product-card');
+    
+    // Update tab buttons
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    tabButtons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.tab-btn[onclick*="${type}"]`).classList.add('active');
+    
+    // Show/hide products based on type
+    if (type === 'all') {
+      productCards.forEach(card => {
+        card.style.display = '';
+      });
+    } else if (type === 'subject') {
+      productCards.forEach(card => {
+        if (card.classList.contains('subject-product')) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    } else if (type === 'object') {
+      productCards.forEach(card => {
+        if (card.classList.contains('object-product')) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+  }
+  
   // Initialize the feature for toggling active visualization
   document.addEventListener('DOMContentLoaded', function() {
     const vizButtons = document.querySelectorAll('.viz-btn');
@@ -602,4 +742,4 @@
       });
     });
   });
-</script>'
+</script>
