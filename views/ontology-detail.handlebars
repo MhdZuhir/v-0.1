@@ -69,30 +69,61 @@
       <div class="property-group-content">
         <p>Visar alla distinkta subjekt från databasen:</p>
         
-        <div class="action-links">
-          <a href="/query?query={{encodeURIComponent 'SELECT DISTINCT ?s WHERE { ?s ?p ?o } LIMIT 100'}}&showLabels={{showLabels}}" class="btn" style="margin-bottom: 15px;">
-            Kör subjekt-query
-          </a>
-        </div>
-        
-        <!-- Pre-populated query link -->
-        <div class="subjects-query-box">
-          <h4>SPARQL Query</h4>
-          <pre>SELECT DISTINCT ?s WHERE { ?s ?p ?o } LIMIT 100</pre>
-        </div>
-        
-        <!-- Optional: Additional filter options -->
-        <div class="filter-panel">
-          <h4>Filtrera subjekt</h4>
-          <form action="/query" method="get" class="filter-form">
-            <div class="form-group">
-              <label for="subjectFilter">Filtrera efter mönster:</label>
-              <input type="text" id="subjectFilter" name="subjectFilter" class="form-control" placeholder="Exempelvis: ontologi2025">
+        <!-- Auto-loading subject list -->
+        <div class="subjects-list-container">
+          <div class="loading-indicator" id="subjectsLoading">
+            <div class="spinner"></div>
+            <p>Hämtar subjekt från databasen...</p>
+          </div>
+          
+          <div id="subjectsListContainer" style="display: none;">
+            <div class="filter-local">
+              <input type="text" id="localSubjectFilter" placeholder="Filtrera resultat..." class="form-control">
             </div>
-            <input type="hidden" name="query" id="filteredQuery" value="SELECT DISTINCT ?s WHERE { ?s ?p ?o } LIMIT 100">
-            <input type="hidden" name="showLabels" value="{{showLabels}}">
-            <button type="submit" class="btn" onclick="updateQueryWithFilter(); return true;">Filtrera subjekt</button>
-          </form>
+            
+            <ul class="subjects-list" id="subjectsList">
+              <!-- Will be populated via JavaScript -->
+            </ul>
+            
+            <div id="noSubjectsMessage" style="display: none;">
+              <p>Inga subjekt hittades i databasen.</p>
+            </div>
+            
+            <div class="subjects-pagination">
+              <span id="subjectsCount">0 resultat</span>
+              <button id="loadMoreSubjects" class="btn btn-small" style="display: none;">Visa fler</button>
+            </div>
+          </div>
+          
+          <div id="subjectsError" style="display: none;" class="error-message">
+            <p>Ett fel uppstod vid hämtning av data från GraphDB.</p>
+            <p>Försök att <a href="#" onclick="fetchSubjects(); return false;">ladda om data</a>.</p>
+          </div>
+        </div>
+        
+        <!-- Advanced search panel, collapsed by default -->
+        <div class="advanced-search-panel">
+          <button class="btn-toggle" id="toggleAdvancedSearch">Avancerad sökning ▾</button>
+          
+          <div id="advancedSearchContent" style="display: none;">
+            <div class="subjects-query-box">
+              <h4>SPARQL Query</h4>
+              <pre>SELECT DISTINCT ?s WHERE { ?s ?p ?o } LIMIT 100</pre>
+            </div>
+            
+            <div class="filter-panel">
+              <h4>Anpassa sökfråga</h4>
+              <form action="/query" method="get" class="filter-form">
+                <div class="form-group">
+                  <label for="subjectFilter">Filtrera efter mönster:</label>
+                  <input type="text" id="subjectFilter" name="subjectFilter" class="form-control" placeholder="Exempelvis: ontologi2025">
+                </div>
+                <input type="hidden" name="query" id="filteredQuery" value="SELECT DISTINCT ?s WHERE { ?s ?p ?o } LIMIT 100">
+                <input type="hidden" name="showLabels" value="{{showLabels}}">
+                <button type="submit" class="btn" onclick="updateQueryWithFilter(); return true;">Kör anpassad sökning</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -236,6 +267,128 @@
     border: 1px solid #ddd;
     border-radius: 4px;
   }
+  
+  /* New styles for auto-loading subjects */
+  .loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+  }
+  
+  .spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #0645ad;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .subjects-list-container {
+    margin-bottom: 20px;
+  }
+  
+  .subjects-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+  }
+  
+  .subjects-list li {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eaecf0;
+  }
+  
+  .subjects-list li:last-child {
+    border-bottom: none;
+  }
+  
+  .subjects-list li a {
+    display: block;
+    text-decoration: none;
+    color: #0645ad;
+  }
+  
+  .subjects-list li a:hover {
+    text-decoration: underline;
+  }
+  
+  .subjects-list li.no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 20px;
+  }
+  
+  .filter-local {
+    margin-bottom: 15px;
+  }
+  
+  .filter-local input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .subjects-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eaecf0;
+  }
+  
+  .error-message {
+    background-color: #fef0f0;
+    border: 1px solid #ffd7d7;
+    border-left: 4px solid #d32f2f;
+    padding: 15px;
+    border-radius: 4px;
+    margin: 15px 0;
+  }
+  
+  .btn-toggle {
+    background-color: #f8f9fa;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+    padding: 8px 15px;
+    width: 100%;
+    text-align: left;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 0;
+  }
+  
+  .btn-toggle:hover {
+    background-color: #eaecf0;
+  }
+  
+  .advanced-search-panel {
+    margin-top: 20px;
+    border-top: 1px solid #eaecf0;
+    padding-top: 20px;
+  }
+  
+  #advancedSearchContent {
+    margin-top: 15px;
+  }
 </style>
 
 <script>
@@ -250,6 +403,260 @@
       const filterValue = filterInput.value.trim();
       let updatedQuery = `SELECT DISTINCT ?s WHERE { ?s ?p ?o . FILTER(CONTAINS(STR(?s), "${filterValue}")) } LIMIT 100`;
       queryInput.value = updatedQuery;
+    }
+  }
+  
+  // Auto-fetch subjects on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    // Start fetching subjects immediately
+    fetchSubjects();
+    
+    // Set up local filtering
+    const localFilterInput = document.getElementById('localSubjectFilter');
+    if (localFilterInput) {
+      localFilterInput.addEventListener('input', filterSubjectsLocally);
+    }
+    
+    // Set up advanced search toggle
+    const toggleBtn = document.getElementById('toggleAdvancedSearch');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function() {
+        const content = document.getElementById('advancedSearchContent');
+        if (content) {
+          const isVisible = content.style.display !== 'none';
+          content.style.display = isVisible ? 'none' : 'block';
+          this.textContent = isVisible ? 'Avancerad sökning ▾' : 'Avancerad sökning ▴';
+        }
+      });
+    }
+  });
+  
+  // Fetch subjects from GraphDB
+  let currentOffset = 0;
+  const limit = 50;
+  let hasMoreResults = true;
+  let allSubjects = [];
+  
+  function fetchSubjects(isLoadMore = false) {
+    // Show loading indicator
+    const loading = document.getElementById('subjectsLoading');
+    const container = document.getElementById('subjectsListContainer');
+    const errorMsg = document.getElementById('subjectsError');
+    
+    if (!isLoadMore) {
+      if (loading) loading.style.display = 'flex';
+      if (container) container.style.display = 'none';
+      if (errorMsg) errorMsg.style.display = 'none';
+      currentOffset = 0;
+      allSubjects = [];
+    }
+    
+    const offset = isLoadMore ? currentOffset : 0;
+    // Modified query to filter out blank nodes and only return URIs
+    const query = `SELECT DISTINCT ?s WHERE { 
+      ?s ?p ?o . 
+      FILTER(ISURI(?s)) 
+    } 
+    ORDER BY ?s 
+    LIMIT ${limit} OFFSET ${offset}`;
+    
+    // Make direct AJAX request to server
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/query', true);
+    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    xhr.responseType = 'document'; // Request HTML response
+    
+    // Create form data
+    const formData = new URLSearchParams();
+    formData.append('query', query);
+    formData.append('showLabels', document.getElementById('displayToggle') ? 
+                           (document.getElementById('displayToggle').checked ? 'true' : 'false') : 
+                           'true');
+    formData.append('hideSystemResources', 'false');
+    
+    xhr.onload = function() {
+      // Hide loading indicator
+      if (loading) loading.style.display = 'none';
+      
+      if (xhr.status === 200) {
+        try {
+          const responseDoc = xhr.response;
+          
+          // Find the data table in the response
+          const dataTable = responseDoc.querySelector('.data-table');
+          
+          if (dataTable) {
+            // Get all rows (skipping header)
+            const rows = dataTable.querySelectorAll('tbody tr');
+            
+            if (rows && rows.length > 0) {
+              // Extract subjects from table rows
+              const newSubjects = [];
+              rows.forEach(row => {
+                const cell = row.querySelector('td');
+                if (cell) {
+                  const link = cell.querySelector('a');
+                  if (link) {
+                    // Extract URI from href attribute
+                    const href = link.getAttribute('href') || '';
+                    const uriMatch = href.match(/uri=([^&]+)/);
+                    if (uriMatch && uriMatch[1]) {
+                      const uri = decodeURIComponent(uriMatch[1]);
+                      const label = link.textContent.trim();
+                      
+                      newSubjects.push({
+                        uri: uri,
+                        label: label || uri.split(/[/#]/).pop() || uri
+                      });
+                    }
+                  } else {
+                    // Handle case where there's no link (e.g., text content only)
+                    const text = cell.textContent.trim();
+                    if (text && text !== '-' && !text.includes('No subject')) {
+                      newSubjects.push({
+                        uri: text,
+                        label: text.split(/[/#]/).pop() || text
+                      });
+                    }
+                  }
+                }
+              });
+              
+              // Append to all subjects
+              allSubjects = isLoadMore ? [...allSubjects, ...newSubjects] : newSubjects;
+              
+              // Update offset for pagination
+              currentOffset += newSubjects.length;
+              hasMoreResults = newSubjects.length === limit;
+              
+              // Display results
+              if (container) container.style.display = 'block';
+              displaySubjects(allSubjects);
+              
+              // Update count
+              const countElement = document.getElementById('subjectsCount');
+              if (countElement) {
+                countElement.textContent = `${allSubjects.length} resultat${hasMoreResults ? ' (fler finns)' : ''}`;
+              }
+              
+              // Show/hide load more button
+              const loadMoreBtn = document.getElementById('loadMoreSubjects');
+              if (loadMoreBtn) {
+                loadMoreBtn.style.display = hasMoreResults ? 'inline-block' : 'none';
+                loadMoreBtn.onclick = function() {
+                  fetchSubjects(true);
+                };
+              }
+            } else {
+              handleNoResults(container, isLoadMore);
+            }
+          } else {
+            // No data table found
+            handleNoResults(container, isLoadMore);
+          }
+        } catch (e) {
+          console.error('Error processing results:', e);
+          if (errorMsg) errorMsg.style.display = 'block';
+        }
+      } else {
+        console.error('Request failed with status:', xhr.status);
+        if (errorMsg) errorMsg.style.display = 'block';
+      }
+    };
+    
+    xhr.onerror = function() {
+      console.error('Request failed');
+      if (loading) loading.style.display = 'none';
+      if (errorMsg) errorMsg.style.display = 'block';
+    };
+    
+    xhr.send(formData);
+  }
+  
+  // Helper function to handle no results case
+  function handleNoResults(container, isLoadMore) {
+    // No results
+    hasMoreResults = false;
+    if (!isLoadMore) {
+      const noResults = document.getElementById('noSubjectsMessage');
+      if (noResults) noResults.style.display = 'block';
+      
+      // Clear the list
+      const listElement = document.getElementById('subjectsList');
+      if (listElement) {
+        listElement.innerHTML = '<li class="no-data">Inga subjekt hittades</li>';
+      }
+      
+      if (container) container.style.display = 'block';
+    }
+    
+    // Update count for empty results
+    const countElement = document.getElementById('subjectsCount');
+    if (countElement) {
+      countElement.textContent = `${allSubjects.length} resultat`;
+    }
+    
+    // Hide load more button
+    const loadMoreBtn = document.getElementById('loadMoreSubjects');
+    if (loadMoreBtn) {
+      loadMoreBtn.style.display = 'none';
+    }
+  }
+  
+  // Display subjects in the list
+  function displaySubjects(subjects) {
+    const listElement = document.getElementById('subjectsList');
+    if (!listElement) return;
+    
+    if (!subjects.length) {
+      listElement.innerHTML = '<li class="no-data">Inga subjekt hittades</li>';
+      return;
+    }
+    
+    const showLabels = document.getElementById('displayToggle') ? document.getElementById('displayToggle').checked : true;
+    
+    // Clear list if not appending
+    listElement.innerHTML = '';
+    
+    // Add each subject to the list
+    subjects.forEach(subject => {
+      const listItem = document.createElement('li');
+      
+      const link = document.createElement('a');
+      link.href = `/resource?uri=${encodeURIComponent(subject.uri)}&showLabels=${showLabels}`;
+      link.textContent = subject.label;
+      link.setAttribute('data-uri', subject.uri);
+      
+      listItem.appendChild(link);
+      listElement.appendChild(listItem);
+    });
+  }
+  
+  // Filter subjects locally (client-side)
+  function filterSubjectsLocally() {
+    const filterInput = document.getElementById('localSubjectFilter');
+    if (!filterInput || !allSubjects.length) return;
+    
+    const filterValue = filterInput.value.toLowerCase();
+    
+    if (!filterValue) {
+      // If filter is empty, show all subjects
+      displaySubjects(allSubjects);
+      return;
+    }
+    
+    // Filter the already loaded subjects
+    const filteredSubjects = allSubjects.filter(subject => 
+      subject.label.toLowerCase().includes(filterValue) || 
+      subject.uri.toLowerCase().includes(filterValue)
+    );
+    
+    displaySubjects(filteredSubjects);
+    
+    // Update count
+    const countElement = document.getElementById('subjectsCount');
+    if (countElement) {
+      countElement.textContent = `${filteredSubjects.length} av ${allSubjects.length} resultat`;
     }
   }
 </script>
