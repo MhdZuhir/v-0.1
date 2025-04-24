@@ -1,34 +1,22 @@
-<h1>{{title}}</h1>
-
-<div class="display-mode">
-<label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
-  <label class="switch">
-    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-    <span class="slider"></span>
-  </label>
-  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
-</div>
+<h1 class="page-title">{{title}}</h1>
 
 <section class="intro-section">
   <p>
-    Välkommen till Ontology Browser, ett verktyg för att utforska och ladda ner ontologier från GraphDB-databasen.
-  </p>
+  <i>Välkommen till Ontology Browser, ett verktyg för att utforska och ladda ner ontologier från GraphDB-databasen.</i>
+</p>
   
   <div class="info-box">
     <h3>Vad är en ontologi?</h3>
     <p>
-      En ontologi är en formell representation av kunskap inom ett visst område som definierar begrepp, relationer och 
+     <i> En ontologi är en formell representation av kunskap inom ett visst område som definierar begrepp, relationer och 
       egenskaper. Ontologier används för att organisera information, möjliggöra semantisk interoperabilitet och 
-      stödja dataintegration genom att tillhandahålla ett gemensamt vokabulär.
+      stödja dataintegration genom att tillhandahålla ett gemensamt vokabulär. </i>
     </p>
     <p>
-      I denna databas finns olika ontologier som kan laddas ner i flera format som RDF/XML, Turtle, N-Triples och JSON-LD.
+     <i> I denna databas finns olika ontologier som kan laddas ner i flera format som RDF/XML, Turtle, N-Triples och JSON-LD.</i>
     </p>
   </div>
 </section>
-
-<h2>Tillgängliga ontologier</h2>
-
 <div class="ontology-grid">
   {{#each ontologies}}
     <div class="ontology-card">
@@ -48,9 +36,6 @@
           <span class="stat"><strong>Individer:</strong> {{this.stats.individuals}}</span>
         </div>
       </div>
-      <div class="ontology-card-footer">
-        <a href="/ontology/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}" class="btn">Visa detaljer</a>
-      </div>
     </div>
   {{/each}}
 
@@ -60,12 +45,20 @@
     </div>
   {{/unless}}
 </div>
-
+<div class="display-mode">
+<label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
 <div class="action-links">
   <a href="/search?showLabels={{showLabels}}" class="btn">Sök i databasen</a>
   <a href="/graphdb?showLabels={{showLabels}}" class="btn">Visa alla data</a>
   <a href="/query?showLabels={{showLabels}}" class="btn">Kör anpassad SPARQL-fråga</a>
 </div>
+
 
 <style>
   .ontology-card-body .description {

@@ -5,16 +5,6 @@
 </ul>
 
 <h1>Bläddra i klasser</h1>
-
-<div class="display-mode">
-  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
-  <label class="switch">
-    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-    <span class="slider"></span>
-  </label>
-  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
-</div>
-
 <div class="form-container">
   <form action="/class/browse" method="get" class="search-form">
     <div class="form-group">
@@ -71,7 +61,14 @@
     </div>
   {{/unless}}
 </div>
-
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
 <style>
   .form-container {
     background-color: #f8f9fa;

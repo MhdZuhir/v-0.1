@@ -1,13 +1,12 @@
+<ul class="breadcrumbs">
+  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
+  <li>SPARQL Query </li>
+</ul>
+
+
 <h1>{{title}}</h1>
 
-<div class="display-mode">
-  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
-  <label class="switch">
-    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-    <span class="slider"></span>
-  </label>
-  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
-</div>
+
 
 <p>Ange din SPARQL-fråga nedan:</p>
 
@@ -24,4 +23,12 @@ SELECT * WHERE {
   <div class="form-group">
     <button type="submit" class="btn">Kör fråga</button>
   </div>
+<div class="display-mode">
+  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
 </form>

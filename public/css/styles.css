@@ -88,7 +88,16 @@ h1 {
   font-family: 'Linux Libertine', 'Georgia', 'Times', serif;
   font-weight: normal;
 }
-
+.page-title {
+  font-size: 32px;
+  font-weight: bold;
+  color: #0645ad;
+  margin-bottom: 20px;
+  text-align: center;
+  border-bottom: 2px solid #ddd;
+  padding-bottom: 10px;
+  letter-spacing: 1px;
+}
 h2 {
   margin: 20px 0 10px;
   color: #000;
@@ -174,7 +183,6 @@ a:visited {
 /* Button styling */
 .btn {
   display: inline-block;
-  background-color: #0645ad;
   color: white;
   padding: 8px 15px;
   border: none;
@@ -183,18 +191,16 @@ a:visited {
   text-decoration: none;
   font-size: 14px;
   margin-right: 10px;
+  font-weight: bold; /* Gör texten fet */
 }
-
-.btn:hover {
-  background-color: #0b0080;
-}
-
 /* Error styling */
 .error-message {
   color: #d9534f;
-  font-weight: bold;
+  font-weight: 500;
+  font-size: 14px; /* Justera storleken här */
 }
 
+/* Detaljer för felmeddelanden */
 .error-details {
   margin-top: 20px;
   padding: 15px;
@@ -203,10 +209,12 @@ a:visited {
   overflow-x: auto;
 }
 
+/* Format för felmeddelanden med pre-formatering */
 .error-details pre {
   font-family: monospace;
   margin: 0;
 }
+
 
 /* Display mode toggle */
 .display-mode {
@@ -279,9 +287,24 @@ input:checked + .slider:before {
 }
 
 /* Action links */
-.action-links {
-  margin: 20px 0;
+.action-links .btn {
+  display: inline-block;
+  background-color: #0645ad;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  -webkit-text-fill-color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+  margin-right: 10px;
 }
+
+.action-links .btn:hover {
+  background-color: #0b0080;  /* Mörkare blå vid hover */
+}
+
 
 footer {
   margin-top: 30px;
@@ -714,11 +737,14 @@ input:checked + .slider:before {
     padding: 15px;
     margin: 20px 0;
     border-radius: 0 4px 4px 0;
+
   }
   
   .info-box h3 {
     margin-top: 0;
     color: #0645ad;
+    font-weight: bold; /* Gör texten fet */
+
   }
   
   .ontology-grid {
@@ -806,23 +832,23 @@ input:checked + .slider:before {
   
   .ontology-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    grid-gap: 20px;
-    margin: 20px 0;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
   }
   
   .ontology-card {
-    border: 1px solid #eaecf0;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   
   .ontology-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   }
   
   .ontology-card-header {
@@ -928,15 +954,15 @@ input:checked + .slider:before {
 }
 
 .ontology-card-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #2c3e50;
+  font-size: 1.2rem;
+  color: #1a237e;
+  margin-bottom: 0.75rem;
 }
 
 .ontology-card-header h3 a {
-  color: #0645ad;
   text-decoration: none;
+  color: inherit;
+  font-weight: 700;
 }
 
 .ontology-card-header h3 a:hover {
@@ -963,14 +989,13 @@ input:checked + .slider:before {
 }
 
 .ontology-stats {
-  margin-top: auto;
   display: flex;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px 0;
-  border-top: 1px solid #eaecf0;
-  font-size: 13px;
-  color: #555;
+  gap: 0.5rem;
+  margin-top: auto;
+  font-size: 0.9rem;
+  color: #444;
 }
 
 .ontology-stats .stat {

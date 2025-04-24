@@ -1,15 +1,5 @@
 <!-- views/query-results.handlebars -->
 <h1>{{title}}</h1>
-
-<div class="display-mode">
-<label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
-  <label class="switch">
-    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-    <span class="slider"></span>
-  </label>
-  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
-</div>
-
 <div class="query-display">
   <h3>Utförd fråga:</h3>
   <pre>{{query}}</pre>
@@ -80,7 +70,14 @@
     </div>
   </div>
 {{/if}}
-
+<div class="display-mode">
+<label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
+  <label class="switch">
+    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+    <span class="slider"></span>
+  </label>
+  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
+</div>
 <div class="action-links">
   <form action="/query" method="get" class="query-form" style="display: inline-block; margin-right: 10px;">
     <input type="hidden" name="showLabels" value="{{showLabels}}">
