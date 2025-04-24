@@ -1,4 +1,4 @@
-// config/handlebars.js
+// config/handlebars.js - Updated with embedded layout support
 const { engine } = require('express-handlebars');
 const path = require('path');
 
@@ -7,7 +7,8 @@ const path = require('path');
  * @param {Express} app - Express application instance
  */
 exports.setup = (app) => {
-  app.engine('handlebars', engine({
+  // Create handlebars instance with custom helpers
+  const hbs = engine({
     helpers: {
       eq: (a, b) => a === b,
       encodeURIComponent: (str) => encodeURIComponent(str),
@@ -32,7 +33,7 @@ exports.setup = (app) => {
         if (!text) return '';
         return text.length <= length ? text : text.substring(0, length) + '...';
       },
-      // New helper for concatenating strings
+      // Helper for concatenating strings
       concat: function() {
         let result = '';
         for (let i = 0; i < arguments.length; i++) {
@@ -43,8 +44,23 @@ exports.setup = (app) => {
         // Remove the last argument which is the Handlebars options object
         return result;
       }
+    },
+    // Add layout selection function
+    defaultLayout: 'main',
+    layoutsDir: path.join(__dirname, '../views/layouts')
+  });
+  
+  // Set up the Handlebars engine
+  app.engine('handlebars', hbs);
+  
+  // Set up middleware to select layout based on query param
+  app.use((req, res, next) => {
+    // Check if embedded mode is requested
+    if (req.query.embedded === 'true') {
+      res.locals.layout = 'embedded';
     }
-  }));
+    next();
+  });
   
   app.set('view engine', 'handlebars');
   app.set('views', path.join(__dirname, '../views'));

@@ -1,4 +1,4 @@
-// Enhanced controllers/queryController.js with debug logging
+// controllers/queryController.js - Updated with embedded mode support
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
 const { filterSystemResources, extractUrisFromResults } = require('../utils/uriUtils');
@@ -11,6 +11,7 @@ const { filterSystemResources, extractUrisFromResults } = require('../utils/uriU
 exports.getQueryPage = (req, res) => {
   // Check if a query was passed in the URL
   const query = req.query.query;
+  const embedded = req.query.embedded === 'true';
   
   if (query) {
     // If a query was provided, execute it directly
@@ -19,7 +20,8 @@ exports.getQueryPage = (req, res) => {
         query,
         hideSystemResources: req.query.hideSystemResources || 'true'
       },
-      showLabels: req.showLabels
+      showLabels: req.showLabels,
+      embedded: embedded
     }, res);
   }
   
@@ -40,6 +42,7 @@ exports.getQueryPage = (req, res) => {
 exports.executeQuery = async (req, res, next) => {
   const query = req.body.query;
   const hideSystemResources = req.body.hideSystemResources !== 'false';
+  const embedded = req.embedded === true;
   
   if (!query) {
     return res.status(400).render('error', {
@@ -95,7 +98,10 @@ exports.executeQuery = async (req, res, next) => {
     // Final debugging
     console.log(`Rendering template with ${data.length} results and ${headers.length} columns`);
     
-    res.render('query-results', {
+    // Choose template based on embedded mode
+    const template = embedded ? 'embedded-query-results' : 'query-results';
+    
+    res.render(template, {
       title: 'Query Results',
       headers,
       rows: data,
@@ -104,6 +110,7 @@ exports.executeQuery = async (req, res, next) => {
       query,
       showLabels: req.showLabels,
       showLabelsToggleState: req.showLabels ? 'false' : 'true',
+      embedded: embedded,
       debug: {
         resultCount: data.length,
         headerCount: headers.length,
