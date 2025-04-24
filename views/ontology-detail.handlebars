@@ -1,4 +1,4 @@
-<!-- views/ontology-detail.handlebars - With automatic subject display -->
+<!-- views/ontology-detail.handlebars - With improved subject display -->
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   <li>{{ontology.title}}</li>
@@ -19,6 +19,80 @@
   <div class="resource-main">
     <div class="resource-description">
       {{ontology.description}}
+    </div>
+    
+    <!-- Subjects section: Enhanced interactive display -->
+    <div class="property-group">
+      <div class="property-group-header">Ontologins Subjekt</div>
+      <div class="property-group-content">
+        <p>Subjekt definierade i denna ontologi:</p>
+        
+        <div class="subjects-container">
+          {{#if ontology.subjects.length}}
+            <!-- Subjects controls -->
+            <div class="subjects-controls">
+              <div class="search-filter">
+                <input type="text" id="subjectFilter" placeholder="Filtrera subjekt..." class="subject-search">
+              </div>
+              
+              <div class="view-controls">
+                <div class="type-filter">
+                  <button class="type-filter-btn active" data-type="all" onclick="filterSubjectsByType('all')">Alla</button>
+                  <button class="type-filter-btn" data-type="klass" onclick="filterSubjectsByType('klass')">Klasser</button>
+                  <button class="type-filter-btn" data-type="egenskap" onclick="filterSubjectsByType('egenskap')">Egenskaper</button>
+                  <button class="type-filter-btn" data-type="individ" onclick="filterSubjectsByType('individ')">Individer</button>
+                </div>
+                
+                <div class="view-toggle">
+                  <button class="view-toggle-btn active" data-view="grid" onclick="toggleSubjectsView('grid')">
+                    <span class="grid-icon">▦</span>
+                  </button>
+                  <button class="view-toggle-btn" data-view="list" onclick="toggleSubjectsView('list')">
+                    <span class="list-icon">☰</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div id="noSubjectsResults" class="no-results-message" style="display: none;">
+              <p>Inga subjekt matchar filtret.</p>
+            </div>
+            
+            <!-- Subjects grid -->
+            <div class="subjects-grid subjects-grid-view">
+              {{#each ontology.subjects}}
+                <div class="subject-card">
+                  <div class="subject-header">
+                    <h3>
+                      <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                        {{this.label}}
+                      </a>
+                    </h3>
+                    <span class="subject-type-tag {{this.typeClass}}">{{this.typeLabel}}</span>
+                  </div>
+                  <div class="subject-info">
+                    <div class="subject-uri">
+                      <code>{{this.uri}}</code>
+                    </div>
+                  </div>
+                </div>
+              {{/each}}
+            </div>
+            
+            <div class="view-more-container">
+              <button id="showMoreSubjects" class="btn">Visa fler subjekt</button>
+              <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?subject ?type ?label WHERE { { ?subject <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . OPTIONAL { ?subject a ?type } OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } UNION { ?subject a ?type . FILTER(STRSTARTS(STR(?subject), STR(<' ontology.uri '>))) OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } } ORDER BY ?subject LIMIT 100')}}&showLabels={{showLabels}}" class="btn">
+                Visa alla i SPARQL
+              </a>
+            </div>
+          {{else}}
+            <div class="no-data-message">
+              <p>❌ Inga subjekt hittades för denna ontologi.</p>
+              <p>Detta kan bero på att ontologin är tom eller att subjekten inte är korrekt definierade.</p>
+            </div>
+          {{/if}}
+        </div>
+      </div>
     </div>
     
     <div class="property-group">
@@ -63,25 +137,6 @@
       </div>
     </div>
     
-    <!-- Subjects section: Direct display using SPARQL -->
-    <div class="property-group">
-      <div class="property-group-header">Ontologins Subjekt</div>
-      <div class="property-group-content">
-        <p>Subjekt definierade i denna ontologi:</p>
-        
-        <div class="subjects-display">
-          <div id="subjectsList" class="subjects-list">
-            <!-- Use SPARQL iframe to display subjects automatically -->
-            <iframe 
-              src="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?subject ?type ?label WHERE { { ?subject <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . OPTIONAL { ?subject a ?type } OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } UNION { ?subject a ?type . FILTER(STRSTARTS(STR(?subject), STR(<' ontology.uri '>))) OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } } ORDER BY ?subject LIMIT 50')}}&showLabels={{showLabels}}&embedded=true" 
-              style="width: 100%; height: 400px; border: none; overflow: auto;"
-              title="Ontology Subjects"
-            ></iframe>
-          </div>
-        </div>
-      </div>
-    </div>
-    
     <div class="property-group">
       <div class="property-group-header">Statistik</div>
       <div class="property-group-content">
@@ -117,7 +172,6 @@
       </div>
     </div>
     
-    <!-- Continue with relationships section and other existing sections... -->
     {{#if ontology.relationships.length}}
     <div class="property-group">
       <div class="property-group-header">Objektrelationer</div>
@@ -181,7 +235,6 @@
     </div>
     {{/if}}
     
-    <!-- Products section -->
     {{#if ontology.products.length}}
     <div class="property-group">
       <div class="property-group-header">Relaterade Produkter</div>
@@ -301,6 +354,229 @@
     border-radius: 0 4px 4px 0;
   }
   
+  /* Enhanced Subjects Styles */
+  .subjects-container {
+    margin-top: 15px;
+  }
+  
+  /* Subject Controls */
+  .subjects-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eaecf0;
+  }
+  
+  .search-filter {
+    flex: 1;
+    min-width: 200px;
+    margin-right: 15px;
+    margin-bottom: 10px;
+  }
+  
+  .subject-search {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  
+  .view-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .type-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  
+  .type-filter-btn {
+    padding: 5px 10px;
+    background-color: #f5f7fa;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .type-filter-btn.active {
+    background-color: #0645ad;
+    color: white;
+    border-color: #0645ad;
+  }
+  
+  .view-toggle {
+    display: flex;
+    gap: 5px;
+  }
+  
+  .view-toggle-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f7fa;
+    border: 1px solid #eaecf0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .view-toggle-btn.active {
+    background-color: #0645ad;
+    color: white;
+    border-color: #0645ad;
+  }
+  
+  .grid-icon, .list-icon {
+    font-size: 16px;
+  }
+  
+  .no-results-message {
+    padding: 15px;
+    text-align: center;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin: 15px 0;
+  }
+  
+  /* Subject Grid View */
+  .subjects-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-gap: 15px;
+    margin-bottom: 20px;
+  }
+  
+  /* Subject List View */
+  .subjects-list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .subjects-list-view .subject-card {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  
+  .subjects-list-view .subject-header {
+    flex: 1;
+    border-bottom: none;
+    border-right: 1px solid #eaecf0;
+  }
+  
+  .subjects-list-view .subject-info {
+    width: 40%;
+    padding: 8px 12px;
+  }
+  
+  .subjects-list-view .subject-uri {
+    margin-top: 0;
+  }
+  
+  /* Common Subject Card Styles */
+  .subject-card {
+    border: 1px solid #eaecf0;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    background-color: #fff;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .subject-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .subject-card.hidden {
+    display: none;
+  }
+  
+  .subject-header {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eaecf0;
+    background-color: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .subject-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .subject-info {
+    padding: 12px 15px;
+  }
+  
+  .subject-uri {
+    font-size: 12px;
+    word-break: break-all;
+    color: #666;
+    background-color: #f5f5f5;
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 5px;
+  }
+  
+  .subject-type-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  
+  .class-tag {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+  }
+  
+  .property-tag {
+    background-color: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #bbdefb;
+  }
+  
+  .individual-tag {
+    background-color: #fff3e0;
+    color: #e65100;
+    border: 1px solid #ffe0b2;
+  }
+  
+  .default-tag {
+    background-color: #f5f5f5;
+    color: #616161;
+    border: 1px solid #e0e0e0;
+  }
+  
+  .view-more-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #eaecf0;
+  }
+  
   /* Sidebar styles */
   .sidebar-box {
     margin-bottom: 20px;
@@ -364,6 +640,20 @@
     padding: 15px;
   }
   
+  /* No data message styling */
+  .no-data-message {
+    padding: 20px;
+    text-align: center;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    color: #555;
+  }
+  
+  .no-data-message p {
+    margin-bottom: 10px;
+  }
+  
+  /* Other existing styles */
   /* Property table */
   .property-table {
     width: 100%;
@@ -384,68 +674,6 @@
     width: 30%;
     font-weight: 600;
     color: #555;
-  }
-  
-  /* Subjects table styling */
-  .subjects-container {
-    margin-top: 15px;
-    overflow-x: auto;
-  }
-  
-  .subjects-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-  }
-  
-  .subjects-table th {
-    background-color: #f5f7fa;
-    padding: 10px;
-    text-align: left;
-    font-weight: 600;
-    border-bottom: 2px solid #eaecf0;
-  }
-  
-  .subjects-table td {
-    padding: 10px;
-    border-bottom: 1px solid #eaecf0;
-    vertical-align: top;
-  }
-  
-  .subjects-table tr:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .subject-type-tag {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  
-  .class-tag {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
-  }
-  
-  .property-tag {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
-  }
-  
-  .individual-tag {
-    background-color: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffe0b2;
-  }
-  
-  .default-tag {
-    background-color: #f5f5f5;
-    color: #616161;
-    border: 1px solid #e0e0e0;
   }
   
   /* Relationships */
@@ -611,13 +839,6 @@
     border: 1px solid #bbdefb;
   }
   
-  .view-more-container {
-    text-align: center;
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid #eaecf0;
-  }
-  
   /* Responsive adjustments */
   @media (max-width: 768px) {
     .resource-container {
@@ -629,7 +850,7 @@
       margin-bottom: 20px;
     }
     
-    .product-grid {
+    .product-grid, .subjects-grid {
       grid-template-columns: 1fr;
     }
     
@@ -653,3 +874,6 @@
     }
   }
 </script>
+
+<!-- Include the subjects display functionality -->
+<script src="/js/ontology-subjects.js"></script>
