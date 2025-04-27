@@ -248,6 +248,12 @@ async function fetchResourceTypes(uri) {
 
 /**
  * Fetch resource properties
+// Excerpt from services/graphdbService.js with fixed fetchResourceProperties function
+
+/**
+ * Fetch resource properties
+/**
+ * Fetch resource properties
  * @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of property-object pairs
  */
@@ -255,22 +261,52 @@ async function fetchResourceProperties(uri) {
   if (isSystemResource(uri)) return [];
   
   try {
+    console.log(`Fetching properties for resource: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     const query = `SELECT * WHERE { <${safeUri}> ?predicate ?object } LIMIT 100`;
     
     const data = await executeQuery(query);
-    let properties = data.results.bindings || [];
     
-    // Filter out system properties
+    // Ensure we have a valid response with bindings array
+    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
+      console.error('Unexpected response structure from GraphDB when fetching resource properties');
+      return [];
+    }
+    
+    let properties = data.results.bindings || [];
+    console.log(`Found ${properties.length} raw properties for ${uri}`);
+    
+    // Debug a sample property if available
+    if (properties.length > 0) {
+      console.log('Sample property structure:', JSON.stringify(properties[0]).substring(0, 200));
+    }
+    
+    // Validate each property to ensure it has the expected structure
     properties = properties.filter(row => {
-      if (row.object?.type === 'uri' && isSystemResource(row.object.value)) return false;
-      if (row.predicate?.type === 'uri' && isSystemResource(row.predicate.value)) return false;
+      if (!row.predicate || !row.object) {
+        console.warn('Skipping property row with missing predicate or object');
+        return false;
+      }
       return true;
     });
     
+    // For resource pages, we're more permissive with system resources
+    // Only filter out system resources if explicitly requested
+    const filterSystemResources = false; // Change this to false to show all properties
+
+    if (filterSystemResources) {
+      // Filter out system properties
+      properties = properties.filter(row => {
+        if (row.object?.type === 'uri' && isSystemResource(row.object.value)) return false;
+        if (row.predicate?.type === 'uri' && isSystemResource(row.predicate.value)) return false;
+        return true;
+      });
+    }
+    
+    console.log(`Returning ${properties.length} filtered properties for ${uri}`);
     return properties;
   } catch (error) {
-    console.error('Error fetching resource properties:', error);
+    console.error(`Error fetching resource properties for ${uri}:`, error);
     return [];
   }
 }

@@ -54,7 +54,8 @@
               classes: statsElements[0] ? parseInt(statsElements[0].textContent.split(':')[1].trim()) : 0,
               properties: statsElements[1] ? parseInt(statsElements[1].textContent.split(':')[1].trim()) : 0,
               x: 0,
-              y: 0
+              y: 0,
+              connected: false // Track if this ontology is connected
             });
           }
         });
@@ -95,9 +96,9 @@
             const ontologyB = ontologies[j];
             
             // Check title similarity (naive check for common words)
-            const wordsA = ontologyA.title.toLowerCase().split(/\W+/);
-            const wordsB = ontologyB.title.toLowerCase().split(/\W+/);
-            const commonWords = wordsA.filter(word => wordsB.includes(word) && word.length > 3);
+            const wordsA = ontologyA.title.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+            const wordsB = ontologyB.title.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+            const commonWords = wordsA.filter(word => wordsB.includes(word));
             
             // Check class count similarity
             const classDiff = Math.abs(ontologyA.classes - ontologyB.classes);
@@ -106,43 +107,98 @@
             // Create connection if similar
             if (commonWords.length > 0 || classRatio > 0.7) {
               connections.push({
-                source: ontologyA.id,
-                target: ontologyB.id,
+                source: i,
+                target: j,
                 strength: (commonWords.length * 0.2) + (classRatio * 0.8)
               });
+              
+              // Mark both ontologies as connected
+              ontologyA.connected = true;
+              ontologyB.connected = true;
             }
           }
         }
         
-        // Always ensure minimum connectivity (connect to nearest neighbor)
-        ontologies.forEach((ontology, i) => {
-          if (!connections.some(c => c.source === i || c.target === i)) {
-            // Find nearest neighbor by Euclidean distance
-            let minDist = Infinity;
-            let nearestIndex = -1;
+        // Ensure all ontologies are connected to at least one other ontology
+        for (let i = 0; i < ontologies.length; i++) {
+          if (!ontologies[i].connected) {
+            // Find the closest ontology (by position in the circle)
+            let closestIndex = (i + 1) % ontologies.length; // Default to next in circle
             
+            // Look for an existing connected ontology if possible
+            for (let j = 0; j < ontologies.length; j++) {
+              if (i !== j && ontologies[j].connected) {
+                closestIndex = j;
+                break;
+              }
+            }
+            
+            // Create a connection to the closest ontology
+            connections.push({
+              source: i,
+              target: closestIndex,
+              strength: 0.5 // Medium strength for added connections
+            });
+            
+            // Mark both ontologies as connected
+            ontologies[i].connected = true;
+            ontologies[closestIndex].connected = true;
+          }
+        }
+        
+        // Create a graph structure for more connections
+        // Add more connections to create a more interconnected network
+        // This ensures all ontologies are part of the same connected graph
+        const minConnections = Math.min(3, ontologies.length - 1); // Each node should have at least this many connections
+        
+        for (let i = 0; i < ontologies.length; i++) {
+          // Count existing connections for this ontology
+          let connectionCount = 0;
+          connections.forEach(conn => {
+            if (conn.source === i || conn.target === i) {
+              connectionCount++;
+            }
+          });
+          
+          // Add more connections if needed
+          if (connectionCount < minConnections && ontologies.length > 3) {
+            // Find ontologies that aren't already connected to this one
+            const unconnectedIndices = [];
             for (let j = 0; j < ontologies.length; j++) {
               if (i !== j) {
-                const dist = Math.sqrt(
-                  Math.pow(ontology.x - ontologies[j].x, 2) + 
-                  Math.pow(ontology.y - ontologies[j].y, 2)
-                );
-                if (dist < minDist) {
-                  minDist = dist;
-                  nearestIndex = j;
+                let alreadyConnected = false;
+                connections.forEach(conn => {
+                  if ((conn.source === i && conn.target === j) || 
+                      (conn.source === j && conn.target === i)) {
+                    alreadyConnected = true;
+                  }
+                });
+                
+                if (!alreadyConnected) {
+                  unconnectedIndices.push(j);
                 }
               }
             }
             
-            if (nearestIndex >= 0) {
+            // Add new connections until we reach the minimum
+            while (connectionCount < minConnections && unconnectedIndices.length > 0) {
+              // Pick a random unconnected ontology
+              const randomIndex = Math.floor(Math.random() * unconnectedIndices.length);
+              const targetIndex = unconnectedIndices[randomIndex];
+              
+              // Add a connection
               connections.push({
                 source: i,
-                target: nearestIndex,
-                strength: 0.5
+                target: targetIndex,
+                strength: 0.3 // Lower strength for these additional connections
               });
+              
+              // Update counts and lists
+              connectionCount++;
+              unconnectedIndices.splice(randomIndex, 1);
             }
           }
-        });
+        }
         
         // Render the connections first
         connections.forEach(connection => {

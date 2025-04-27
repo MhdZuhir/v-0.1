@@ -1,7 +1,7 @@
 <ul class="breadcrumbs">
   <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
   {{#each types}}
-    <li><a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">{{this.label}}</a></li>
+    <li><a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">{{this.label}}</a></li>
   {{/each}}
   <li>{{resourceLabel}}</li>
 </ul>
@@ -19,6 +19,10 @@
   <div class="resource-main">
     <h1 class="resource-title">{{resourceLabel}}</h1>
     
+    <div class="resource-uri">
+      <code>{{uri}}</code>
+    </div>
+    
     {{#if description}}
       <div class="resource-description">
         {{description}}
@@ -26,7 +30,7 @@
     {{/if}}
     
     <!-- Basic properties section -->
-    {{#if propertyGroups.basic}}
+    {{#if propertyGroups.basic.length}}
       <div class="property-group">
         <div class="property-group-header">Grundläggande information</div>
         <div class="property-group-content">
@@ -67,7 +71,7 @@
     {{/if}}
     
     <!-- Relationships section -->
-    {{#if propertyGroups.relationships}}
+    {{#if propertyGroups.relationships.length}}
       <div class="property-group">
         <div class="property-group-header">Relationer</div>
         <div class="property-group-content">
@@ -108,7 +112,7 @@
     {{/if}}
     
     <!-- Other properties section -->
-    {{#if propertyGroups.other}}
+    {{#if propertyGroups.other.length}}
       <div class="property-group">
         <div class="property-group-header">Övriga egenskaper</div>
         <div class="property-group-content">
@@ -148,13 +152,56 @@
       </div>
     {{/if}}
     
-    {{#unless propertyGroups.basic}}
-      {{#unless propertyGroups.relationships}}
-        {{#unless propertyGroups.other}}
-          <p>Ingen detaljerad information finns tillgänglig för denna resurs.</p>
+    <!-- Fallback: Display all properties if no groups have content -->
+    {{#if properties}}
+      {{#unless propertyGroups.basic.length}}
+        {{#unless propertyGroups.relationships.length}}
+          {{#unless propertyGroups.other.length}}
+            <div class="property-group">
+              <div class="property-group-header">All information</div>
+              <div class="property-group-content">
+                <table class="property-table">
+                  {{#each properties}}
+                    <tr>
+                      <td class="property-name">
+                        {{#if this.predicate.value}}
+                          {{#if (eq this.predicate.type "uri")}}
+                            <a href="/resource?uri={{encodeURIComponent this.predicate.value}}&showLabels={{../showLabels}}">
+                              {{getDisplayValue this.predicate ../showLabels ../labelMap}}
+                            </a>
+                          {{else}}
+                            {{this.predicate.value}}
+                          {{/if}}
+                        {{else}}
+                          <em>Okänt</em>
+                        {{/if}}
+                      </td>
+                      <td>
+                        {{#if this.object.value}}
+                          {{#if (eq this.object.type "uri")}}
+                            <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../showLabels}}">
+                              {{getDisplayValue this.object ../showLabels ../labelMap}}
+                            </a>
+                          {{else}}
+                            {{this.object.value}}
+                          {{/if}}
+                        {{else}}
+                          <em>Inget värde</em>
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/each}}
+                </table>
+              </div>
+            </div>
+          {{/unless}}
         {{/unless}}
       {{/unless}}
-    {{/unless}}
+    {{else}}
+      <div class="no-data-message">
+        <p>Ingen detaljerad information finns tillgänglig för denna resurs.</p>
+      </div>
+    {{/if}}
   </div>
   
   <div class="resource-sidebar">
@@ -172,7 +219,7 @@
             <ul style="list-style: none; padding-left: 5px; margin-top: 5px;">
               {{#each types}}
                 <li>
-                  <a href="/category?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                  <a href="/class?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
                     {{this.label}}
                   </a>
                 </li>
@@ -209,9 +256,55 @@
           <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
         </p>
         <p>
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?p ?o WHERE { <' uri '> ?p ?o }')}}&showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Visa alla predikat</a>
+        </p>
+        <p>
           <a href="/graphdb?showLabels={{showLabels}}" class="btn" style="width: 100%;">Visa alla data</a>
         </p>
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  .resource-uri {
+    color: #777;
+    font-size: 0.9em;
+    margin-bottom: 20px;
+    word-break: break-all;
+    font-family: monospace;
+    background-color: #f5f5f5;
+    padding: 10px;
+    border-radius: 4px;
+  }
+  
+  .property-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .property-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eaecf0;
+    vertical-align: top;
+  }
+  
+  .property-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .property-name {
+    width: 30%;
+    font-weight: 600;
+    color: #555;
+  }
+  
+  .no-data-message {
+    padding: 20px;
+    text-align: center;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin: 20px 0;
+  }
+</style>

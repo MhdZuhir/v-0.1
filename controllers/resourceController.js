@@ -1,4 +1,4 @@
-// controllers/resourceController.js
+// controllers/resourceController.js - Complete Fix
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
 const { isSystemResource } = require('../utils/uriUtils');
@@ -33,6 +33,8 @@ exports.getResourcePage = async (req, res, next) => {
     const relatedUris = await graphdbService.fetchRelatedResources(uri);
     const types = await graphdbService.fetchResourceTypes(uri);
     
+    console.log(`Resource ${uri}: Found ${properties.length} properties`);
+    
     let labelMap = {};
     if (req.showLabels) {
       const uris = [];
@@ -45,7 +47,8 @@ exports.getResourcePage = async (req, res, next) => {
       labelMap = await labelService.fetchLabelsForUris(uris);
     }
 
-    // Group properties by type
+    // Group properties by type - These array initializations are important!
+    // Make sure they're always arrays even if empty
     const propertyGroups = {
       basic: [],
       relationships: [],
@@ -63,41 +66,50 @@ exports.getResourcePage = async (req, res, next) => {
     
     const relationshipKeywords = ['has', 'related', 'member', 'part', 'connected', 'linked'];
     
-    properties.forEach(row => {
-      const predicateValue = row.predicate.value;
-      
-      if (basicPredicates.includes(predicateValue)) {
-        propertyGroups.basic.push(row);
-      } else if (relationshipKeywords.some(keyword => predicateValue.toLowerCase().includes(keyword))) {
-        propertyGroups.relationships.push(row);
-      } else {
-        propertyGroups.other.push(row);
-      }
-    });
-
-    // Remove empty groups
-    if (propertyGroups.basic.length === 0) delete propertyGroups.basic;
-    if (propertyGroups.relationships.length === 0) delete propertyGroups.relationships;
-    if (propertyGroups.other.length === 0) delete propertyGroups.other;
+    if (Array.isArray(properties)) {
+      properties.forEach(row => {
+        if (!row.predicate || !row.predicate.value) {
+          console.log("Warning: Found property row without predicate value", row);
+          return;
+        }
+        
+        const predicateValue = row.predicate.value;
+        
+        if (basicPredicates.includes(predicateValue)) {
+          propertyGroups.basic.push(row);
+        } else if (relationshipKeywords.some(keyword => predicateValue.toLowerCase().includes(keyword))) {
+          propertyGroups.relationships.push(row);
+        } else {
+          propertyGroups.other.push(row);
+        }
+      });
+    } else {
+      console.log("Warning: properties is not an array:", properties);
+    }
+    
+    console.log(`Property groups: basic=${propertyGroups.basic.length}, relationships=${propertyGroups.relationships.length}, other=${propertyGroups.other.length}`);
 
     res.render('resource', {
       title: 'Resursdetaljer',
       uri,
-      resourceLabel: req.showLabels && labelMap[uri] ? labelMap[uri] : uri,
+      resourceLabel: req.showLabels && labelMap[uri] ? labelMap[uri] : uri.split(/[/#]/).pop(),
       description,
       types: types.map(type => ({
         uri: type,
-        label: req.showLabels && labelMap[type] ? labelMap[type] : type
+        label: req.showLabels && labelMap[type] ? labelMap[type] : type.split(/[/#]/).pop()
       })),
       propertyGroups,
+      properties, // The full array of properties for fallback display
       related: relatedUris.map(related => ({
         uri: related,
-        label: req.showLabels && labelMap[related] ? labelMap[related] : related
+        label: req.showLabels && labelMap[related] ? labelMap[related] : related.split(/[/#]/).pop()
       })),
-      labelMap
-      // Note: showLabels and showLabelsToggleState are already in res.locals
+      labelMap,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });
   } catch (err) {
+    console.error('Error in getResourcePage:', err);
     next(err);
   }
 };
