@@ -604,12 +604,136 @@ function getDownloadUrl(uri, format) {
   // GraphDB export URL with Content-Disposition header parameter
   return `${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}/statements?infer=false&context=<${encodeURIComponent(uri)}>&format=${encodeURIComponent(format)}&filename=ontology`;
 }
+// services/ontologyService.js - Add new function to fetch related ontologies
 
+/**
+ * Fetch ontologies related to a specific ontology
+ * @param {string} uri - URI of the ontology
+ * @returns {Promise<Array>} - Array of related ontology objects
+ */
+async function fetchRelatedOntologies(uri) {
+  try {
+    console.log(`Fetching ontologies related to: ${uri}`);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to find ontologies related to this one
+    const query = `
+      SELECT DISTINCT ?relatedOntology ?title ?description WHERE {
+        {
+          # Ontologies imported by this ontology
+          <${safeUri}> <http://www.w3.org/2002/07/owl#imports> ?relatedOntology .
+        } 
+        UNION 
+        {
+          # Ontologies that import this ontology
+          ?relatedOntology <http://www.w3.org/2002/07/owl#imports> <${safeUri}> .
+        }
+        UNION
+        {
+          # Ontologies that share common classes or properties
+          ?common <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?common2 <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?relatedOntology .
+          
+          # Make sure they are similar
+          ?common a ?type .
+          ?common2 a ?type .
+          
+          # Filter out self-references
+          FILTER(?relatedOntology != <${safeUri}>)
+        }
+        UNION
+        {
+          # Ontologies that might be related by namespace similarity
+          ?relatedOntology a <http://www.w3.org/2002/07/owl#Ontology> .
+          
+          # Check for similar namespace patterns
+          FILTER(CONTAINS(STR(?relatedOntology), SUBSTR(STR(<${safeUri}>), 1, 20)) || 
+                 CONTAINS(STR(<${safeUri}>), SUBSTR(STR(?relatedOntology), 1, 20)))
+          
+          # Filter out self-references
+          FILTER(?relatedOntology != <${safeUri}>)
+        }
+        
+        # Get title and description if available
+        OPTIONAL { 
+          ?relatedOntology ?titlePred ?title . 
+          FILTER(?titlePred IN (
+            <http://www.w3.org/2000/01/rdf-schema#label>,
+            <http://purl.org/dc/terms/title>,
+            <http://purl.org/dc/elements/1.1/title>
+          ))
+        }
+        OPTIONAL { 
+          ?relatedOntology ?descPred ?description . 
+          FILTER(?descPred IN (
+            <http://www.w3.org/2000/01/rdf-schema#comment>,
+            <http://purl.org/dc/terms/description>,
+            <http://purl.org/dc/elements/1.1/description>
+          ))
+        }
+      }
+      LIMIT 10
+    `;
+    
+    const data = await executeQuery(query);
+    
+    if (!data || !data.results || !data.results.bindings) {
+      return [];
+    }
+    
+    // Process and normalize results
+    const relatedOntologies = [];
+    const seen = new Set(); // To avoid duplicates
+    
+    data.results.bindings.forEach(binding => {
+      if (!binding.relatedOntology || !binding.relatedOntology.value) return;
+      
+      const uri = binding.relatedOntology.value;
+      if (seen.has(uri)) return;
+      seen.add(uri);
+      
+      relatedOntologies.push({
+        uri: uri,
+        title: binding.title?.value || uri.split(/[/#]/).pop() || 'Unnamed Ontology',
+        description: binding.description?.value || generateOntologyDescription(uri),
+      });
+    });
+    
+    // If we found less than 3 related ontologies, add some more to ensure connectivity
+    if (relatedOntologies.length < 3) {
+      // Fetch all ontologies and select some that aren't already in the list
+      const allOntologies = await fetchOntologies();
+      const existingUris = new Set(relatedOntologies.map(o => o.uri));
+      
+      // Add some additional ontologies to ensure connectivity
+      for (const ontology of allOntologies) {
+        if (!existingUris.has(ontology.uri) && ontology.uri !== uri) {
+          relatedOntologies.push({
+            uri: ontology.uri,
+            title: ontology.title,
+            description: ontology.description || generateOntologyDescription(ontology.uri)
+          });
+          
+          // Stop after adding enough additional ontologies
+          if (relatedOntologies.length >= 3) break;
+        }
+      }
+    }
+    
+    return relatedOntologies;
+  } catch (error) {
+    console.error(`Error fetching related ontologies for ${uri}:`, error.message);
+    return [];
+  }
+}
+
+// Export the new function
 module.exports = {
   fetchOntologies,
   fetchOntologyMetadata,
   getOntologyStats,
   getDownloadUrl,
   fetchProductsForOntology,
-  fetchOntologyRelationships
+  fetchOntologyRelationships,
+  fetchRelatedOntologies
 };
