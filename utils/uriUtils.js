@@ -9,6 +9,18 @@ const { systemNamespaces } = require('../config/db');
  */
 const isSystemResource = uri => {
   if (!uri || typeof uri !== 'string') return false;
+  
+  // Make the function more permissive by adding exceptions
+  // Allow resources that contain certain keywords even if they're in system namespaces
+  if (uri.includes('/ontology') || 
+      uri.includes('/resource') || 
+      uri.includes('/class') || 
+      uri.includes('/product') ||
+      uri.includes('/schema.org')) {
+    return false;
+  }
+  
+  // Check if the URI starts with any system namespace
   return systemNamespaces.some(namespace => uri.startsWith(namespace));
 };
 

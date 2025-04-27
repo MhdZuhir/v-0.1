@@ -1,7 +1,6 @@
-// controllers/classController.js
+// controllers/classController.js - Complete Fix
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
-const { isSystemResource } = require('../utils/uriUtils');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
@@ -23,12 +22,8 @@ exports.getClassPage = async (req, res, next) => {
       });
     }
     
-    if (isSystemResource(classUri)) {
-      return res.status(400).render('error', {
-        title: 'Error',
-        message: 'Systemklasser kan inte visas'
-      });
-    }
+    // IMPORTANT: Remove system resource check completely
+    // This allows all classes to be displayed
     
     // Fetch basic class information
     const classInfo = await graphdbService.fetchClassInfo(classUri);
@@ -93,12 +88,8 @@ exports.getIndividualPage = async (req, res, next) => {
       });
     }
     
-    if (isSystemResource(uri)) {
-      return res.status(400).render('error', {
-        title: 'Error',
-        message: 'Systemresurser kan inte visas'
-      });
-    }
+    // IMPORTANT: Remove system resource check completely
+    // This allows all individuals to be displayed
     
     // Fetch all properties of this individual
     const properties = await graphdbService.fetchResourceProperties(uri);

@@ -253,12 +253,17 @@ async function fetchResourceTypes(uri) {
 /**
  * Fetch resource properties
 /**
+ // Excerpt from services/graphdbService.js with fixed fetchResourceProperties function
+
+/**
+ * Fetch resource properties
+/**
  * Fetch resource properties
  * @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of property-object pairs
  */
 async function fetchResourceProperties(uri) {
-  if (isSystemResource(uri)) return [];
+  if (!uri) return [];
   
   try {
     console.log(`Fetching properties for resource: ${uri}`);
@@ -310,7 +315,6 @@ async function fetchResourceProperties(uri) {
     return [];
   }
 }
-
 /**
  * Fetch all products from the repository
  * @returns {Promise<Array>} - Array of product objects

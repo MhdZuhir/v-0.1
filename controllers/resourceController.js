@@ -1,7 +1,6 @@
 // controllers/resourceController.js - Complete Fix
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
-const { isSystemResource } = require('../utils/uriUtils');
 
 /**
  * Handle resource page request
@@ -19,12 +18,8 @@ exports.getResourcePage = async (req, res, next) => {
     });
   }
   
-  if (isSystemResource(uri)) {
-    return res.status(400).render('error', {
-      title: 'Error',
-      message: 'Systemresurser kan inte visas'
-    });
-  }
+  // IMPORTANT: Completely remove the system resource check
+  // This allows all resources to be displayed
 
   try {
     // Fetch all data about the resource
