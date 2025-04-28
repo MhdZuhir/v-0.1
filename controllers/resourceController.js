@@ -1,4 +1,5 @@
-// controllers/resourceController.js - Complete Fix
+// controllers/resourceController.js - Fixed version
+
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
 
@@ -17,19 +18,19 @@ exports.getResourcePage = async (req, res, next) => {
       message: 'Ingen URI angiven'
     });
   }
-  
-  // IMPORTANT: Completely remove the system resource check
-  // This allows all resources to be displayed
 
   try {
+    console.log(`Fetching resource page for: ${uri}`);
+    
     // Fetch all data about the resource
     const properties = await graphdbService.fetchResourceProperties(uri);
     const description = await graphdbService.fetchResourceDescription(uri);
     const relatedUris = await graphdbService.fetchRelatedResources(uri);
     const types = await graphdbService.fetchResourceTypes(uri);
     
-    console.log(`Resource ${uri}: Found ${properties.length} properties`);
+    console.log(`Resource ${uri}: Found ${properties.length} properties, ${types.length} types, ${relatedUris.length} related resources`);
     
+    // Get labels if needed
     let labelMap = {};
     if (req.showLabels) {
       const uris = [];
@@ -39,11 +40,12 @@ exports.getResourcePage = async (req, res, next) => {
         if (row.predicate?.type === 'uri') uris.push(row.predicate.value);
       });
       uris.push(uri, ...relatedUris, ...types);
+      
+      console.log(`Fetching labels for ${uris.length} URIs`);
       labelMap = await labelService.fetchLabelsForUris(uris);
     }
 
-    // Group properties by type - These array initializations are important!
-    // Make sure they're always arrays even if empty
+    // Group properties by type
     const propertyGroups = {
       basic: [],
       relationships: [],
@@ -59,12 +61,12 @@ exports.getResourcePage = async (req, res, next) => {
       'http://purl.org/dc/elements/1.1/description'
     ];
     
-    const relationshipKeywords = ['has', 'related', 'member', 'part', 'connected', 'linked'];
+    const relationshipKeywords = ['has', 'related', 'member', 'part', 'connected', 'linked', 'domain', 'range'];
     
     if (Array.isArray(properties)) {
       properties.forEach(row => {
         if (!row.predicate || !row.predicate.value) {
-          console.log("Warning: Found property row without predicate value", row);
+          console.warn("Warning: Found property row without predicate value", row);
           return;
         }
         
@@ -72,14 +74,16 @@ exports.getResourcePage = async (req, res, next) => {
         
         if (basicPredicates.includes(predicateValue)) {
           propertyGroups.basic.push(row);
-        } else if (relationshipKeywords.some(keyword => predicateValue.toLowerCase().includes(keyword))) {
+        } else if (relationshipKeywords.some(keyword => 
+          predicateValue.toLowerCase().includes(keyword)) || 
+          (row.object && row.object.type === 'uri')) {
           propertyGroups.relationships.push(row);
         } else {
           propertyGroups.other.push(row);
         }
       });
     } else {
-      console.log("Warning: properties is not an array:", properties);
+      console.warn("Warning: properties is not an array:", properties);
     }
     
     console.log(`Property groups: basic=${propertyGroups.basic.length}, relationships=${propertyGroups.relationships.length}, other=${propertyGroups.other.length}`);

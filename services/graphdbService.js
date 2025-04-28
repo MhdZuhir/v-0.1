@@ -1,4 +1,4 @@
-// services/graphdbService.js
+// services/graphdbService.js - Fixed version
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -61,7 +61,7 @@ async function executeQuery(query) {
  * @returns {Promise<string|null>} - Resource description or null if not found
  */
 async function fetchResourceDescription(uri) {
-  if (isSystemResource(uri)) return null;
+  if (!uri) return null;
   
   try {
     const safeUri = sanitizeSparqlString(uri);
@@ -94,7 +94,7 @@ async function fetchResourceDescription(uri) {
  * @returns {Promise<Array>} - Array of related resource URIs
  */
 async function fetchRelatedResources(uri) {
-  if (isSystemResource(uri)) return [];
+  if (!uri) return [];
   
   try {
     const safeUri = sanitizeSparqlString(uri);
@@ -103,14 +103,29 @@ async function fetchRelatedResources(uri) {
         { <${safeUri}> ?p ?related . FILTER(ISURI(?related)) }
         UNION
         { ?related ?p <${safeUri}> . FILTER(ISURI(?related)) }
+        FILTER(?related != <${safeUri}>)
       }
       LIMIT 10
     `;
     
     const data = await executeQuery(query);
     const bindings = data.results.bindings || [];
-    const relatedUris = bindings.map(binding => binding.related.value);
-    return relatedUris.filter(uri => !isSystemResource(uri));
+    let relatedUris = bindings.map(binding => binding.related.value);
+    
+    // Filter out system resources if needed, but keep key RDF/OWL resources
+    relatedUris = relatedUris.filter(uri => {
+      // Always allow these important resources
+      if (uri.includes('/Property') || 
+          uri.includes('/Class') || 
+          uri.includes('/Resource') || 
+          uri.includes('/Literal')) {
+        return true;
+      }
+      
+      return !isSystemResource(uri);
+    });
+    
+    return relatedUris;
   } catch (error) {
     console.error('Error fetching related resources:', error);
     return [];
@@ -147,7 +162,7 @@ async function fetchCategories() {
  * @returns {Promise<Array>} - Array of resource URIs
  */
 async function fetchResourcesByCategory(category) {
-  if (isSystemResource(category)) return [];
+  if (!category) return [];
   
   try {
     const safeCategory = sanitizeSparqlString(category);
@@ -209,8 +224,18 @@ async function searchResources(searchTerm) {
       }
     });
     
-    // Filter system resources
-    return resources.filter(resource => !isSystemResource(resource));
+    // Filter system resources, but keep important ones
+    return resources.filter(resource => {
+      // Always allow these important resources
+      if (resource.includes('/Property') || 
+          resource.includes('/Class') || 
+          resource.includes('/Resource') || 
+          resource.includes('/Literal')) {
+        return true;
+      }
+      
+      return !isSystemResource(resource);
+    });
   } catch (error) {
     console.error('Error searching resources:', error);
     throw error;
@@ -218,12 +243,12 @@ async function searchResources(searchTerm) {
 }
 
 /**
-* Fetch resource types (rdf:type)
-  * @param {string} uri - Resource URI
+ * Fetch resource types (rdf:type)
+ * @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of type URIs
  */
 async function fetchResourceTypes(uri) {
-  if (isSystemResource(uri)) return [];
+  if (!uri) return [];
   
   try {
     const safeUri = sanitizeSparqlString(uri);
@@ -236,8 +261,13 @@ async function fetchResourceTypes(uri) {
     `;
     
     const data = await executeQuery(query);
-    const types = data.results.bindings.map(binding => binding.type.value)
-      .filter(type => !isSystemResource(type));
+    
+    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
+      console.warn('Unexpected response format when fetching resource types');
+      return [];
+    }
+    
+    const types = data.results.bindings.map(binding => binding.type.value);
     
     // Special case handling for core RDF terms
     if (types.length === 0) {
@@ -257,19 +287,7 @@ async function fetchResourceTypes(uri) {
 
 /**
  * Fetch resource properties
-// Excerpt from services/graphdbService.js with fixed fetchResourceProperties function
-
-/**
- * Fetch resource properties
-/**
- // Excerpt from services/graphdbService.js with fixed fetchResourceProperties function
-
-/**
- * Fetch resource properties
-/**
- /**
-* Fetch resource properties
-  @param {string} uri - Resource URI
+ * @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of property-object pairs
  */
 async function fetchResourceProperties(uri) {
@@ -279,26 +297,12 @@ async function fetchResourceProperties(uri) {
     console.log(`Fetching properties for resource: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     
-    // Enhanced query that works better for RDF Property resources
+    // Enhanced query that works better for all resource types
     const query = `
       SELECT ?predicate ?object WHERE {
-        {
-          <${safeUri}> ?predicate ?object .
-        }
-        UNION
-        {
-          # For RDF Properties, also get their domains and ranges
-          <${safeUri}> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> .
-          {
-            <${safeUri}> <http://www.w3.org/2000/01/rdf-schema#domain> ?object .
-            BIND(<http://www.w3.org/2000/01/rdf-schema#domain> AS ?predicate)
-          } UNION {
-            <${safeUri}> <http://www.w3.org/2000/01/rdf-schema#range> ?object .
-            BIND(<http://www.w3.org/2000/01/rdf-schema#range> AS ?predicate)
-          }
-        }
+        <${safeUri}> ?predicate ?object .
       }
-      LIMIT 100
+      LIMIT 200
     `;
     
     const data = await executeQuery(query);
@@ -335,9 +339,6 @@ async function fetchResourceProperties(uri) {
       return true;
     });
     
-    // For resource pages, we're more permissive with system resources
-    const filterSystemResources = false; // Keep all properties
-
     console.log(`Returning ${properties.length} filtered properties for ${uri}`);
     return properties;
   } catch (error) {
@@ -345,13 +346,15 @@ async function fetchResourceProperties(uri) {
     return [];
   }
 }
-/**
+
 /**
  * Get hardcoded properties for core RDF/RDFS/OWL resources
  * @param {string} uri - Resource URI
  * @returns {Array} - Array of property-object pairs
  */
 function getCoreRdfResourceProperties(uri) {
+  // This function provides hardcoded information for important RDF/RDFS resources
+  // that may not be explicitly defined in the database
   switch (uri) {
     case 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property':
       return [
@@ -420,8 +423,51 @@ function getCoreRdfResourceProperties(uri) {
           object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Resource' }
         }
       ];
+    
+    case 'http://www.w3.org/2000/01/rdf-schema#Resource':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Resource' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of everything. All other classes are subclasses of this class.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#' }
+        }
+      ];
       
-    // Add more cases for other core RDF terms as needed
+    case 'http://www.w3.org/2002/07/owl#Class':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of OWL classes.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2002/07/owl#' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        }
+      ];
+      
     default:
       return [];
   }
@@ -441,218 +487,12 @@ function getCoreRdfResourceType(uri) {
     case 'http://www.w3.org/2002/07/owl#Class':
       return 'http://www.w3.org/2000/01/rdf-schema#Class';
     
-    // Add more cases as needed
+    case 'http://www.w3.org/2002/07/owl#ObjectProperty':
+    case 'http://www.w3.org/2002/07/owl#DatatypeProperty':
+      return 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property';
+    
     default:
       return null;
-  }
-}
-/**
- * Fetch all products from the repository
- * @returns {Promise<Array>} - Array of product objects
- */
-async function fetchProducts() {
-  try {
-    console.log('Fetching products from GraphDB...');
-    
-    // Query to find products - adjust the query to find the Notor65 luminaires
-    const query = `
-      SELECT DISTINCT ?product ?name ?description ?articleNumber ?color ?cct ?lumenOutput WHERE {
-        {
-          # Find specific Notor65 products by ID pattern
-          ?product a ?type .
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
-        }
-        UNION
-        {
-          # Also try to find any other entities with typical product properties
-          ?product ?nameProperty ?name .
-          FILTER(?nameProperty IN (
-            <http://schema.org/name>,
-            <http://purl.org/dc/terms/title>,
-            <http://www.w3.org/2000/01/rdf-schema#label>
-          ))
-          
-          OPTIONAL {
-            ?product ?descProperty ?description .
-            FILTER(?descProperty IN (
-              <http://schema.org/description>,
-              <http://purl.org/dc/terms/description>,
-              <http://www.w3.org/2000/01/rdf-schema#comment>
-            ))
-          }
-          
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
-        }
-      }
-      ORDER BY ?articleNumber
-      LIMIT 100
-    `;
-    
-    const data = await executeQuery(query);
-    
-    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure from GraphDB when fetching products');
-      return [];
-    }
-    
-    console.log(`Found ${data.results.bindings.length} potential products`);
-    
-    // Process results
-    const products = data.results.bindings.map(binding => {
-      return {
-        uri: binding.product?.value || '',
-        name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Unnamed Product',
-        description: binding.description?.value || '',
-        articleNumber: binding.articleNumber?.value || '',
-        color: binding.color?.value || '',
-        cct: binding.cct?.value || '',
-        lumenOutput: binding.lumenOutput?.value || ''
-      };
-    });
-    
-    return products;
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
-}
-
-/**
- * Fetch detailed product information
- * @param {string} uri - Product URI
- * @returns {Promise<Object>} - Product details
- */
-async function fetchProductDetails(uri) {
-  if (!uri) return null;
-  
-  try {
-    console.log(`Fetching details for product: ${uri}`);
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Query to get all properties of the product
-    const query = `
-      SELECT ?property ?value ?valueType WHERE {
-        <${safeUri}> ?property ?value .
-        BIND(DATATYPE(?value) AS ?valueType)
-      }
-    `;
-    
-    const data = await executeQuery(query);
-    
-    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure from GraphDB when fetching product details');
-      return null;
-    }
-    
-    // Transform into a more usable structure
-    const details = {
-      uri: uri,
-      properties: {}
-    };
-    
-    // Group known property types
-    const propertyGroups = {
-      basic: ['http://schema.org/name', 'http://schema.org/description', 'http://www.w3.org/2000/01/rdf-schema#label'],
-      articleNumber: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber'],
-      color: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#colour'],
-      cct: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#cct'],
-      lumen: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen'],
-      image: ['http://schema.org/image'],
-      height: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#height'],
-      length: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#length'],
-      average: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#average'],
-      cri: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#cri'],
-      // Add more property groups as needed
-    };
-    
-    // Initialize details object
-    details.name = '';
-    details.description = '';
-    details.articleNumber = '';
-    details.color = '';
-    details.cct = '';
-    details.lumen = '';
-    details.image = '';
-    details.height = '';
-    details.length = '';
-    details.average = '';
-    details.cri = '';
-    details.otherProperties = [];
-    
-    // Process each property
-    data.results.bindings.forEach(binding => {
-      const property = binding.property.value;
-      const value = binding.value;
-      const valueType = binding.valueType ? binding.valueType.value : '';
-      
-      // Store in the appropriate place based on property URI
-      if (propertyGroups.basic.includes(property)) {
-        if (property.includes('name') || property.includes('label')) {
-          details.name = value.value;
-        } else if (property.includes('description') || property.includes('comment')) {
-          details.description = value.value;
-        }
-      } else if (propertyGroups.articleNumber.includes(property)) {
-        details.articleNumber = value.value;
-      } else if (propertyGroups.color.includes(property)) {
-        details.color = value.value;
-      } else if (propertyGroups.cct.includes(property)) {
-        details.cct = value.value;
-      } else if (propertyGroups.lumen.includes(property)) {
-        details.lumen = value.value;
-      } else if (propertyGroups.image.includes(property)) {
-        details.image = value.value;
-      } else if (propertyGroups.height.includes(property)) {
-        details.height = value.value;
-      } else if (propertyGroups.length.includes(property)) {
-        details.length = value.value;
-      } else if (propertyGroups.average.includes(property)) {
-        details.average = value.value;
-      } else if (propertyGroups.cri.includes(property)) {
-        details.cri = value.value;
-      } else {
-        // Store other properties
-        details.otherProperties.push({
-          property: property,
-          value: value.value,
-          type: value.type || 'literal'
-        });
-      }
-      
-      // Also store raw properties
-      details.properties[property] = value.value;
-    });
-    
-    // If we don't have a name yet, use the last part of the URI
-    if (!details.name) {
-      details.name = uri.split(/[/#]/).pop() || uri;
-    }
-    
-    // Special handling for the product in the image (7320046630874)
-    if (uri.includes('7320046630874')) {
-      details.name = 'Notor 65 Beta Opti';
-      if (!details.description) {
-        details.description = 'Notor 65 Beta Opti är en flexibel och effektiv LED-armatur med hög ljuskvalitet. Den har anodiserad finish och ger perfekt belysning för kontor och kommersiella miljöer.';
-      }
-      details.articleNumber = '13300-402';
-      if (!details.color) details.color = 'Anodiserad';
-      if (!details.cct) details.cct = '3000K';
-      if (!details.lumen) details.lumen = '1267';
-      if (!details.cri) details.cri = '80';
-    }
-    
-    return details;
-  } catch (error) {
-    console.error(`Error fetching product details for ${uri}:`, error);
-    return null;
   }
 }
 
@@ -662,7 +502,7 @@ async function fetchProductDetails(uri) {
  * @returns {Promise<Object>} - Class information
  */
 async function fetchClassInfo(uri) {
-  if (isSystemResource(uri)) return null;
+  if (!uri) return null;
   
   try {
     const safeUri = sanitizeSparqlString(uri);
@@ -704,6 +544,22 @@ async function fetchClassInfo(uri) {
       });
     }
     
+    // For standard RDF/RDFS classes, add hardcoded information if nothing was found
+    if (Object.keys(properties).length === 0) {
+      const coreProps = getCoreRdfResourceProperties(uri);
+      
+      coreProps.forEach(prop => {
+        const predicate = prop.predicate.value;
+        const value = prop.object.value;
+        
+        if (predicate.includes('label')) {
+          properties.label = value;
+        } else if (predicate.includes('comment')) {
+          properties.description = value;
+        }
+      });
+    }
+    
     return properties;
   } catch (error) {
     console.error(`Error fetching class info for ${uri}:`, error);
@@ -717,7 +573,7 @@ async function fetchClassInfo(uri) {
  * @returns {Promise<Array>} - Array of individuals with their properties
  */
 async function fetchClassIndividuals(classUri) {
-  if (isSystemResource(classUri)) return [];
+  if (!classUri) return [];
   
   try {
     const safeClassUri = sanitizeSparqlString(classUri);
@@ -766,7 +622,7 @@ async function fetchClassIndividuals(classUri) {
  * @returns {Promise<Array>} - Array of property objects
  */
 async function fetchIndividualProperties(uri) {
-  if (isSystemResource(uri)) return [];
+  if (!uri) return [];
   
   try {
     const safeUri = sanitizeSparqlString(uri);
@@ -811,7 +667,6 @@ async function fetchIndividualProperties(uri) {
   }
 }
 
-// Export all functions
 module.exports = {
   executeQuery,
   fetchResourceDescription,
@@ -821,9 +676,7 @@ module.exports = {
   searchResources,
   fetchResourceTypes,
   fetchResourceProperties,
-  fetchProducts,
-  fetchProductDetails,
-  // New methods for class and individual handling
+  // Class and individual methods
   fetchClassInfo,
   fetchClassIndividuals,
   fetchIndividualProperties
