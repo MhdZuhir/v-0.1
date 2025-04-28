@@ -218,8 +218,8 @@ async function searchResources(searchTerm) {
 }
 
 /**
- * Fetch resource types (rdf:type)
- * @param {string} uri - Resource URI
+* Fetch resource types (rdf:type)
+  * @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of type URIs
  */
 async function fetchResourceTypes(uri) {
@@ -238,6 +238,15 @@ async function fetchResourceTypes(uri) {
     const data = await executeQuery(query);
     const types = data.results.bindings.map(binding => binding.type.value)
       .filter(type => !isSystemResource(type));
+    
+    // Special case handling for core RDF terms
+    if (types.length === 0) {
+      // Add the appropriate type for core RDF/RDFS resources
+      const coreType = getCoreRdfResourceType(uri);
+      if (coreType) {
+        return [coreType];
+      }
+    }
     
     return types;
   } catch (error) {
@@ -258,8 +267,9 @@ async function fetchResourceTypes(uri) {
 /**
  * Fetch resource properties
 /**
- * Fetch resource properties
- * @param {string} uri - Resource URI
+ /**
+* Fetch resource properties
+  @param {string} uri - Resource URI
  * @returns {Promise<Array>} - Array of property-object pairs
  */
 async function fetchResourceProperties(uri) {
@@ -268,7 +278,28 @@ async function fetchResourceProperties(uri) {
   try {
     console.log(`Fetching properties for resource: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
-    const query = `SELECT * WHERE { <${safeUri}> ?predicate ?object } LIMIT 100`;
+    
+    // Enhanced query that works better for RDF Property resources
+    const query = `
+      SELECT ?predicate ?object WHERE {
+        {
+          <${safeUri}> ?predicate ?object .
+        }
+        UNION
+        {
+          # For RDF Properties, also get their domains and ranges
+          <${safeUri}> a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> .
+          {
+            <${safeUri}> <http://www.w3.org/2000/01/rdf-schema#domain> ?object .
+            BIND(<http://www.w3.org/2000/01/rdf-schema#domain> AS ?predicate)
+          } UNION {
+            <${safeUri}> <http://www.w3.org/2000/01/rdf-schema#range> ?object .
+            BIND(<http://www.w3.org/2000/01/rdf-schema#range> AS ?predicate)
+          }
+        }
+      }
+      LIMIT 100
+    `;
     
     const data = await executeQuery(query);
     
@@ -280,6 +311,15 @@ async function fetchResourceProperties(uri) {
     
     let properties = data.results.bindings || [];
     console.log(`Found ${properties.length} raw properties for ${uri}`);
+    
+    // Special handling for core RDF/RDFS/OWL terms that might be missing from the database
+    if (properties.length === 0) {
+      properties = getCoreRdfResourceProperties(uri);
+      
+      if (properties.length > 0) {
+        console.log(`Added hardcoded information for ${uri}`);
+      }
+    }
     
     // Debug a sample property if available
     if (properties.length > 0) {
@@ -296,23 +336,114 @@ async function fetchResourceProperties(uri) {
     });
     
     // For resource pages, we're more permissive with system resources
-    // Only filter out system resources if explicitly requested
-    const filterSystemResources = false; // Change this to false to show all properties
+    const filterSystemResources = false; // Keep all properties
 
-    if (filterSystemResources) {
-      // Filter out system properties
-      properties = properties.filter(row => {
-        if (row.object?.type === 'uri' && isSystemResource(row.object.value)) return false;
-        if (row.predicate?.type === 'uri' && isSystemResource(row.predicate.value)) return false;
-        return true;
-      });
-    }
-    
     console.log(`Returning ${properties.length} filtered properties for ${uri}`);
     return properties;
   } catch (error) {
     console.error(`Error fetching resource properties for ${uri}:`, error);
     return [];
+  }
+}
+/**
+/**
+ * Get hardcoded properties for core RDF/RDFS/OWL resources
+ * @param {string} uri - Resource URI
+ * @returns {Array} - Array of property-object pairs
+ */
+function getCoreRdfResourceProperties(uri) {
+  switch (uri) {
+    case 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Property' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of RDF properties.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' }
+        }
+      ];
+    
+    case 'http://www.w3.org/2000/01/rdf-schema#Literal':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Literal' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of literal values, e.g. textual strings and integers. Properties with literal values use rdfs:Literal as their range.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Resource' }
+        }
+      ];
+    
+    case 'http://www.w3.org/2000/01/rdf-schema#Class':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of classes.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Resource' }
+        }
+      ];
+      
+    // Add more cases for other core RDF terms as needed
+    default:
+      return [];
+  }
+}
+
+/**
+ * Get the type for core RDF/RDFS/OWL resources
+ * @param {string} uri - Resource URI
+ * @returns {string|null} - Type URI or null
+ */
+function getCoreRdfResourceType(uri) {
+  switch (uri) {
+    case 'http://www.w3.org/1999/02/22-rdf-syntax-ns#Property':
+    case 'http://www.w3.org/2000/01/rdf-schema#Literal':
+    case 'http://www.w3.org/2000/01/rdf-schema#Class':
+    case 'http://www.w3.org/2000/01/rdf-schema#Resource':
+    case 'http://www.w3.org/2002/07/owl#Class':
+      return 'http://www.w3.org/2000/01/rdf-schema#Class';
+    
+    // Add more cases as needed
+    default:
+      return null;
   }
 }
 /**

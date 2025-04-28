@@ -29,6 +29,89 @@
       </div>
     {{/if}}
     
+    <!-- Special section for RDF Property resources -->
+    {{#if types}}
+      {{#each types}}
+        {{#if (eq this.uri "http://www.w3.org/1999/02/22-rdf-syntax-ns#Property")}}
+          <div class="property-group">
+            <div class="property-group-header">RDF Property Information</div>
+            <div class="property-group-content">
+              <div class="property-description">
+                <p>This is an RDF Property that defines a relationship between resources or between resources and literal values.</p>
+              </div>
+              
+              <table class="property-table">
+                <!-- Display Domain information if available -->
+                {{#each ../properties}}
+                  {{#if (eq this.predicate.value "http://www.w3.org/2000/01/rdf-schema#domain")}}
+                    <tr>
+                      <td class="property-name">Domain</td>
+                      <td>
+                        {{#if (eq this.object.type "uri")}}
+                          <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../../showLabels}}">
+                            {{getDisplayValue this.object ../../showLabels ../../labelMap}}
+                          </a>
+                          <div class="property-help">The domain specifies what type of resource this property can be used with.</div>
+                        {{else}}
+                          {{this.object.value}}
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/if}}
+                {{/each}}
+                
+                <!-- Display Range information if available -->
+                {{#each ../properties}}
+                  {{#if (eq this.predicate.value "http://www.w3.org/2000/01/rdf-schema#range")}}
+                    <tr>
+                      <td class="property-name">Range</td>
+                      <td>
+                        {{#if (eq this.object.type "uri")}}
+                          <a href="/resource?uri={{encodeURIComponent this.object.value}}&showLabels={{../../showLabels}}">
+                            {{getDisplayValue this.object ../../showLabels ../../labelMap}}
+                          </a>
+                          <div class="property-help">The range specifies what type of values this property can have.</div>
+                        {{else}}
+                          {{this.object.value}}
+                        {{/if}}
+                      </td>
+                    </tr>
+                  {{/if}}
+                {{/each}}
+                
+                <!-- Display Label information if available -->
+                {{#each ../properties}}
+                  {{#if (eq this.predicate.value "http://www.w3.org/2000/01/rdf-schema#label")}}
+                    <tr>
+                      <td class="property-name">Label</td>
+                      <td>{{this.object.value}}</td>
+                    </tr>
+                  {{/if}}
+                {{/each}}
+                
+                <!-- Display Comment information if available -->
+                {{#each ../properties}}
+                  {{#if (eq this.predicate.value "http://www.w3.org/2000/01/rdf-schema#comment")}}
+                    <tr>
+                      <td class="property-name">Comment</td>
+                      <td>{{this.object.value}}</td>
+                    </tr>
+                  {{/if}}
+                {{/each}}
+              </table>
+              
+              <div class="property-usage">
+                <h4>Usage in SPARQL</h4>
+                <pre>
+?subject <{{../uri}}> ?object .
+                </pre>
+              </div>
+            </div>
+          </div>
+        {{/if}}
+      {{/each}}
+    {{/if}}
+    
     <!-- Basic properties section -->
     {{#if propertyGroups.basic.length}}
       <div class="property-group">
@@ -203,7 +286,224 @@
       </div>
     {{/if}}
   </div>
+  <!-- Add this section to resource.handlebars after the existing RDF Property section -->
+
+<!-- Special section for RDFS Literal resource -->
+{{#if types}}
+  {{#each types}}
+    {{#if (eq this.uri "http://www.w3.org/2000/01/rdf-schema#Class")}}
+      {{#if (eq ../uri "http://www.w3.org/2000/01/rdf-schema#Literal")}}
+        <div class="property-group">
+          <div class="property-group-header">RDFS Literal Class Information</div>
+          <div class="property-group-content">
+            <div class="property-description">
+              <p>The class of literal values, e.g. textual strings and integers. Properties with literal values use rdfs:Literal as their range.</p>
+            </div>
+            
+            <table class="property-table">
+              <tr>
+                <td class="property-name">Purpose</td>
+                <td>Represents the datatype for literal values in RDF. When a property has rdfs:Literal as its range, it means that the property's values are literal data (strings, numbers, dates) rather than resources.</td>
+              </tr>
+              <tr>
+                <td class="property-name">In RDF Schema</td>
+                <td>Part of the core RDF Schema vocabulary</td>
+              </tr>
+              <tr>
+                <td class="property-name">Superclass</td>
+                <td>
+                  <a href="/resource?uri=http://www.w3.org/2000/01/rdf-schema%23Resource&showLabels={{../../showLabels}}">
+                    rdfs:Resource
+                  </a>
+                </td>
+              </tr>
+            </table>
+            
+            <div class="property-usage">
+              <h4>Usage in SPARQL</h4>
+              <pre>
+# Finding properties that have Literal as range
+SELECT ?property WHERE {
+  ?property rdfs:range rdfs:Literal .
+}
+
+# When defining a new property with Literal range
+?myProperty rdfs:range rdfs:Literal .
+              </pre>
+            </div>
+            
+            <div class="literal-examples">
+              <h4>Examples of Literals</h4>
+              <ul>
+                <li><code>"Hello World"</code> - Simple string literal</li>
+                <li><code>"Hello"@en</code> - String literal with language tag</li>
+                <li><code>"42"^^xsd:integer</code> - Typed literal (integer)</li>
+                <li><code>"2025-04-28"^^xsd:date</code> - Typed literal (date)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      {{/if}}
+    {{/if}}
+  {{/each}}
+{{/if}}
+
+<style>
+  .literal-examples {
+    margin-top: 15px;
+    background-color: #f5f7fa;
+    padding: 15px;
+    border-radius: 4px;
+  }
   
+  .literal-examples h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .literal-examples ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  
+  .literal-examples li {
+    margin-bottom: 5px;
+  }
+  
+  .literal-examples code {
+    background-color: #fff;
+    padding: 3px 5px;
+    border-radius: 3px;
+    border: 1px solid #ddd;
+    font-family: monospace;
+  }
+</style>
+<!-- Add this section to resource.handlebars after the RDFS Literal section -->
+
+<!-- Special section for RDFS Class resource -->
+{{#if types}}
+  {{#each types}}
+    {{#if (eq this.uri "http://www.w3.org/2000/01/rdf-schema#Class")}}
+      {{#if (eq ../uri "http://www.w3.org/2000/01/rdf-schema#Class")}}
+        <div class="property-group">
+          <div class="property-group-header">RDFS Class Information</div>
+          <div class="property-group-content">
+            <div class="property-description">
+              <p>The class of classes in the RDF Schema vocabulary. rdfs:Class is the class of resources that are RDF classes.</p>
+            </div>
+            
+            <table class="property-table">
+              <tr>
+                <td class="property-name">Purpose</td>
+                <td>Defines the concept of a class in RDF Schema. Classes are used to categorize resources that share common characteristics.</td>
+              </tr>
+              <tr>
+                <td class="property-name">In RDF Schema</td>
+                <td>Core component of the RDF Schema vocabulary that enables class-based modeling</td>
+              </tr>
+              <tr>
+                <td class="property-name">Relationship to OWL</td>
+                <td>While rdfs:Class is used in RDF Schema, owl:Class is its counterpart in OWL (Web Ontology Language) with more expressive capabilities.</td>
+              </tr>
+              <tr>
+                <td class="property-name">Superclass</td>
+                <td>
+                  <a href="/resource?uri=http://www.w3.org/2000/01/rdf-schema%23Resource&showLabels={{../../showLabels}}">
+                    rdfs:Resource
+                  </a>
+                </td>
+              </tr>
+            </table>
+            
+            <div class="property-usage">
+              <h4>Usage in SPARQL</h4>
+              <pre>
+# Finding all defined classes
+SELECT ?class WHERE {
+  ?class a rdfs:Class .
+}
+
+# Defining a new class
+?myClass a rdfs:Class .
+              </pre>
+            </div>
+            
+            <div class="class-hierarchy">
+              <h4>Class Hierarchy Example</h4>
+              <div class="hierarchy-diagram">
+                <div class="hierarchy-node root">rdfs:Resource</div>
+                <div class="hierarchy-connector"></div>
+                <div class="hierarchy-node">rdfs:Class</div>
+                <div class="hierarchy-connector"></div>
+                <div class="hierarchy-node leaf">User-defined classes</div>
+              </div>
+              <p class="hierarchy-note">All classes in RDF Schema are instances of rdfs:Class and subclasses of rdfs:Resource.</p>
+            </div>
+          </div>
+        </div>
+      {{/if}}
+    {{/if}}
+  {{/each}}
+{{/if}}
+
+<style>
+  .class-hierarchy {
+    margin-top: 15px;
+    background-color: #f5f7fa;
+    padding: 15px;
+    border-radius: 4px;
+  }
+  
+  .class-hierarchy h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  .hierarchy-diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  
+  .hierarchy-node {
+    background-color: #ffffff;
+    border: 1px solid #0645ad;
+    color: #0645ad;
+    padding: 8px 15px;
+    border-radius: 4px;
+    min-width: 180px;
+    text-align: center;
+    font-family: monospace;
+    font-weight: 600;
+  }
+  
+  .hierarchy-node.root {
+    background-color: #e3f2fd;
+  }
+  
+  .hierarchy-node.leaf {
+    border-style: dashed;
+    font-style: italic;
+  }
+  
+  .hierarchy-connector {
+    height: 20px;
+    width: 2px;
+    background-color: #0645ad;
+    margin: 5px 0;
+  }
+  
+  .hierarchy-note {
+    font-size: 13px;
+    color: #666;
+    margin-top: 15px;
+    font-style: italic;
+    text-align: center;
+  }
+</style>
   <div class="resource-sidebar">
     <!-- Resource metadata sidebar -->
     <div class="sidebar-box">
@@ -306,5 +606,35 @@
     border: 1px solid #ddd;
     border-radius: 5px;
     margin: 20px 0;
+  }
+  
+  .property-description {
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background-color: #f5f7fa;
+    border-left: 4px solid #0645ad;
+    border-radius: 0 4px 4px 0;
+  }
+  
+  .property-help {
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+  }
+  
+  .property-usage {
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+  }
+  
+  .property-usage pre {
+    background-color: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow-x: auto;
   }
 </style>

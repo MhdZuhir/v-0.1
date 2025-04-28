@@ -1,4 +1,4 @@
-// Updated utils/uriUtils.js - with improved filtering
+// utils/uriUtils.js - Fixed to allow RDF properties
 
 const { systemNamespaces } = require('../config/db');
 
@@ -16,7 +16,9 @@ const isSystemResource = uri => {
       uri.includes('/resource') || 
       uri.includes('/class') || 
       uri.includes('/product') ||
-      uri.includes('/schema.org')) {
+      uri.includes('/schema.org') ||
+      uri.includes('/Property') ||   // Allow Property resources
+      uri.includes('#Property')) {   // Allow Property resources with hash notation
     return false;
   }
   
