@@ -1,1021 +1,1655 @@
-<!-- views/ontology-detail.handlebars - With improved subject display -->
-<ul class="breadcrumbs">
-  <li><a href="/?showLabels={{showLabels}}">Hem</a></li>
-  <li>{{ontology.title}}</li>
-</ul>
-
-<h1>{{ontology.title}}</h1>
-
-<div class="display-mode">
-  <label for="displayToggle">Visa mänskligt läsbara etiketter:</label>
-  <label class="switch">
-    <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-    <span class="slider"></span>
-  </label>
-  <span class="display-mode-text">{{#if showLabels}}På{{else}}Av{{/if}}</span>
-</div>
-
-<div class="resource-container">
-  <div class="resource-main">
-    <div class="resource-description">
-      {{ontology.description}}
+<!-- views/ontology-detail.handlebars - WebVOWL-inspired Design -->
+<div class="ontology-container">
+  <!-- Left Sidebar with TOC -->
+  <div class="toc-sidebar">
+    <div class="toc-header">
+      <h2>Table of Contents</h2>
     </div>
-    
-    <!-- Subjects section: Enhanced interactive display -->
-    <div class="property-group">
-      <div class="property-group-header">Ontologins Subjekt</div>
-      <div class="property-group-content">
-        <p>Subjekt definierade i denna ontologi:</p>
+    <nav class="toc-nav">
+      <ul>
+        <li><a href="#metadata" class="active">Metadata</a></li>
+        <li><a href="#classes">Classes</a></li>
+        <li>
+          <a href="#components">Components</a>
+          <ul class="subtoc">
+            <li><a href="#core-components">Core Components</a></li>
+            <li><a href="#digital-product-passport">Digital Product Passport</a></li>
+            <li><a href="#material-info">Material Info</a></li>
+            <li><a href="#compliance-info">Compliance Info</a></li>
+            <li><a href="#producer">Producer</a></li>
+          </ul>
+        </li>
+        <li><a href="#object-properties">Object Properties</a></li>
+        <li><a href="#annotation-properties">Annotation Properties</a></li>
+        <li><a href="#individuals">Individuals</a></li>
+        <li><a href="#namespaces">Namespaces</a></li>
+        <li><a href="#legend">Legend</a></li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="main-content">
+    <header class="ontology-header">
+      <div class="breadcrumbs">
+        <ul>
+          <li><a href="/?showLabels={{showLabels}}">Home</a></li>
+          <li>{{ontology.title}}</li>
+        </ul>
+      </div>
+      <h1 class="ontology-title">{{ontology.title}}</h1>
+      <div class="ontology-uri">{{ontology.uri}}</div>
+      
+      <!-- Version info and metadata summary -->
+      <div class="version-info">
+        <span class="version">Version: {{ontology.version}}</span>
+        {{#if ontology.created}}
+          <span class="date-created">Created: {{ontology.created}}</span>
+        {{/if}}
+      </div>
+    </header>
+
+    <!-- Main sections -->
+    <section id="metadata" class="content-section">
+      <div class="section-header">
+        <h2>Metadata</h2>
+      </div>
+      <div class="section-content metadata-grid">
+        <div class="metadata-row">
+          <div class="metadata-label">IRI</div>
+          <div class="metadata-value">
+            <code>{{ontology.uri}}</code>
+          </div>
+        </div>
         
-        <div class="subjects-container">
-          {{#if ontology.subjects.length}}
-            <!-- Subjects controls -->
-            <div class="subjects-controls">
-              <div class="search-filter">
-                <input type="text" id="subjectFilter" placeholder="Filtrera subjekt..." class="subject-search">
-              </div>
-              
-              <div class="view-controls">
-                <div class="type-filter">
-                  <button class="type-filter-btn active" data-type="all" onclick="filterSubjectsByType('all')">Alla</button>
-                  <button class="type-filter-btn" data-type="klass" onclick="filterSubjectsByType('klass')">Klasser</button>
-                  <button class="type-filter-btn" data-type="egenskap" onclick="filterSubjectsByType('egenskap')">Egenskaper</button>
-                  <button class="type-filter-btn" data-type="individ" onclick="filterSubjectsByType('individ')">Individer</button>
-                </div>
-                
-                <div class="view-toggle">
-                  <button class="view-toggle-btn active" data-view="grid" onclick="toggleSubjectsView('grid')">
-                    <span class="grid-icon">▦</span>
-                  </button>
-                  <button class="view-toggle-btn" data-view="list" onclick="toggleSubjectsView('list')">
-                    <span class="list-icon">☰</span>
-                  </button>
+        <div class="metadata-row">
+          <div class="metadata-label">Title</div>
+          <div class="metadata-value">{{ontology.title}}</div>
+        </div>
+        
+        {{#if ontology.creator}}
+          <div class="metadata-row">
+            <div class="metadata-label">Creator</div>
+            <div class="metadata-value">{{ontology.creator}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.contributor}}
+          <div class="metadata-row">
+            <div class="metadata-label">Contributors</div>
+            <div class="metadata-value">
+              <ul class="contributor-list">
+                {{#each ontology.contributors}}
+                  <li>{{this}}</li>
+                {{else}}
+                  <li>{{ontology.contributor}}</li>
+                {{/each}}
+              </ul>
+            </div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.created}}
+          <div class="metadata-row">
+            <div class="metadata-label">Date Created</div>
+            <div class="metadata-value">{{ontology.created}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.modified}}
+          <div class="metadata-row">
+            <div class="metadata-label">Last Modified</div>
+            <div class="metadata-value">{{ontology.modified}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.license}}
+          <div class="metadata-row">
+            <div class="metadata-label">License</div>
+            <div class="metadata-value">
+              <a href="{{ontology.license}}" target="_blank">{{ontology.license}}</a>
+            </div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.version}}
+          <div class="metadata-row">
+            <div class="metadata-label">Version ID</div>
+            <div class="metadata-value">{{ontology.version}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.version_info}}
+          <div class="metadata-row">
+            <div class="metadata-label">Version Info</div>
+            <div class="metadata-value">{{ontology.version_info}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.namespace_prefix}}
+          <div class="metadata-row">
+            <div class="metadata-label">Preferred Namespace Prefix</div>
+            <div class="metadata-value">{{ontology.namespace_prefix}}</div>
+          </div>
+        {{/if}}
+        
+        {{#if ontology.namespace_uri}}
+          <div class="metadata-row">
+            <div class="metadata-label">Preferred Namespace URI</div>
+            <div class="metadata-value">
+              <code>{{ontology.namespace_uri}}</code>
+            </div>
+          </div>
+        {{/if}}
+        
+        <div class="metadata-row">
+          <div class="metadata-label">Description</div>
+          <div class="metadata-value description-text">
+            {{ontology.description}}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overview section with WebVOWL-like visualization -->
+    <section id="overview" class="content-section">
+      <div class="section-header">
+        <h2>Overview</h2>
+      </div>
+      <div class="section-content">
+        <div class="visualization-container">
+          <div class="visualization-header">
+            <div class="visualization-title">
+              <h3>{{ontology.title}}</h3>
+              <div class="uri-info">{{ontology.uri}}</div>
+              <div class="version-info-small">Version: {{ontology.version}}</div>
+            </div>
+            <div class="visualization-controls">
+              <button class="control-btn" title="Reset view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path></svg>
+                Reset
+              </button>
+              <button class="control-btn" title="Export visualization">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Export
+              </button>
+              <button class="control-btn" title="Filter elements">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                Filter
+              </button>
+            </div>
+          </div>
+          
+          <div class="visualization-content">
+            <div class="visualization-placeholder">
+              <div class="visualization-message">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <p>Interactive visualization requires JavaScript.</p>
+                <p>Showing statistics instead:</p>
+                <div class="stats-summary">
+                  <div class="stat-item">
+                    <div class="stat-value">{{ontology.stats.classes}}</div>
+                    <div class="stat-label">Classes</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ontology.stats.properties}}</div>
+                    <div class="stat-label">Properties</div>
+                  </div>
+                  <div class="stat-item">
+                    <div class="stat-value">{{ontology.stats.individuals}}</div>
+                    <div class="stat-label">Individuals</div>
+                  </div>
                 </div>
               </div>
             </div>
-            
-            <div id="noSubjectsResults" class="no-results-message" style="display: none;">
-              <p>Inga subjekt matchar filtret.</p>
+          </div>
+          
+          <div class="visualization-footer">
+            <div class="legend-summary">
+              <span class="legend-item class-node">Class</span>
+              <span class="legend-item property-edge">Property</span>
+              <span class="legend-item individual-node">Individual</span>
             </div>
-            
-            <!-- Subjects grid -->
-            <div class="subjects-grid subjects-grid-view">
-              {{#each ontology.subjects}}
-                <div class="subject-card">
-                  <div class="subject-header">
+            <a href="#legend" class="legend-link">View full legend</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Classes section -->
+    <section id="classes" class="content-section">
+      <div class="section-header">
+        <h2>Classes</h2>
+        <div class="section-stats">{{ontology.stats.classes}} classes</div>
+      </div>
+      <div class="section-content">
+        {{#if ontology.subjects}}
+          <div class="filter-container">
+            <div class="filter-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="classFilter" placeholder="Filter classes..." />
+            </div>
+            <div class="view-toggle">
+              <button class="view-btn active" data-view="grid" title="Grid view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              </button>
+              <button class="view-btn" data-view="list" title="List view">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="class-container grid-view">
+            {{#each ontology.subjects}}
+              {{#if (eq this.typeClass "class-tag")}}
+                <div class="class-item">
+                  <div class="class-header">
+                    <span class="item-tag {{this.typeClass}}">{{this.typeLabel}}</span>
                     <h3>
                       <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
                         {{this.label}}
                       </a>
                     </h3>
-                    <span class="subject-type-tag {{this.typeClass}}">{{this.typeLabel}}</span>
                   </div>
-                  <div class="subject-info">
-                    <div class="subject-uri">
+                  <div class="class-body">
+                    <div class="class-uri">
                       <code>{{this.uri}}</code>
                     </div>
                   </div>
                 </div>
-              {{/each}}
-            </div>
-            
-            <div class="view-more-container">
-              <button id="showMoreSubjects" class="btn">Visa fler subjekt</button>
-              <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?subject ?type ?label WHERE { { ?subject <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . OPTIONAL { ?subject a ?type } OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } UNION { ?subject a ?type . FILTER(STRSTARTS(STR(?subject), STR(<' ontology.uri '>))) OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label } } } ORDER BY ?subject LIMIT 100')}}&showLabels={{showLabels}}" class="btn">
-                Visa alla i SPARQL
-              </a>
-            </div>
-          {{else}}
-            <div class="no-data-message">
-              <p>❌ Inga subjekt hittades för denna ontologi.</p>
-              <p>Detta kan bero på att ontologin är tom eller att subjekten inte är korrekt definierade.</p>
-            </div>
-          {{/if}}
-        </div>
-      </div>
-    </div>
-    
-    <div class="property-group">
-      <div class="property-group-header">Metadata</div>
-      <div class="property-group-content">
-        <table class="property-table">
-          {{#if ontology.creator}}
-            <tr>
-              <td class="property-name">Skapare</td>
-              <td>{{ontology.creator}}</td>
-            </tr>
-          {{/if}}
-          
-          {{#if ontology.publisher}}
-            <tr>
-              <td class="property-name">Utgivare</td>
-              <td>{{ontology.publisher}}</td>
-            </tr>
-          {{/if}}
-          
-          {{#if ontology.created}}
-            <tr>
-              <td class="property-name">Skapad</td>
-              <td>{{ontology.created}}</td>
-            </tr>
-          {{/if}}
-          
-          {{#if ontology.modified}}
-            <tr>
-              <td class="property-name">Senast ändrad</td>
-              <td>{{ontology.modified}}</td>
-            </tr>
-          {{/if}}
-          
-          {{#if ontology.version}}
-            <tr>
-              <td class="property-name">Version</td>
-              <td>{{ontology.version}}</td>
-            </tr>
-          {{/if}}
-        </table>
-      </div>
-    </div>
-    
-    <div class="property-group">
-      <div class="property-group-header">Statistik</div>
-      <div class="property-group-content">
-        <table class="property-table">
-          <tr>
-            <td class="property-name">Klasser</td>
-            <td>
-              {{ontology.stats.classes}}
-              {{#if ontology.stats.classes}}
-                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?class ?label WHERE { { ?class a <http://www.w3.org/2002/07/owl#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } UNION { ?class a <http://www.w3.org/2000/01/rdf-schema#Class> . FILTER(STRSTARTS(STR(?class), STR(<' ontology.uri '>))) } OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?class LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
               {{/if}}
-            </td>
-          </tr>
-          <tr>
-            <td class="property-name">Egenskaper</td>
-            <td>
-              {{ontology.stats.properties}}
-              {{#if ontology.stats.properties}}
-                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?property ?label WHERE { { ?property a <http://www.w3.org/2002/07/owl#ObjectProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/2002/07/owl#DatatypeProperty> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } UNION { ?property a <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property> . FILTER(STRSTARTS(STR(?property), STR(<' ontology.uri '>))) } OPTIONAL { ?property <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?property LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
-              {{/if}}
-            </td>
-          </tr>
-          <tr>
-            <td class="property-name">Individer</td>
-            <td>
-              {{ontology.stats.individuals}}
-              {{#if ontology.stats.individuals}}
-                <a href="/query?query={{encodeURIComponent (concat 'SELECT DISTINCT ?individual ?label WHERE { { ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> . FILTER(STRSTARTS(STR(?individual), STR(<' ontology.uri '>))) } UNION { ?individual a ?class . ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <' ontology.uri '> . FILTER NOT EXISTS { ?individual a <http://www.w3.org/2002/07/owl#Class> } } OPTIONAL { ?individual <http://www.w3.org/2000/01/rdf-schema#label> ?label } } ORDER BY ?individual LIMIT 100')}}&showLabels={{showLabels}}" class="btn btn-small">Visa</a>
-              {{/if}}
-            </td>
-          </tr>
-        </table>
-      </div>
-    </div>
-    
-    {{#if ontology.relationships.length}}
-    <div class="property-group">
-      <div class="property-group-header">Objektrelationer</div>
-      <div class="property-group-content">
-        <p>Dessa relationer definieras i ontologin för att beskriva samband mellan olika klasser och koncept:</p>
-        
-        <table class="relationships-table">
-          <thead>
-            <tr>
-              <th>Relation</th>
-              <th>Domän</th>
-              <th>Range</th>
-              <th>Detaljer</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each ontology.relationships}}
-              <tr>
-                <td>
-                  <a href="/resource?uri={{encodeURIComponent this.property.uri}}&showLabels={{../showLabels}}">
-                    {{this.property.label}}
-                  </a>
-                </td>
-                <td>
-                  {{#if this.domain.uri}}
-                    <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
-                      {{this.domain.label}}
-                    </a>
-                  {{else}}
-                    <em>Ospecificerad</em>
-                  {{/if}}
-                </td>
-                <td>
-                  {{#if this.range.uri}}
-                    <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
-                      {{this.range.label}}
-                    </a>
-                  {{else}}
-                    <em>Ospecificerad</em>
-                  {{/if}}
-                </td>
-                <td>
-                  <button class="btn btn-small" data-relationship-id="{{@index}}" onclick="showRelationshipDetails('{{@index}}')">Visa detaljer</button>
-                </td>
-              </tr>
-              <tr id="relationship-details-{{@index}}" style="display: none;">
-                <td colspan="4" class="relationship-details">
-                  <div class="relationship-diagram">
-                    <span class="object-relation domain">{{this.domain.label}}</span>
-                    <span class="relation-arrow">→</span>
-                    <span class="object-relation property">{{this.property.label}}</span>
-                    <span class="relation-arrow">→</span>
-                    <span class="object-relation range">{{this.range.label}}</span>
-                  </div>
-                </td>
-              </tr>
             {{/each}}
-          </tbody>
-        </table>
-      </div>
-    </div>
-    {{/if}}
-    
-    {{#if ontology.products.length}}
-    <div class="property-group">
-      <div class="property-group-header">Relaterade Produkter</div>
-      <div class="property-group-content">
-        <p>Följande produkter är relaterade till denna ontologi:</p>
-        
-        <div class="product-grid">
-          {{#each ontology.products}}
-            <div class="product-card {{#if this.isSubject}}subject-product{{else}}object-product{{/if}}">
-              <div class="product-card-header">
-                <h3>
-                  <a href="/product/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
-                    {{this.name}}
-                  </a>
-                </h3>
-              </div>
-              <div class="product-card-body">
-                {{#if this.description}}
-                  <p class="description">{{truncate this.description 150}}</p>
-                {{else}}
-                  <p class="description"><em>Ingen beskrivning tillgänglig</em></p>
-                {{/if}}
-                
-                <div class="product-meta">
-                  {{#if this.isNotor}}
-                    <span class="product-tag notor-tag">Notor65</span>
-                  {{/if}}
-                  
-                  {{#if this.isSubject}}
-                    <span class="product-tag subject-tag">Refererar till ontologi</span>
-                  {{else}}
-                    <span class="product-tag object-tag">Definierad av ontologi</span>
-                  {{/if}}
-                </div>
-              </div>
-            </div>
-          {{/each}}
-        </div>
-        {{#if ontology.relatedOntologies.length}}
-<div class="property-group">
-  <div class="property-group-header">Ontologinätverk Visualization</div>
-  <div class="property-group-content">
-    <p>Visualisering av hur {{ontology.title}} relaterar till andra ontologier i systemet:</p>
-    
-    <div class="ontology-network" id="ontologyNetwork">
-      <!-- The network visualization will be generated by JavaScript -->
-    </div>
-    
-    <div class="network-legend">
-      <div class="legend-item">
-        <span class="primary-node-indicator"></span>
-        <span>Aktuell ontologi</span>
-      </div>
-      <div class="legend-item">
-        <span class="related-node-indicator"></span>
-        <span>Relaterade ontologier</span>
-      </div>
-    </div>
-    
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        // Get network container dimensions
-        const container = document.getElementById('ontologyNetwork');
-        if (!container) return;
-        
-        const width = container.offsetWidth;
-        const height = container.offsetHeight;
-        
-        // Set up the network nodes
-        const currentOntology = {
-          id: "current",
-          title: "{{ontology.title}}",
-          uri: "{{ontology.uri}}",
-          x: width / 2,
-          y: height / 2,
-          isPrimary: true
-        };
-        
-        const relatedOntologies = [
-          {{#each ontology.relatedOntologies}}
-          {
-            id: "related{{@index}}",
-            title: "{{this.title}}",
-            uri: "{{this.uri}}",
-            x: 0, // Will be calculated
-            y: 0, // Will be calculated
-            isPrimary: false
-          },
-          {{/each}}
-        ];
-        
-        // Position nodes in a circle around the current ontology
-        const radius = Math.min(width, height) * 0.35;
-        const centerX = width / 2;
-        const centerY = height / 2;
-        
-        relatedOntologies.forEach((node, index) => {
-          const angle = (index / relatedOntologies.length) * Math.PI * 2;
-          node.x = centerX + radius * Math.cos(angle);
-          node.y = centerY + radius * Math.sin(angle);
-        });
-        
-        // Add the nodes to the container
-        const allNodes = [currentOntology, ...relatedOntologies];
-        
-        // Create edges first (to be below nodes)
-        relatedOntologies.forEach(node => {
-          const edge = document.createElement('div');
-          edge.className = 'ontology-network-edge';
+          </div>
           
-          // Calculate edge properties
-          const length = Math.sqrt(Math.pow(node.x - currentOntology.x, 2) + Math.pow(node.y - currentOntology.y, 2));
-          const angle = Math.atan2(node.y - currentOntology.y, node.x - currentOntology.x) * (180 / Math.PI);
-          
-          // Apply styles
-          edge.style.width = `${length}px`;
-          edge.style.left = `${currentOntology.x}px`;
-          edge.style.top = `${currentOntology.y}px`;
-          edge.style.transform = `rotate(${angle}deg)`;
-          edge.style.transformOrigin = '0 0';
-          
-          container.appendChild(edge);
-        });
-        
-        // Now add the nodes
-        allNodes.forEach(node => {
-          const nodeElement = document.createElement('div');
-          nodeElement.className = `ontology-network-node ${node.isPrimary ? 'primary' : ''}`;
-          nodeElement.innerHTML = node.title;
-          nodeElement.style.left = `${node.x - 60}px`; // Half width
-          nodeElement.style.top = `${node.y - 20}px`; // Half height
-          
-          // Add click event to navigate to that ontology
-          nodeElement.addEventListener('click', function() {
-            window.location.href = `/ontology/detail?uri=${encodeURIComponent(node.uri)}&showLabels={{showLabels}}`;
-          });
-          
-          // Add hover style
-          nodeElement.style.cursor = 'pointer';
-          
-          container.appendChild(nodeElement);
-        });
-      });
-    </script>
-    
-    <style>
-      .network-legend {
-        display: flex;
-        justify-content: center;
-        gap: 20px;
-        margin-top: 15px;
-      }
-      
-      .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        font-size: 12px;
-      }
-      
-      .primary-node-indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        background-color: #0645ad;
-        border-radius: 2px;
-      }
-      
-      .related-node-indicator {
-        display: inline-block;
-        width: 12px;
-        height: 12px;
-        background-color: white;
-        border: 1px solid #ddd;
-        border-radius: 2px;
-      }
-    </style>
-  </div>
-</div>
-{{/if}}
-        {{#if ontology.products.length}}
-          <div class="view-more-container">
-            <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}&showLabels={{showLabels}}" class="btn">Visa alla produkter</a>
+          <button id="showMoreClasses" class="show-more-btn" style="display: none;">
+            Show more classes
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+        {{else}}
+          <div class="no-data-message">
+            <p>No classes found in this ontology.</p>
           </div>
         {{/if}}
       </div>
-    </div>
-    {{/if}}
+    </section>
+
+    <!-- Object Properties section -->
+    <section id="object-properties" class="content-section">
+      <div class="section-header">
+        <h2>Object Properties</h2>
+        <div class="section-stats">{{ontology.stats.properties}} properties</div>
+      </div>
+      <div class="section-content">
+        {{#if ontology.relationships.length}}
+          <div class="filter-container">
+            <div class="filter-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="propertyFilter" placeholder="Filter properties..." />
+            </div>
+          </div>
+
+          <div class="property-table">
+            <div class="table-header">
+              <div class="property-col">Property</div>
+              <div class="domain-col">Domain</div>
+              <div class="range-col">Range</div>
+            </div>
+            <div class="table-body">
+              {{#each ontology.relationships}}
+                <div class="property-row">
+                  <div class="property-col">
+                    <a href="/resource?uri={{encodeURIComponent this.property.uri}}&showLabels={{../showLabels}}">
+                      {{this.property.label}}
+                    </a>
+                    <div class="small-uri">{{this.property.uri}}</div>
+                  </div>
+                  <div class="domain-col">
+                    {{#if this.domain.uri}}
+                      <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
+                        {{this.domain.label}}
+                      </a>
+                    {{else}}
+                      <span class="unspecified">Unspecified</span>
+                    {{/if}}
+                  </div>
+                  <div class="range-col">
+                    {{#if this.range.uri}}
+                      <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
+                        {{this.range.label}}
+                      </a>
+                    {{else}}
+                      <span class="unspecified">Unspecified</span>
+                    {{/if}}
+                  </div>
+                </div>
+              {{/each}}
+            </div>
+          </div>
+        {{else}}
+          <div class="no-data-message">
+            <p>No object properties found in this ontology.</p>
+          </div>
+        {{/if}}
+      </div>
+    </section>
+
+    <!-- Individuals section -->
+    <section id="individuals" class="content-section">
+      <div class="section-header">
+        <h2>Individuals</h2>
+        <div class="section-stats">{{ontology.stats.individuals}} individuals</div>
+      </div>
+      <div class="section-content">
+        {{#if ontology.stats.individuals}}
+          <div class="filter-container">
+            <div class="filter-input">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="individualFilter" placeholder="Filter individuals..." />
+            </div>
+          </div>
+
+          <div class="individual-container">
+            {{#each ontology.subjects}}
+              {{#if (eq this.typeClass "individual-tag")}}
+                <div class="individual-item">
+                  <div class="individual-header">
+                    <span class="item-tag {{this.typeClass}}">{{this.typeLabel}}</span>
+                    <h3>
+                      <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                        {{this.label}}
+                      </a>
+                    </h3>
+                  </div>
+                  <div class="individual-body">
+                    <div class="individual-uri">
+                      <code>{{this.uri}}</code>
+                    </div>
+                  </div>
+                </div>
+              {{/if}}
+            {{/each}}
+          </div>
+          
+          <button id="showMoreIndividuals" class="show-more-btn" style="display: none;">
+            Show more individuals
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+        {{else}}
+          <div class="no-data-message">
+            <p>No individuals found in this ontology.</p>
+          </div>
+        {{/if}}
+      </div>
+    </section>
+
+    <!-- Downloads section -->
+    <section id="downloads" class="content-section">
+      <div class="section-header">
+        <h2>Downloads</h2>
+      </div>
+      <div class="section-content">
+        <div class="download-options">
+          {{#each downloadLinks}}
+            <div class="download-option">
+              <div class="download-info">
+                <div class="download-format">{{this.format}}</div>
+                <div class="download-extension">.{{this.extension}}</div>
+              </div>
+              <a href="{{this.url}}" class="download-btn" download="ontology.{{this.extension}}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
+              </a>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    </section>
+
+    <!-- Legend section -->
+    <section id="legend" class="content-section">
+      <div class="section-header">
+        <h2>Legend</h2>
+      </div>
+      <div class="section-content">
+        <div class="legend-container">
+          <div class="legend-group">
+            <h3>Node Types</h3>
+            <div class="legend-items">
+              <div class="legend-item">
+                <div class="legend-symbol class-node"></div>
+                <div class="legend-label">Class</div>
+                <div class="legend-description">Represents a concept or type of object</div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-symbol individual-node"></div>
+                <div class="legend-label">Individual</div>
+                <div class="legend-description">A specific instance of a class</div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-symbol datatype-node"></div>
+                <div class="legend-label">Datatype</div>
+                <div class="legend-description">Defines the type of data a property can have</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="legend-group">
+            <h3>Edge Types</h3>
+            <div class="legend-items">
+              <div class="legend-item">
+                <div class="legend-symbol subclass-edge"></div>
+                <div class="legend-label">Subclass</div>
+                <div class="legend-description">Indicates that one class is a subclass of another</div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-symbol property-edge"></div>
+                <div class="legend-label">Object Property</div>
+                <div class="legend-description">Relates instances of two classes</div>
+              </div>
+              <div class="legend-item">
+                <div class="legend-symbol datatype-edge"></div>
+                <div class="legend-label">Datatype Property</div>
+                <div class="legend-description">Relates instances to literal values</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
-  
-  <div class="resource-sidebar ontology-sidebar">
-    <div class="sidebar-box">
-      <div class="sidebar-box-header">Ontologi Information</div>
-      <div class="sidebar-box-content">
-        <div class="resource-uri">
-          <code>{{ontology.uri}}</code>
+
+  <!-- Right Sidebar for additional info and actions -->
+  <div class="action-sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <h3>Display Options</h3>
+      </div>
+      <div class="sidebar-content">
+        <div class="display-toggle">
+          <label for="displayToggle">Show human-readable labels:</label>
+          <div class="toggle-switch">
+            <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+            <span class="toggle-slider"></span>
+          </div>
+          <span class="toggle-status">{{#if showLabels}}On{{else}}Off{{/if}}</span>
         </div>
       </div>
     </div>
     
-    <div class="sidebar-box">
-      <div class="sidebar-box-header">Ladda ner Ontologi</div>
-      <div class="sidebar-box-content">
-        <ul class="download-links">
-          {{#each downloadLinks}}
-            <li>
-              <a href="{{this.url}}" class="btn" download="{{../ontology.title}}.{{this.extension}}">
-                <span class="download-icon">📥</span> {{this.format}}
-              </a>
-            </li>
-          {{/each}}
-        </ul>
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <h3>Statistics</h3>
+      </div>
+      <div class="sidebar-content">
+        <div class="sidebar-stats">
+          <div class="stat-row">
+            <div class="stat-label">Classes</div>
+            <div class="stat-value">{{ontology.stats.classes}}</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">Properties</div>
+            <div class="stat-value">{{ontology.stats.properties}}</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">Individuals</div>
+            <div class="stat-value">{{ontology.stats.individuals}}</div>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="sidebar-box">
-      <div class="sidebar-box-header">Åtgärder</div>
-      <div class="sidebar-box-content">
-        <p>
-          <a href="/?showLabels={{showLabels}}" class="btn" style="width: 100%; margin-bottom: 8px;">Tillbaka till startsidan</a>
-        </p>
-        <p>
-          <a href="/query?query={{encodeURIComponent (concat 'SELECT ?s ?p ?o WHERE { ?s ?p ?o . FILTER(STRSTARTS(STR(?s), STR(<' ontology.uri '>))) } LIMIT 100')}}&showLabels={{showLabels}}" class="btn" style="width: 100%;">Visa alla triplar</a>
-        </p>
-        
+    <div class="sidebar-section">
+      <div class="sidebar-header">
+        <h3>Actions</h3>
+      </div>
+      <div class="sidebar-content">
+        <div class="action-buttons">
+          <a href="/?showLabels={{showLabels}}" class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            Back to Home
+          </a>
+          <a href="/query?query={{encodeURIComponent (concat 'SELECT * WHERE { <' ontology.uri '> ?p ?o . }')}}&showLabels={{showLabels}}" class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            Query Ontology
+          </a>
+          <a href="#downloads" class="action-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Download Files
+          </a>
+        </div>
       </div>
     </div>
+
+    {{#if ontology.relatedOntologies.length}}
+      <div class="sidebar-section">
+        <div class="sidebar-header">
+          <h3>Related Ontologies</h3>
+        </div>
+        <div class="sidebar-content">
+          <ul class="related-list">
+            {{#each ontology.relatedOntologies}}
+              <li>
+                <a href="/ontology/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
+                  {{this.title}}
+                </a>
+              </li>
+            {{/each}}
+          </ul>
+        </div>
+      </div>
+    {{/if}}
   </div>
 </div>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize display of classes and individuals
+    initDisplayLimits('.class-item', '#showMoreClasses');
+    initDisplayLimits('.individual-item', '#showMoreIndividuals');
+    
+    // Setup filtering
+    setupFiltering('#classFilter', '.class-item');
+    setupFiltering('#propertyFilter', '.property-row');
+    setupFiltering('#individualFilter', '.individual-item');
+    
+    // Setup view toggle
+    setupViewToggle();
+    
+    // Handle TOC navigation and highlighting
+    setupTocNavigation();
+  });
+  
+  // Initialize display limits for items
+  function initDisplayLimits(itemSelector, moreButtonSelector) {
+    const items = document.querySelectorAll(itemSelector);
+    const moreButton = document.querySelector(moreButtonSelector);
+    const initialLimit = 12;
+    
+    if (items.length > initialLimit) {
+      // Hide items beyond the initial limit
+      for (let i = initialLimit; i < items.length; i++) {
+        items[i].classList.add('hidden');
+      }
+      
+      // Show the "show more" button
+      if (moreButton) {
+        moreButton.style.display = 'flex';
+        
+        // Add event listener to show more items
+        moreButton.addEventListener('click', function() {
+          const hiddenItems = document.querySelectorAll(itemSelector + '.hidden');
+          const batchSize = 12;
+          let shownCount = 0;
+          
+          hiddenItems.forEach(item => {
+            if (shownCount < batchSize) {
+              item.classList.remove('hidden');
+              shownCount++;
+            }
+          });
+          
+          // Hide the button if all items are shown
+          if (document.querySelectorAll(itemSelector + '.hidden').length === 0) {
+            moreButton.style.display = 'none';
+          }
+        });
+      }
+    }
+  }
+  
+  // Setup filtering for items
+  function setupFiltering(filterSelector, itemSelector) {
+    const filterInput = document.querySelector(filterSelector);
+    if (!filterInput) return;
+    
+    filterInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const items = document.querySelectorAll(itemSelector);
+      
+      items.forEach(item => {
+        // Clear hidden class that might have been added by the display limits
+        item.classList.remove('hidden');
+        
+        // Get text content for searching
+        const textContent = item.textContent.toLowerCase();
+        
+        // Show or hide based on search term
+        if (searchTerm === '' || textContent.includes(searchTerm)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+      
+      // Hide "show more" buttons when filtering
+      const moreButtons = document.querySelectorAll('.show-more-btn');
+      moreButtons.forEach(btn => {
+        btn.style.display = searchTerm === '' ? 'flex' : 'none';
+      });
+    });
+  }
+  
+  // Setup view toggle between grid and list
+  function setupViewToggle() {
+    const gridBtn = document.querySelector('.view-btn[data-view="grid"]');
+    const listBtn = document.querySelector('.view-btn[data-view="list"]');
+    const container = document.querySelector('.class-container');
+    
+    if (!gridBtn || !listBtn || !container) return;
+    
+    // Set initial view mode from localStorage or default to grid
+    const savedView = localStorage.getItem('classViewMode') || 'grid';
+    if (savedView === 'list') {
+      container.classList.remove('grid-view');
+      container.classList.add('list-view');
+      listBtn.classList.add('active');
+      gridBtn.classList.remove('active');
+    }
+    
+    // Add click handlers
+    gridBtn.addEventListener('click', function() {
+      container.classList.add('grid-view');
+      container.classList.remove('list-view');
+      this.classList.add('active');
+      listBtn.classList.remove('active');
+      localStorage.setItem('classViewMode', 'grid');
+    });
+    
+    listBtn.addEventListener('click', function() {
+      container.classList.remove('grid-view');
+      container.classList.add('list-view');
+      this.classList.add('active');
+      gridBtn.classList.remove('active');
+      localStorage.setItem('classViewMode', 'list');
+    });
+  }
+  
+  // Setup TOC navigation and highlighting
+  function setupTocNavigation() {
+    const tocLinks = document.querySelectorAll('.toc-nav a');
+    const sections = document.querySelectorAll('.content-section');
+    
+    // Add click event to smooth scroll to sections
+    tocLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href').substring(1);
+        const targetSection = document.getElementById(targetId);
+        
+        if (targetSection) {
+          window.scrollTo({
+            top: targetSection.offsetTop - 20,
+            behavior: 'smooth'
+          });
+          
+          // Update active state in TOC
+          tocLinks.forEach(l => l.classList.remove('active'));
+          this.classList.add('active');
+        }
+      });
+    });
+    
+    // Highlight TOC items based on scroll position
+    window.addEventListener('scroll', function() {
+      let currentSectionId = '';
+      const scrollPosition = window.scrollY;
+      
+      // Find the current section
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        const sectionHeight = section.offsetHeight;
+        
+        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+          currentSectionId = section.id;
+        }
+      });
+      
+      // Update active state in TOC
+      tocLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + currentSectionId) {
+          link.classList.add('active');
+        }
+      });
+    });
+  }
+</script>
+
 <style>
-  /* Base styles for the resource container */
-  .resource-container {
+  /* Base styles */
+  :root {
+    --color-primary: #1565c0;
+    --color-primary-light: #e3f2fd;
+    --color-primary-dark: #0d47a1;
+    --color-secondary: #546e7a;
+    --color-accent: #2979ff;
+    
+    --color-text: #333333;
+    --color-text-secondary: #6b7280;
+    --color-text-tertiary: #9ca3af;
+    
+    --color-background: #ffffff;
+    --color-background-dark: #1a1a2e;
+    --color-background-sidebar: #f8f9fa;
+    --color-background-content: #ffffff;
+    
+    --color-border: #e5e7eb;
+    --color-border-light: #f3f4f6;
+    
+    --color-class: #4285f4;
+    --color-property: #ea4335;
+    --color-individual: #fbbc05;
+    --color-datatype: #34a853;
+    
+    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    --font-mono: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
+    
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+  }
+  
+  /* Layout */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    color: var(--color-text);
+    background-color: var(--color-background);
+  }
+  
+  .ontology-container {
+    display: grid;
+    grid-template-columns: 250px 1fr 300px;
+    min-height: 100vh;
+  }
+  
+  /* TOC Sidebar */
+  .toc-sidebar {
+    background-color: var(--color-background-sidebar);
+    border-right: 1px solid var(--color-border);
+    padding: 1rem 0;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  
+  .toc-header {
+    padding: 0 1.5rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .toc-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  
+  .toc-nav {
+    padding: 1rem 0;
+  }
+  
+  .toc-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .toc-nav li {
+    margin: 0;
+    padding: 0;
+  }
+  
+  .toc-nav a {
+    display: block;
+    padding: 0.5rem 1.5rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+  }
+  
+  .toc-nav a:hover, 
+  .toc-nav a.active {
+    color: var(--color-primary);
+    background-color: rgba(66, 133, 244, 0.05);
+    border-left-color: var(--color-primary);
+  }
+  
+  .toc-nav .subtoc {
+    padding-left: 1rem;
+  }
+  
+  .toc-nav .subtoc a {
+    padding: 0.375rem 1.5rem;
+    font-size: 0.9rem;
+  }
+  
+  /* Main Content */
+  .main-content {
+    padding: 2rem;
+    overflow-x: hidden;
+    background-color: var(--color-background-content);
+  }
+  
+  /* Action Sidebar */
+  .action-sidebar {
+    background-color: var(--color-background-sidebar);
+    border-left: 1px solid var(--color-border);
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  
+  /* Header styles */
+  .ontology-header {
+    margin-bottom: 2rem;
+  }
+  
+  .breadcrumbs {
+    margin-bottom: 1rem;
+  }
+  
+  .breadcrumbs ul {
     display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
     flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 20px;
   }
   
-  .resource-main {
-    flex: 3;
-    min-width: 0;
+  .breadcrumbs li {
+    display: flex;
+    align-items: center;
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
   }
   
-  .resource-sidebar {
-    flex: 1;
-    min-width: 250px;
+  .breadcrumbs li:not(:last-child)::after {
+    content: "/";
+    margin: 0 0.5rem;
+    color: var(--color-text-tertiary);
   }
   
-  /* Resource description */
-  .resource-description {
-    font-size: 1.1em;
+  .breadcrumbs a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+  }
+  
+  .breadcrumbs a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+  
+  .ontology-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+    border-bottom: none;
+  }
+  
+  .ontology-uri {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+  }
+  
+  .version-info {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-text-tertiary);
+  }
+  
+  /* Section styles */
+  .content-section {
+    margin-bottom: 3rem;
+    scroll-margin-top: 2rem;
+  }
+  
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--color-text);
+    border-bottom: none;
+  }
+  
+  .section-stats {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    background-color: var(--color-primary-light);
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-md);
+  }
+  
+  .section-content {
+    padding: 0 0.5rem;
+  }
+  
+  /* Metadata grid */
+  .metadata-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .metadata-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1.5rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  
+  .metadata-row:last-child {
+    border-bottom: none;
+  }
+  
+  .metadata-label {
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+  
+  .metadata-value {
+    overflow-wrap: break-word;
+  }
+  
+  .metadata-value code {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    background-color: var(--color-background-sidebar);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+  }
+  
+  .description-text {
     line-height: 1.6;
-    margin-bottom: 25px;
-    color: #333;
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-left: 4px solid #0645ad;
-    border-radius: 0 4px 4px 0;
   }
   
-  /* Enhanced Subjects Styles */
-  .subjects-container {
-    margin-top: 15px;
+  .contributor-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
   
-  /* Subject Controls */
-  .subjects-controls {
+  .contributor-list li {
+    margin-bottom: 0.25rem;
+  }
+  
+  /* Visualization styles */
+  .visualization-container {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .visualization-header {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eaecf0;
-  }
-  
-  .search-filter {
-    flex: 1;
-    min-width: 200px;
-    margin-right: 15px;
-    margin-bottom: 10px;
-  }
-  
-  .subject-search {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 14px;
-  }
-  
-  .view-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .type-filter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-  }
-  
-  .type-filter-btn {
-    padding: 5px 10px;
-    background-color: #f5f7fa;
-    border: 1px solid #eaecf0;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  
-  .type-filter-btn.active {
-    background-color: #0645ad;
+    padding: 1rem;
+    background-color: var(--color-background-dark);
     color: white;
-    border-color: #0645ad;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .visualization-title h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: white;
+  }
+  
+  .uri-info {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    font-family: var(--font-mono);
+  }
+  
+  .version-info-small {
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+  
+  .visualization-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .control-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .control-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  
+  .visualization-content {
+    height: 400px;
+    position: relative;
+    background-color: var(--color-background-dark);
+  }
+  
+  .visualization-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: white;
+  }
+  
+  .visualization-message {
+    text-align: center;
+    opacity: 0.7;
+  }
+  
+  .visualization-message svg {
+    margin: 0 auto 1rem;
+    display: block;
+    opacity: 0.5;
+  }
+  
+  .stats-summary {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    font-size: 0.875rem;
+    opacity: 0.7;
+  }
+  
+  .visualization-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-background-dark);
+    color: white;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .legend-summary {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+  
+  .legend-item::before {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  
+  .legend-item.class-node::before {
+    background-color: var(--color-class);
+  }
+  
+  .legend-item.property-edge::before {
+    background-color: var(--color-property);
+  }
+  
+  .legend-item.individual-node::before {
+    background-color: var(--color-individual);
+  }
+  
+  .legend-link {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: color 0.2s ease;
+  }
+  
+  .legend-link:hover {
+    color: white;
+    text-decoration: underline;
+  }
+  
+  /* Filter container */
+  .filter-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  
+  .filter-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .filter-input svg {
+    color: var(--color-text-tertiary);
+  }
+  
+  .filter-input input {
+    border: none;
+    outline: none;
+    width: 100%;
+    background: transparent;
+    font-size: 0.875rem;
   }
   
   .view-toggle {
     display: flex;
-    gap: 5px;
+    gap: 0.25rem;
   }
   
-  .view-toggle-btn {
-    width: 34px;
-    height: 34px;
+  .view-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f5f7fa;
-    border: 1px solid #eaecf0;
-    border-radius: 4px;
+    width: 32px;
+    height: 32px;
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-tertiary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
   }
   
-  .view-toggle-btn.active {
-    background-color: #0645ad;
+  .view-btn.active {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
     color: white;
-    border-color: #0645ad;
   }
   
-  .grid-icon, .list-icon {
-    font-size: 16px;
+  .view-btn:hover:not(.active) {
+    border-color: var(--color-text-secondary);
+    color: var(--color-text-secondary);
   }
   
-  .no-results-message {
-    padding: 15px;
-    text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    margin: 15px 0;
+  /* Classes container */
+  .class-container {
+    margin-bottom: 1.5rem;
   }
   
-  /* Subject Grid View */
-  .subjects-grid-view {
+  .class-container.grid-view {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    grid-gap: 15px;
-    margin-bottom: 20px;
+    gap: 1rem;
   }
   
-  /* Subject List View */
-  .subjects-list-view {
+  .class-container.list-view {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 0.5rem;
   }
   
-  .subjects-list-view .subject-card {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-  }
-  
-  .subjects-list-view .subject-header {
-    flex: 1;
-    border-bottom: none;
-    border-right: 1px solid #eaecf0;
-  }
-  
-  .subjects-list-view .subject-info {
-    width: 40%;
-    padding: 8px 12px;
-  }
-  
-  .subjects-list-view .subject-uri {
-    margin-top: 0;
-  }
-  
-  /* Common Subject Card Styles */
-  .subject-card {
-    border: 1px solid #eaecf0;
-    border-radius: 8px;
+  .class-item {
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    background-color: #fff;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
   
-  .subject-card:hover {
+  .class-container.grid-view .class-item:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
   }
   
-  .subject-card.hidden {
-    display: none;
-  }
-  
-  .subject-header {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eaecf0;
-    background-color: #f8f9fa;
+  .class-container.list-view .class-item {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+  
+  .class-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  
+  .class-container.list-view .class-header {
+    border-bottom: none;
+    padding: 0;
+    flex: 1;
+    display: flex;
     align-items: center;
   }
   
-  .subject-header h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-  
-  .subject-info {
-    padding: 12px 15px;
-  }
-  
-  .subject-uri {
-    font-size: 12px;
-    word-break: break-all;
-    color: #666;
-    background-color: #f5f5f5;
-    padding: 8px;
-    border-radius: 4px;
-    margin-top: 5px;
-  }
-  
-  .subject-type-tag {
+  .item-tag {
     display: inline-block;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+  }
+  
+  .class-container.list-view .item-tag {
+    margin-bottom: 0;
+    margin-right: 1rem;
   }
   
   .class-tag {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border: 1px solid #c8e6c9;
+    background-color: var(--color-primary-light);
+    color: var(--color-primary-dark);
   }
   
   .property-tag {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
+    background-color: rgba(234, 67, 53, 0.1);
+    color: #c62828;
   }
   
   .individual-tag {
-    background-color: #fff3e0;
-    color: #e65100;
-    border: 1px solid #ffe0b2;
+    background-color: rgba(251, 188, 5, 0.1);
+    color: #f57c00;
   }
   
   .default-tag {
-    background-color: #f5f5f5;
-    color: #616161;
-    border: 1px solid #e0e0e0;
+    background-color: rgba(84, 110, 122, 0.1);
+    color: #37474f;
   }
   
-  .view-more-container {
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 15px;
-    padding-top: 10px;
-    border-top: 1px solid #eaecf0;
-  }
-  
-  /* Sidebar styles */
-  .sidebar-box {
-    margin-bottom: 20px;
-    background-color: #fff;
-    border: 1px solid #eaecf0;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  
-  .sidebar-box-header {
-    background-color: #f5f7fa;
-    padding: 12px 15px;
+  .class-header h3 {
+    margin: 0;
+    font-size: 1rem;
     font-weight: 600;
-    color: #333;
-    border-bottom: 1px solid #eaecf0;
   }
   
-  .sidebar-box-content {
-    padding: 15px;
+  .class-header h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
   }
   
-  .resource-uri {
-    word-break: break-all;
-    font-size: 0.9em;
-    background-color: #f5f5f5;
-    padding: 12px;
-    border-radius: 4px;
-    border: 1px solid #eaecf0;
-    font-family: monospace;
+  .class-header h3 a:hover {
+    color: var(--color-primary);
   }
   
-  .download-links li {
-    margin-bottom: 10px;
+  .class-body {
+    padding: 1rem;
   }
   
-  .download-links .btn {
+  .class-container.list-view .class-body {
+    padding: 0;
+    flex: 2;
     display: flex;
+    justify-content: flex-end;
     align-items: center;
-    justify-content: center;
-    width: 100%;
   }
   
-  /* Property groups */
-  .property-group {
-    margin-bottom: 25px;
-    border: 1px solid #eaecf0;
-    border-radius: 8px;
+  .class-uri {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }
+  
+  .class-container.list-view .class-uri {
+    margin-top: 0;
     overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
   }
   
-  .property-group-header {
-    background-color: #f3f4f6;
-    padding: 12px 15px;
-    font-weight: 600;
-    color: #444;
-    border-bottom: 1px solid #eaecf0;
+  .class-container.list-view .class-uri code {
+    background-color: transparent;
+    padding: 0;
   }
   
-  .property-group-content {
-    padding: 15px;
-  }
-  
-  /* No data message styling */
-  .no-data-message {
-    padding: 20px;
-    text-align: center;
-    background-color: #f9f9f9;
-    border-radius: 8px;
-    color: #555;
-  }
-  
-  .no-data-message p {
-    margin-bottom: 10px;
-  }
-  
-  /* Other existing styles */
   /* Property table */
   .property-table {
-    width: 100%;
-    border-collapse: collapse;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
   }
   
-  .property-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eaecf0;
-    vertical-align: top;
+  .table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    background-color: var(--color-background-sidebar);
+    font-weight: 600;
+    font-size: 0.875rem;
   }
   
-  .property-table tr:last-child td {
+  .table-header > div {
+    padding: 0.75rem 1rem;
+    border-right: 1px solid var(--color-border);
+  }
+  
+  .table-header > div:last-child {
+    border-right: none;
+  }
+  
+  .table-body {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .property-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  
+  .property-row:last-child {
     border-bottom: none;
   }
   
-  .property-name {
-    width: 30%;
+  .property-row > div {
+    padding: 0.75rem 1rem;
+    border-right: 1px solid var(--color-border-light);
+  }
+  
+  .property-row > div:last-child {
+    border-right: none;
+  }
+  
+  .property-row a {
+    color: var(--color-primary);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .property-row a:hover {
+    text-decoration: underline;
+  }
+  
+  .small-uri {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+    margin-top: 0.25rem;
+    font-family: var(--font-mono);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .unspecified {
+    color: var(--color-text-tertiary);
+    font-style: italic;
+    font-size: 0.875rem;
+  }
+  
+  /* Individual container */
+  .individual-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  
+  .individual-item {
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .individual-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .individual-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  
+  .individual-header h3 {
+    margin: 0;
+    font-size: 1rem;
     font-weight: 600;
-    color: #555;
   }
   
-  /* Relationships */
-  .relationships-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
+  .individual-header h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+    transition: color 0.2s ease;
   }
   
-  .relationships-table th {
-    background-color: #f5f7fa;
-    padding: 10px;
-    text-align: left;
+  .individual-header h3 a:hover {
+    color: var(--color-primary);
+  }
+  
+  .individual-body {
+    padding: 1rem;
+  }
+  
+  .individual-uri {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }
+  
+  /* Downloads section */
+  .download-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .download-option {
+    display: flex;
+    flex-direction: column;
+    background-color: white;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .download-option:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .download-info {
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .download-format {
     font-weight: 600;
-    border-bottom: 2px solid #eaecf0;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
   }
   
-  .relationships-table td {
-    padding: 10px;
-    border-bottom: 1px solid #eaecf0;
-    vertical-align: top;
+  .download-extension {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
   }
   
-  .relationships-table tr:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .relationship-details {
-    background-color: #f8f9fa;
-    padding: 15px;
-  }
-  
-  .relationship-diagram {
+  .download-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-bottom: 15px;
-    flex-wrap: wrap;
-  }
-  
-  .object-relation {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 14px;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-primary);
+    color: white;
+    text-decoration: none;
     font-weight: 500;
+    transition: background-color 0.2s ease;
   }
   
-  .object-relation.domain {
-    background-color: #e6f3ff;
-    border: 1px solid #b3d9ff;
+  .download-btn:hover {
+    background-color: var(--color-primary-dark);
   }
   
-  .object-relation.property {
-    background-color: #fff0e6;
-    border: 1px solid #ffd9b3;
-  }
-  
-  .object-relation.range {
-    background-color: #e6fff0;
-    border: 1px solid #b3f0d1;
-  }
-  
-  .relation-arrow {
-    font-size: 20px;
-    color: #666;
-  }
-  
-  /* Products */
-  .product-grid {
+  /* Legend section */
+  .legend-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    grid-gap: 20px;
-    margin: 15px 0;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
   }
   
-  .product-card {
-    border: 1px solid #eaecf0;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    background-color: #fff;
-  }
-  
-  .product-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Special styling for subject products */
-  .product-card.subject-product {
-    border-left: 4px solid #7986cb;
-  }
-  
-  /* Special styling for object products */
-  .product-card.object-product {
-    border-left: 4px solid #4db6ac;
-  }
-  
-  .product-card-header {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eaecf0;
-    background-color: #f8f9fa;
-  }
-  
-  .product-card-header h3 {
-    margin: 0;
-    font-size: 16px;
+  .legend-group h3 {
+    font-size: 1.125rem;
     font-weight: 600;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
   }
   
-  .product-card-body {
-    padding: 12px 15px;
-    flex-grow: 1;
+  .legend-items {
     display: flex;
     flex-direction: column;
+    gap: 1rem;
   }
   
-  .product-card-body .description {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    color: #555;
-    line-height: 1.5;
+  .legend-item {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 1rem;
+    align-items: center;
   }
   
-  .product-meta {
-    margin-top: auto;
+  .legend-symbol {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding-top: 10px;
-    border-top: 1px solid #f0f0f0;
+    align-items: center;
+    justify-content: center;
   }
   
-  .product-tag {
-    display: inline-block;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
+  .legend-symbol.class-node {
+    background-color: var(--color-class);
   }
   
-  .subject-tag {
-    background-color: #e8eaf6;
-    color: #3f51b5;
-    border: 1px solid #c5cae9;
+  .legend-symbol.individual-node {
+    background-color: var(--color-individual);
   }
   
-  .object-tag {
-    background-color: #e0f2f1;
-    color: #009688;
-    border: 1px solid #b2dfdb;
+  .legend-symbol.datatype-node {
+    background-color: var(--color-datatype);
   }
   
-  .notor-tag {
-    background-color: #e3f2fd;
-    color: #1976d2;
-    border: 1px solid #bbdefb;
+  .legend-symbol.subclass-edge,
+  .legend-symbol.property-edge,
+  .legend-symbol.datatype-edge {
+    position: relative;
+    background-color: transparent;
+    border-radius: 0;
   }
   
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .resource-container {
-      flex-direction: column;
-    }
-    
-    .resource-sidebar {
-      order: -1;
-      margin-bottom: 20px;
-    }
-    
-    .product-grid, .subjects-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .relationship-diagram {
-      flex-direction: column;
-    }
-    
-    .relation-arrow {
-      transform: rotate(90deg);
-    }
+  .legend-symbol.subclass-edge::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-secondary);
   }
-</style>
-
-<script>
-  // Function to toggle relationship details
-  function showRelationshipDetails(relationshipId) {
-    const detailsRow = document.getElementById('relationship-details-' + relationshipId);
-    if (detailsRow) {
-      const isVisible = detailsRow.style.display !== 'none';
-      detailsRow.style.display = isVisible ? 'none' : 'table-row';
-    }
+  
+  .legend-symbol.property-edge::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-property);
   }
-</script>
-
-<!-- Include the subjects display functionality -->
-<script src="/js/ontology-subjects.js"></script>
+  
+  .legend-symbol.datatype-edge::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--color-datatype);
+  }
+  
+  .legend-label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+  
+  .legend-description {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+  
+  /* Sidebar sections */
+  .sidebar-section {
+    margin-bottom: 2rem;
+  }
+  
+  .sidebar-header {
+    margin-bottom: 1rem;
+  }
+  
+  .sidebar-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
