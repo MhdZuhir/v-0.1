@@ -1,4 +1,4 @@
-// config/handlebars.js - Updated with embedded layout support
+// config/handlebars.js - Updated with partials support
 const { engine } = require('express-handlebars');
 const path = require('path');
 
@@ -47,7 +47,9 @@ exports.setup = (app) => {
     },
     // Add layout selection function
     defaultLayout: 'main',
-    layoutsDir: path.join(__dirname, '../views/layouts')
+    layoutsDir: path.join(__dirname, '../views/layouts'),
+    // Add partials support
+    partialsDir: path.join(__dirname, '../views/partials')
   });
   
   // Set up the Handlebars engine

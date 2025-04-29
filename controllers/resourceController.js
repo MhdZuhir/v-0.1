@@ -1,7 +1,8 @@
-// controllers/resourceController.js - Fixed version
+// controllers/resourceController.js - Enhanced version with core resource support
 
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
+const coreResourceService = require('../services/coreResourceService');
 
 /**
  * Handle resource page request
@@ -22,9 +23,13 @@ exports.getResourcePage = async (req, res, next) => {
   try {
     console.log(`Fetching resource page for: ${uri}`);
     
+    // Check if this is a core RDF/RDFS/OWL resource
+    const isCoreResource = coreResourceService.isCoreResource(uri);
+    console.log(`Is core resource: ${isCoreResource}`);
+    
     // Fetch all data about the resource
     const properties = await graphdbService.fetchResourceProperties(uri);
-    const description = await graphdbService.fetchResourceDescription(uri);
+    let description = await graphdbService.fetchResourceDescription(uri);
     const relatedUris = await graphdbService.fetchRelatedResources(uri);
     const types = await graphdbService.fetchResourceTypes(uri);
     
@@ -43,6 +48,17 @@ exports.getResourcePage = async (req, res, next) => {
       
       console.log(`Fetching labels for ${uris.length} URIs`);
       labelMap = await labelService.fetchLabelsForUris(uris);
+    }
+    
+    // Enhanced data for core resources
+    let enhancedData = {};
+    if (isCoreResource) {
+      enhancedData = await coreResourceService.enhanceResourceData(uri, { description });
+      
+      // Use enhanced description if available
+      if (enhancedData.description) {
+        description = enhancedData.description;
+      }
     }
 
     // Group properties by type
@@ -87,6 +103,9 @@ exports.getResourcePage = async (req, res, next) => {
     }
     
     console.log(`Property groups: basic=${propertyGroups.basic.length}, relationships=${propertyGroups.relationships.length}, other=${propertyGroups.other.length}`);
+    
+    // Get common namespaces for the view
+    const commonNamespaces = coreResourceService.getCommonNamespaces();
 
     res.render('resource', {
       title: 'Resursdetaljer',
@@ -105,7 +124,17 @@ exports.getResourcePage = async (req, res, next) => {
       })),
       labelMap,
       showLabels: req.showLabels,
-      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+      showLabelsToggleState: req.showLabels ? 'false' : 'true',
+      
+      // Enhanced data for core resources
+      isCoreResource,
+      coreResource: enhancedData,
+      namespace: enhancedData.namespace,
+      resourceType: enhancedData.resourceType,
+      coreProperties: enhancedData.properties,
+      coreExamples: enhancedData.examples,
+      coreRelated: enhancedData.related,
+      commonNamespaces
     });
   } catch (err) {
     console.error('Error in getResourcePage:', err);
