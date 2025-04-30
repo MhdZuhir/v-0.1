@@ -1,698 +1,810 @@
-<!-- views/ontology-detail.handlebars - WebVOWL-inspired Design -->
-<div class="ontology-container">
-  <!-- Left Sidebar with TOC -->
+<!-- views/ontology-detail.handlebars -->
+<div class="page-container">
+  <!-- Table of Contents Sidebar -->
   <div class="toc-sidebar">
-    <div class="toc-header">
-      <h2>Table of Contents</h2>
-    </div>
-    <nav class="toc-nav">
-      <ul>
-        <li><a href="#metadata" class="active">Metadata</a></li>
-        <li><a href="#classes">Classes</a></li>
+    <div class="toc-content">
+      <h3>Table of Contents</h3>
+      <ul class="toc-list">
+        <li><a href="#metadata">Metadata</a></li>
+        <li><a href="#overview">Overview</a></li>
         <li>
-          <a href="#components">Components</a>
-          <ul class="subtoc">
-            <li><a href="#core-components">Core Components</a></li>
-            <li><a href="#digital-product-passport">Digital Product Passport</a></li>
-            <li><a href="#material-info">Material Info</a></li>
-            <li><a href="#compliance-info">Compliance Info</a></li>
-            <li><a href="#producer">Producer</a></li>
+          <a href="#classes">Classes</a>
+          <ul class="toc-sublist">
+            <li><a href="#class-digital-product-passport">Digital Product Passport</a></li>
+            <li><a href="#class-product">Product</a></li>
           </ul>
         </li>
-        <li><a href="#object-properties">Object Properties</a></li>
-        <li><a href="#annotation-properties">Annotation Properties</a></li>
-        <li><a href="#individuals">Individuals</a></li>
+        <li>
+          <a href="#object-properties">Object Properties</a>
+          <ul class="toc-sublist">
+            <li><a href="#prop-describes">describes</a></li>
+            <li><a href="#prop-has-part">has part</a></li>
+          </ul>
+        </li>
+        <li>
+          <a href="#annotation-properties">Annotation Properties</a>
+          <ul class="toc-sublist">
+            <li><a href="#annot-contributor">contributor</a></li>
+            <li><a href="#annot-created">created</a></li>
+            <li><a href="#annot-creator">creator</a></li>
+            <li><a href="#annot-description">description</a></li>
+            <li><a href="#annot-license">license</a></li>
+            <li><a href="#annot-title">title</a></li>
+            <li><a href="#annot-prefix">preferred namespace prefix</a></li>
+            <li><a href="#annot-uri">preferred namespace uri</a></li>
+          </ul>
+        </li>
         <li><a href="#namespaces">Namespaces</a></li>
         <li><a href="#legend">Legend</a></li>
+        <li><a href="#downloads">Downloads</a></li>
       </ul>
-    </nav>
+    </div>
   </div>
 
-  <!-- Main Content Area -->
-  <div class="main-content">
-    <header class="ontology-header">
-      <div class="breadcrumbs">
-        <ul>
-          <li><a href="/?showLabels={{showLabels}}">Home</a></li>
-          <li>{{ontology.title}}</li>
-        </ul>
-      </div>
-      <h1 class="ontology-title">{{ontology.title}}</h1>
-      <div class="ontology-uri">{{ontology.uri}}</div>
+  <!-- Main Content -->
+  <div class="ontology-container">
+    <h1>{{ontology.title}}</h1>
+
+    <h2 id="metadata">Metadata</h2>
+    <div class="metadata-section">
+      <p><strong>IRI</strong><br>
+      <code>{{ontology.uri}}</code></p>
+
+      <p><strong>Title</strong><br>
+      {{ontology.title}}</p>
+
+      {{#if ontology.creator}}
+        <p><strong>Creator</strong><br>
+        {{ontology.creator}}</p>
+      {{/if}}
+
+      {{#if ontology.contributor}}
+        <p><strong>Contributor</strong><br>
+        {{#each ontology.contributors}}
+          * {{this}}<br>
+        {{else}}
+          {{ontology.contributor}}
+        {{/each}}
+        </p>
+      {{/if}}
+
+      {{#if ontology.created}}
+        <p><strong>Date Created</strong><br>
+        {{ontology.created}}</p>
+      {{/if}}
+
+      {{#if ontology.license}}
+        <p><strong>License</strong><br>
+        <a href="{{ontology.license}}">{{ontology.license}}</a></p>
+      {{/if}}
+
+      {{#if ontology.version}}
+        <p><strong>Version</strong><br>
+        {{ontology.version}}</p>
+      {{/if}}
+
+      {{#if ontology.versionInfo}}
+        <p><strong>Version Info</strong><br>
+        {{ontology.versionInfo}}</p>
+      {{/if}}
+
+      {{#if ontology.namespace_prefix}}
+        <p><strong>Preferred Namespace Prefix</strong><br>
+        {{ontology.namespace_prefix}}</p>
+      {{/if}}
+
+      {{#if ontology.namespace_uri}}
+        <p><strong>Preferred Namespace Uri</strong><br>
+        <code>{{ontology.namespace_uri}}</code></p>
+      {{/if}}
+
+      {{#if ontology.description}}
+        <p><strong>Description</strong><br>
+        {{ontology.description}}</p>
+      {{/if}}
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <div class="overview-section">
+      <p><strong>Figure 1: </strong>Ontology overview</p>
       
-      <!-- Version info and metadata summary -->
-      <div class="version-info">
-        <span class="version">Version: {{ontology.version}}</span>
-        {{#if ontology.created}}
-          <span class="date-created">Created: {{ontology.created}}</span>
-        {{/if}}
+      <div class="stats-summary">
+        <div class="stat-item">
+          <span class="stat-value">{{ontology.stats.classes}}</span> Classes
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{{ontology.stats.properties}}</span> Properties
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">{{ontology.stats.individuals}}</span> Individuals
+        </div>
       </div>
-    </header>
+      
+      {{#if ontology.description}}
+        <p>{{ontology.description}}</p>
+      {{/if}}
+    </div>
 
-    <!-- Main sections -->
-    <section id="metadata" class="content-section">
-      <div class="section-header">
-        <h2>Metadata</h2>
-      </div>
-      <div class="section-content metadata-grid">
-        <div class="metadata-row">
-          <div class="metadata-label">IRI</div>
-          <div class="metadata-value">
-            <code>{{ontology.uri}}</code>
-          </div>
+    <h2 id="classes">Classes</h2>
+    <div class="classes-section">
+      {{#if ontology.subjects}}
+        <div class="filter-control">
+          <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
         </div>
         
-        <div class="metadata-row">
-          <div class="metadata-label">Title</div>
-          <div class="metadata-value">{{ontology.title}}</div>
-        </div>
-        
-        {{#if ontology.creator}}
-          <div class="metadata-row">
-            <div class="metadata-label">Creator</div>
-            <div class="metadata-value">{{ontology.creator}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.contributor}}
-          <div class="metadata-row">
-            <div class="metadata-label">Contributors</div>
-            <div class="metadata-value">
-              <ul class="contributor-list">
-                {{#each ontology.contributors}}
-                  <li>{{this}}</li>
-                {{else}}
-                  <li>{{ontology.contributor}}</li>
-                {{/each}}
-              </ul>
-            </div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.created}}
-          <div class="metadata-row">
-            <div class="metadata-label">Date Created</div>
-            <div class="metadata-value">{{ontology.created}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.modified}}
-          <div class="metadata-row">
-            <div class="metadata-label">Last Modified</div>
-            <div class="metadata-value">{{ontology.modified}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.license}}
-          <div class="metadata-row">
-            <div class="metadata-label">License</div>
-            <div class="metadata-value">
-              <a href="{{ontology.license}}" target="_blank">{{ontology.license}}</a>
-            </div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.version}}
-          <div class="metadata-row">
-            <div class="metadata-label">Version ID</div>
-            <div class="metadata-value">{{ontology.version}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.version_info}}
-          <div class="metadata-row">
-            <div class="metadata-label">Version Info</div>
-            <div class="metadata-value">{{ontology.version_info}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.namespace_prefix}}
-          <div class="metadata-row">
-            <div class="metadata-label">Preferred Namespace Prefix</div>
-            <div class="metadata-value">{{ontology.namespace_prefix}}</div>
-          </div>
-        {{/if}}
-        
-        {{#if ontology.namespace_uri}}
-          <div class="metadata-row">
-            <div class="metadata-label">Preferred Namespace URI</div>
-            <div class="metadata-value">
-              <code>{{ontology.namespace_uri}}</code>
-            </div>
-          </div>
-        {{/if}}
-        
-        <div class="metadata-row">
-          <div class="metadata-label">Description</div>
-          <div class="metadata-value description-text">
-            {{ontology.description}}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Overview section with WebVOWL-like visualization -->
-    <section id="overview" class="content-section">
-      <div class="section-header">
-        <h2>Overview</h2>
-      </div>
-      <div class="section-content">
-        <div class="visualization-container">
-          <div class="visualization-header">
-            <div class="visualization-title">
-              <h3>{{ontology.title}}</h3>
-              <div class="uri-info">{{ontology.uri}}</div>
-              <div class="version-info-small">Version: {{ontology.version}}</div>
-            </div>
-            <div class="visualization-controls">
-              <button class="control-btn" title="Reset view">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v6h6"></path><path d="M3 13a9 9 0 1 0 3-7.7L3 8"></path></svg>
-                Reset
-              </button>
-              <button class="control-btn" title="Export visualization">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Export
-              </button>
-              <button class="control-btn" title="Filter elements">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-                Filter
-              </button>
-            </div>
-          </div>
-          
-          <div class="visualization-content">
-            <div class="visualization-placeholder">
-              <div class="visualization-message">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                <p>Interactive visualization requires JavaScript.</p>
-                <p>Showing statistics instead:</p>
-                <div class="stats-summary">
-                  <div class="stat-item">
-                    <div class="stat-value">{{ontology.stats.classes}}</div>
-                    <div class="stat-label">Classes</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-value">{{ontology.stats.properties}}</div>
-                    <div class="stat-label">Properties</div>
-                  </div>
-                  <div class="stat-item">
-                    <div class="stat-value">{{ontology.stats.individuals}}</div>
-                    <div class="stat-label">Individuals</div>
-                  </div>
-                </div>
+        <div class="entity-items">
+          {{#each ontology.subjects}}
+            {{#if (eq this.typeClass "class-tag")}}
+              <div id="class-{{this.label}}" class="entity-item class-item">
+                <h3>{{this.label}} <sup>c</sup></h3>
+                <p><strong>IRI</strong><code>{{this.uri}}</code></p>
+                
+                {{#if this.description}}
+                  <p><strong>Description</strong><br>
+                  {{this.description}}</p>
+                {{/if}}
+                
+                <!-- Property restrictions would go here if available -->
+                <p><strong>In Domain Of</strong></p>
+                
+                <p><strong>In Range Of</strong></p>
               </div>
-            </div>
-          </div>
-          
-          <div class="visualization-footer">
-            <div class="legend-summary">
-              <span class="legend-item class-node">Class</span>
-              <span class="legend-item property-edge">Property</span>
-              <span class="legend-item individual-node">Individual</span>
-            </div>
-            <a href="#legend" class="legend-link">View full legend</a>
-          </div>
+            {{/if}}
+          {{/each}}
         </div>
-      </div>
-    </section>
+      {{else}}
+        <p>No classes found in this ontology.</p>
+      {{/if}}
+    </div>
 
-    <!-- Classes section -->
-    <section id="classes" class="content-section">
-      <div class="section-header">
-        <h2>Classes</h2>
-        <div class="section-stats">{{ontology.stats.classes}} classes</div>
-      </div>
-      <div class="section-content">
-        {{#if ontology.subjects}}
-          <div class="filter-container">
-            <div class="filter-input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" id="classFilter" placeholder="Filter classes..." />
-            </div>
-            <div class="view-toggle">
-              <button class="view-btn active" data-view="grid" title="Grid view">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-              </button>
-              <button class="view-btn" data-view="list" title="List view">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-              </button>
-            </div>
-          </div>
-
-          <div class="class-container grid-view">
-            {{#each ontology.subjects}}
-              {{#if (eq this.typeClass "class-tag")}}
-                <div class="class-item">
-                  <div class="class-header">
-                    <span class="item-tag {{this.typeClass}}">{{this.typeLabel}}</span>
-                    <h3>
-                      <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
-                        {{this.label}}
-                      </a>
-                    </h3>
-                  </div>
-                  <div class="class-body">
-                    <div class="class-uri">
-                      <code>{{this.uri}}</code>
-                    </div>
-                  </div>
-                </div>
+    <h2 id="object-properties">Object Properties</h2>
+    <div class="properties-section">
+      {{#if ontology.relationships.length}}
+        <div class="filter-control">
+          <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
+        </div>
+        
+        <div class="entity-items">
+          {{#each ontology.relationships}}
+            <div id="prop-{{this.property.label}}" class="entity-item property-item">
+              <h3>{{this.property.label}} <sup>op</sup></h3>
+              <p><strong>IRI</strong><code>{{this.property.uri}}</code></p>
+              
+              {{#if this.description}}
+                <p><strong>Description</strong><br>
+                {{this.description}}</p>
               {{/if}}
-            {{/each}}
-          </div>
-          
-          <button id="showMoreClasses" class="show-more-btn" style="display: none;">
-            Show more classes
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-        {{else}}
-          <div class="no-data-message">
-            <p>No classes found in this ontology.</p>
-          </div>
-        {{/if}}
-      </div>
-    </section>
-
-    <!-- Object Properties section -->
-    <section id="object-properties" class="content-section">
-      <div class="section-header">
-        <h2>Object Properties</h2>
-        <div class="section-stats">{{ontology.stats.properties}} properties</div>
-      </div>
-      <div class="section-content">
-        {{#if ontology.relationships.length}}
-          <div class="filter-container">
-            <div class="filter-input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" id="propertyFilter" placeholder="Filter properties..." />
-            </div>
-          </div>
-
-          <div class="property-table">
-            <div class="table-header">
-              <div class="property-col">Property</div>
-              <div class="domain-col">Domain</div>
-              <div class="range-col">Range</div>
-            </div>
-            <div class="table-body">
-              {{#each ontology.relationships}}
-                <div class="property-row">
-                  <div class="property-col">
-                    <a href="/resource?uri={{encodeURIComponent this.property.uri}}&showLabels={{../showLabels}}">
-                      {{this.property.label}}
-                    </a>
-                    <div class="small-uri">{{this.property.uri}}</div>
-                  </div>
-                  <div class="domain-col">
-                    {{#if this.domain.uri}}
-                      <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
-                        {{this.domain.label}}
-                      </a>
-                    {{else}}
-                      <span class="unspecified">Unspecified</span>
-                    {{/if}}
-                  </div>
-                  <div class="range-col">
-                    {{#if this.range.uri}}
-                      <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
-                        {{this.range.label}}
-                      </a>
-                    {{else}}
-                      <span class="unspecified">Unspecified</span>
-                    {{/if}}
-                  </div>
-                </div>
-              {{/each}}
-            </div>
-          </div>
-        {{else}}
-          <div class="no-data-message">
-            <p>No object properties found in this ontology.</p>
-          </div>
-        {{/if}}
-      </div>
-    </section>
-
-    <!-- Individuals section -->
-    <section id="individuals" class="content-section">
-      <div class="section-header">
-        <h2>Individuals</h2>
-        <div class="section-stats">{{ontology.stats.individuals}} individuals</div>
-      </div>
-      <div class="section-content">
-        {{#if ontology.stats.individuals}}
-          <div class="filter-container">
-            <div class="filter-input">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-              <input type="text" id="individualFilter" placeholder="Filter individuals..." />
-            </div>
-          </div>
-
-          <div class="individual-container">
-            {{#each ontology.subjects}}
-              {{#if (eq this.typeClass "individual-tag")}}
-                <div class="individual-item">
-                  <div class="individual-header">
-                    <span class="item-tag {{this.typeClass}}">{{this.typeLabel}}</span>
-                    <h3>
-                      <a href="/resource?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
-                        {{this.label}}
-                      </a>
-                    </h3>
-                  </div>
-                  <div class="individual-body">
-                    <div class="individual-uri">
-                      <code>{{this.uri}}</code>
-                    </div>
-                  </div>
-                </div>
+              
+              {{#if this.domain.uri}}
+                <p><strong>Domain</strong>
+                <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
+                  {{this.domain.label}}
+                </a> <sup>c</sup></p>
               {{/if}}
-            {{/each}}
-          </div>
-          
-          <button id="showMoreIndividuals" class="show-more-btn" style="display: none;">
-            Show more individuals
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-        {{else}}
-          <div class="no-data-message">
-            <p>No individuals found in this ontology.</p>
-          </div>
-        {{/if}}
-      </div>
-    </section>
-
-    <!-- Downloads section -->
-    <section id="downloads" class="content-section">
-      <div class="section-header">
-        <h2>Downloads</h2>
-      </div>
-      <div class="section-content">
-        <div class="download-options">
-          {{#each downloadLinks}}
-            <div class="download-option">
-              <div class="download-info">
-                <div class="download-format">{{this.format}}</div>
-                <div class="download-extension">.{{this.extension}}</div>
-              </div>
-              <a href="{{this.url}}" class="download-btn" download="ontology.{{this.extension}}">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                Download
-              </a>
+              
+              {{#if this.range.uri}}
+                <p><strong>Range</strong>
+                <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
+                  {{this.range.label}}
+                </a> <sup>c</sup></p>
+              {{/if}}
             </div>
           {{/each}}
         </div>
-      </div>
-    </section>
+      {{else}}
+        <p>No object properties found in this ontology.</p>
+      {{/if}}
+    </div>
 
-    <!-- Legend section -->
-    <section id="legend" class="content-section">
-      <div class="section-header">
-        <h2>Legend</h2>
-      </div>
-      <div class="section-content">
-        <div class="legend-container">
-          <div class="legend-group">
-            <h3>Node Types</h3>
-            <div class="legend-items">
-              <div class="legend-item">
-                <div class="legend-symbol class-node"></div>
-                <div class="legend-label">Class</div>
-                <div class="legend-description">Represents a concept or type of object</div>
-              </div>
-              <div class="legend-item">
-                <div class="legend-symbol individual-node"></div>
-                <div class="legend-label">Individual</div>
-                <div class="legend-description">A specific instance of a class</div>
-              </div>
-              <div class="legend-item">
-                <div class="legend-symbol datatype-node"></div>
-                <div class="legend-label">Datatype</div>
-                <div class="legend-description">Defines the type of data a property can have</div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="legend-group">
-            <h3>Edge Types</h3>
-            <div class="legend-items">
-              <div class="legend-item">
-                <div class="legend-symbol subclass-edge"></div>
-                <div class="legend-label">Subclass</div>
-                <div class="legend-description">Indicates that one class is a subclass of another</div>
-              </div>
-              <div class="legend-item">
-                <div class="legend-symbol property-edge"></div>
-                <div class="legend-label">Object Property</div>
-                <div class="legend-description">Relates instances of two classes</div>
-              </div>
-              <div class="legend-item">
-                <div class="legend-symbol datatype-edge"></div>
-                <div class="legend-label">Datatype Property</div>
-                <div class="legend-description">Relates instances to literal values</div>
-              </div>
-            </div>
-          </div>
+    <h2 id="annotation-properties">Annotation Properties</h2>
+    <div class="annotation-props-section">
+      <div class="entity-items">
+        <!-- Display annotation properties if available -->
+        <div id="annot-contributor" class="entity-item">
+          <h3>contributor <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/contributor</code></p>
+        </div>
+        
+        <div id="annot-creator" class="entity-item">
+          <h3>creator <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/creator</code></p>
+        </div>
+        
+        <div id="annot-description" class="entity-item">
+          <h3>description <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/description</code></p>
+        </div>
+        
+        <div id="annot-created" class="entity-item">
+          <h3>created <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/created</code></p>
+        </div>
+        
+        <div id="annot-license" class="entity-item">
+          <h3>license <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/license</code></p>
+        </div>
+        
+        <div id="annot-title" class="entity-item">
+          <h3>title <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/dc/terms/title</code></p>
+        </div>
+        
+        <div id="annot-prefix" class="entity-item">
+          <h3>preferred namespace prefix <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/vocab/vann/preferredNamespacePrefix</code></p>
+        </div>
+        
+        <div id="annot-uri" class="entity-item">
+          <h3>preferred namespace uri <sup>ap</sup></h3>
+          <p><strong>IRI</strong><code>http://purl.org/vocab/vann/preferredNamespaceUri</code></p>
         </div>
       </div>
-    </section>
-  </div>
+    </div>
 
-  <!-- Right Sidebar for additional info and actions -->
-  <div class="action-sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-header">
-        <h3>Display Options</h3>
-      </div>
-      <div class="sidebar-content">
-        <div class="display-toggle">
-          <label for="displayToggle">Show human-readable labels:</label>
-          <div class="toggle-switch">
-            <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-            <span class="toggle-slider"></span>
-          </div>
-          <span class="toggle-status">{{#if showLabels}}On{{else}}Off{{/if}}</span>
-        </div>
+    <h2 id="namespaces">Namespaces</h2>
+    <div class="namespaces-section">
+      <table class="namespaces-table">
+        <tr>
+          <td><strong>:</strong></td>
+          <td><code>{{ontology.uri}}</code></td>
+        </tr>
+        <tr>
+          <td><strong>dcterms</strong></td>
+          <td><code>http://purl.org/dc/terms/</code></td>
+        </tr>
+        <tr>
+          <td><strong>owl</strong></td>
+          <td><code>http://www.w3.org/2002/07/owl#</code></td>
+        </tr>
+        <tr>
+          <td><strong>prov</strong></td>
+          <td><code>http://www.w3.org/ns/prov#</code></td>
+        </tr>
+        <tr>
+          <td><strong>rdf</strong></td>
+          <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
+        </tr>
+        <tr>
+          <td><strong>rdfs</strong></td>
+          <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
+        </tr>
+        <tr>
+          <td><strong>vann</strong></td>
+          <td><code>http://purl.org/vocab/vann/</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <h2 id="legend">Legend</h2>
+    <div class="legend-section">
+      <p><sup>c</sup> Classes <sup>op</sup> Object Properties <sup>ap</sup> Annotation Properties</p>
+    </div>
+    
+    <div id="downloads" class="download-section">
+      <h2>Downloads</h2>
+      <div class="download-links">
+        {{#each downloadLinks}}
+          <a href="{{this.url}}" class="download-link" download="ontology.{{this.extension}}">
+            Download as {{this.format}}
+          </a>
+        {{/each}}
       </div>
     </div>
     
-    <div class="sidebar-section">
-      <div class="sidebar-header">
-        <h3>Statistics</h3>
-      </div>
-      <div class="sidebar-content">
-        <div class="sidebar-stats">
-          <div class="stat-row">
-            <div class="stat-label">Classes</div>
-            <div class="stat-value">{{ontology.stats.classes}}</div>
-          </div>
-          <div class="stat-row">
-            <div class="stat-label">Properties</div>
-            <div class="stat-value">{{ontology.stats.properties}}</div>
-          </div>
-          <div class="stat-row">
-            <div class="stat-label">Individuals</div>
-            <div class="stat-value">{{ontology.stats.individuals}}</div>
-          </div>
-        </div>
-      </div>
+    <div class="display-control">
+      <label for="displayToggle">Show human-readable labels:</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label">{{#if showLabels}}On{{else}}Off{{/if}}</span>
     </div>
     
-    <div class="sidebar-section">
-      <div class="sidebar-header">
-        <h3>Actions</h3>
-      </div>
-      <div class="sidebar-content">
-        <div class="action-buttons">
-          <a href="/?showLabels={{showLabels}}" class="action-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-            Back to Home
-          </a>
-          <a href="/query?query={{encodeURIComponent (concat 'SELECT * WHERE { <' ontology.uri '> ?p ?o . }')}}&showLabels={{showLabels}}" class="action-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            Query Ontology
-          </a>
-          <a href="#downloads" class="action-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            Download Files
-          </a>
-        </div>
-      </div>
+    <div class="navigation-links">
+      <a href="/?showLabels={{showLabels}}" class="nav-link">Back to Home</a>
+      <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}&showLabels={{showLabels}}" class="nav-link">View Related Products</a>
     </div>
-
-    {{#if ontology.relatedOntologies.length}}
-      <div class="sidebar-section">
-        <div class="sidebar-header">
-          <h3>Related Ontologies</h3>
-        </div>
-        <div class="sidebar-content">
-          <ul class="related-list">
-            {{#each ontology.relatedOntologies}}
-              <li>
-                <a href="/ontology/detail?uri={{encodeURIComponent this.uri}}&showLabels={{../showLabels}}">
-                  {{this.title}}
-                </a>
-              </li>
-            {{/each}}
-          </ul>
-        </div>
-      </div>
-    {{/if}}
   </div>
 </div>
 
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize display of classes and individuals
-    initDisplayLimits('.class-item', '#showMoreClasses');
-    initDisplayLimits('.individual-item', '#showMoreIndividuals');
-    
-    // Setup filtering
-    setupFiltering('#classFilter', '.class-item');
-    setupFiltering('#propertyFilter', '.property-row');
-    setupFiltering('#individualFilter', '.individual-item');
-    
-    // Setup view toggle
-    setupViewToggle();
-    
-    // Handle TOC navigation and highlighting
-    setupTocNavigation();
-  });
-  
-  // Initialize display limits for items
-  function initDisplayLimits(itemSelector, moreButtonSelector) {
-    const items = document.querySelectorAll(itemSelector);
-    const moreButton = document.querySelector(moreButtonSelector);
-    const initialLimit = 12;
-    
-    if (items.length > initialLimit) {
-      // Hide items beyond the initial limit
-      for (let i = initialLimit; i < items.length; i++) {
-        items[i].classList.add('hidden');
-      }
-      
-      // Show the "show more" button
-      if (moreButton) {
-        moreButton.style.display = 'flex';
-        
-        // Add event listener to show more items
-        moreButton.addEventListener('click', function() {
-          const hiddenItems = document.querySelectorAll(itemSelector + '.hidden');
-          const batchSize = 12;
-          let shownCount = 0;
-          
-          hiddenItems.forEach(item => {
-            if (shownCount < batchSize) {
-              item.classList.remove('hidden');
-              shownCount++;
-            }
-          });
-          
-          // Hide the button if all items are shown
-          if (document.querySelectorAll(itemSelector + '.hidden').length === 0) {
-            moreButton.style.display = 'none';
-          }
-        });
-      }
-    }
+<style>
+  /* Page Layout */
+  .page-container {
+    display: flex;
+    width: 100%;
+    position: relative;
   }
   
-  // Setup filtering for items
-  function setupFiltering(filterSelector, itemSelector) {
-    const filterInput = document.querySelector(filterSelector);
-    if (!filterInput) return;
+  /* Table of Contents Sidebar */
+  .toc-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    background-color: #f5f5f5;
+    border-right: 1px solid #ddd;
+    overflow-y: auto;
+    padding: 20px 0;
+    flex-shrink: 0;
+  }
+  
+  .toc-content {
+    padding: 0 15px;
+  }
+  
+  .toc-sidebar h3 {
+    color: #000080;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #000080;
+  }
+  
+  .toc-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .toc-list li {
+    margin-bottom: 0.5rem;
+  }
+  
+  .toc-list a {
+    color: #333;
+    text-decoration: none;
+    display: block;
+    padding: 4px 0;
+    transition: color 0.2s;
+  }
+  
+  .toc-list a:hover {
+    color: #000080;
+    font-weight: bold;
+  }
+  
+  .toc-sublist {
+    list-style-type: none;
+    padding-left: 1rem;
+    margin: 0.25rem 0;
+    border-left: 2px solid #ccc;
+  }
+  
+  .toc-sublist a {
+    font-size: 0.9rem;
+  }
+  
+  /* Highlighted active TOC item */
+  .toc-active {
+    color: #000080 !important;
+    font-weight: bold;
+    background-color: rgba(0, 0, 128, 0.05);
+    border-left: 3px solid #000080;
+    margin-left: -3px;
+  }
+
+  /* Overall layout */
+  .ontology-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    flex-grow: 1;
+  }
+  
+  /* Headings */
+  h1 {
+    color: #000080;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #000080;
+  }
+  
+  h2 {
+    color: #000080;
+    font-size: 1.4rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 1px solid #ccc;
+    scroll-margin-top: 20px; /* For smooth scrolling to anchor */
+  }
+  
+  h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: #000080;
+  }
+  
+  /* Metadata section */
+  .metadata-section p {
+    margin-bottom: 0.75rem;
+  }
+  
+  .metadata-section strong {
+    font-weight: 600;
+  }
+  
+  /* Code blocks for IRIs */
+  code {
+    display: inline-block;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: #c7254e;
+    background-color: #f9f2f4;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+    word-break: break-all;
+    font-size: 0.85em;
+  }
+  
+  /* Stats summary */
+  .stats-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+  
+  .stat-item {
+    background-color: #f5f5f5;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+  
+  .stat-value {
+    font-weight: bold;
+    color: #000080;
+  }
+  
+  /* Entity items (classes, properties) */
+  .entity-items {
+    margin-top: 1rem;
+  }
+  
+  .entity-item {
+    background-color: #f9f9f9;
+    border: 1px solid #000080;
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    scroll-margin-top: 20px; /* For smooth scrolling to anchor */
+  }
+  
+  .entity-item h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 0.5rem;
+  }
+  
+  .entity-item p {
+    margin: 0.5rem 0;
+  }
+  
+  .entity-item strong {
+    font-weight: 600;
+  }
+  
+  /* Superscript for entity types */
+  sup {
+    color: #ff8c00;
+    font-weight: bold;
+    font-size: 0.7em;
+  }
+  
+  /* Links */
+  a {
+    color: #0066cc;
+    text-decoration: none;
+  }
+  
+  a:hover {
+    text-decoration: underline;
+  }
+  
+  /* Namespace table */
+  .namespaces-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+  
+  .namespaces-table td {
+    padding: 0.5rem;
+    vertical-align: top;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .namespaces-table td:first-child {
+    width: 150px;
+    font-weight: bold;
+  }
+  
+  /* Filter controls */
+  .filter-control {
+    margin-bottom: 1rem;
+  }
+  
+  .filter-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+  
+  /* Toggle switch */
+  .display-control {
+    display: flex;
+    align-items: center;
+    margin: 2rem 0;
+    gap: 0.5rem;
+  }
+  
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+  
+  .toggle-switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+  }
+  
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+  
+  input:checked + .toggle-slider {
+    background-color: #2196F3;
+  }
+  
+  input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+  }
+  
+  .toggle-label {
+    font-size: 0.9rem;
+  }
+  
+  /* Download section */
+  .download-section {
+    margin: 2rem 0;
+  }
+  
+  .download-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .download-link {
+    display: inline-block;
+    background-color: #000080;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    text-decoration: none;
+  }
+  
+  .download-link:hover {
+    background-color: #00005a;
+    text-decoration: none;
+  }
+  
+  /* Navigation links */
+  .navigation-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  
+  .nav-link {
+    display: inline-block;
+    background-color: #f5f5f5;
+    color: #000080;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+  }
+  
+  .nav-link:hover {
+    background-color: #e5e5e5;
+    text-decoration: none;
+  }
+  
+  /* Hide elements with class "hidden" */
+  .hidden {
+    display: none !important;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 992px) {
+    .page-container {
+      flex-direction: column;
+    }
     
-    filterInput.addEventListener('input', function() {
+    .toc-sidebar {
+      position: relative;
+      width: 100%;
+      height: auto;
+      max-height: 300px;
+      border-right: none;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .ontology-container {
+      padding: 15px;
+    }
+    
+    .stats-summary {
+      flex-direction: column;
+    }
+    
+    .namespaces-table td:first-child {
+      width: 100px;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Create simple ID-safe versions of strings
+    function createIdFromText(text) {
+      if (!text) return '';
+      return text.toString().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
+    }
+    
+    // Initialize filtering
+    initFilter('#classFilter', '.class-item');
+    initFilter('#propFilter', '.property-item');
+    
+    // Update display toggle
+    const displayToggle = document.getElementById('displayToggle');
+    const toggleLabel = document.querySelector('.toggle-label');
+    
+    if (displayToggle && toggleLabel) {
+      displayToggle.addEventListener('change', function() {
+        // Update the label text
+        toggleLabel.textContent = this.checked ? 'On' : 'Off';
+        
+        // Create URL with updated showLabels parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set('showLabels', this.checked ? 'true' : 'false');
+        
+        // Redirect to the new URL
+        window.location.href = url.toString();
+      });
+    }
+    
+    // Initialize TOC highlight on scroll
+    initTOCHighlight();
+    
+    // Make the TOC stay in view when scrolling
+    window.addEventListener('scroll', function() {
+      const toc = document.querySelector('.toc-sidebar');
+      if (toc) {
+        if (window.innerWidth > 992) { // Only apply this on larger screens
+          const scrollPosition = window.scrollY;
+          toc.style.top = (scrollPosition > 0) ? '0' : '';
+        }
+      }
+    });
+    
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href').substring(1);
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'smooth'
+          });
+          
+          // Update URL without reload
+          history.pushState(null, null, `#${targetId}`);
+          
+          // Highlight the clicked TOC item
+          highlightTOCItem(this);
+        }
+      });
+    });
+    
+    // Check for hash in URL on page load to scroll to section
+    if (window.location.hash) {
+      const targetId = window.location.hash.substring(1);
+      const targetElement = document.getElementById(targetId);
+      
+      if (targetElement) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'auto'
+          });
+          
+          // Find and highlight the corresponding TOC item
+          const tocItem = document.querySelector(`.toc-list a[href="#${targetId}"], .toc-sublist a[href="#${targetId}"]`);
+          if (tocItem) {
+            highlightTOCItem(tocItem);
+          }
+        }, 100);
+      }
+    }
+  });
+  
+  // Function to initialize filtering
+  function initFilter(inputSelector, itemSelector) {
+    const input = document.querySelector(inputSelector);
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
       const searchTerm = this.value.toLowerCase();
       const items = document.querySelectorAll(itemSelector);
       
       items.forEach(item => {
-        // Clear hidden class that might have been added by the display limits
-        item.classList.remove('hidden');
+        // Check if item contains the search term
+        const text = item.textContent.toLowerCase();
         
-        // Get text content for searching
-        const textContent = item.textContent.toLowerCase();
-        
-        // Show or hide based on search term
-        if (searchTerm === '' || textContent.includes(searchTerm)) {
+        if (searchTerm === '' || text.includes(searchTerm)) {
           item.style.display = '';
         } else {
           item.style.display = 'none';
         }
       });
-      
-      // Hide "show more" buttons when filtering
-      const moreButtons = document.querySelectorAll('.show-more-btn');
-      moreButtons.forEach(btn => {
-        btn.style.display = searchTerm === '' ? 'flex' : 'none';
-      });
     });
   }
   
-  // Setup view toggle between grid and list
-  function setupViewToggle() {
-    const gridBtn = document.querySelector('.view-btn[data-view="grid"]');
-    const listBtn = document.querySelector('.view-btn[data-view="list"]');
-    const container = document.querySelector('.class-container');
-    
-    if (!gridBtn || !listBtn || !container) return;
-    
-    // Set initial view mode from localStorage or default to grid
-    const savedView = localStorage.getItem('classViewMode') || 'grid';
-    if (savedView === 'list') {
-      container.classList.remove('grid-view');
-      container.classList.add('list-view');
-      listBtn.classList.add('active');
-      gridBtn.classList.remove('active');
-    }
-    
-    // Add click handlers
-    gridBtn.addEventListener('click', function() {
-      container.classList.add('grid-view');
-      container.classList.remove('list-view');
-      this.classList.add('active');
-      listBtn.classList.remove('active');
-      localStorage.setItem('classViewMode', 'grid');
+  // Function to highlight active TOC item
+  function highlightTOCItem(item) {
+    // Remove active class from all TOC items
+    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+      link.classList.remove('toc-active');
     });
     
-    listBtn.addEventListener('click', function() {
-      container.classList.remove('grid-view');
-      container.classList.add('list-view');
-      this.classList.add('active');
-      gridBtn.classList.remove('active');
-      localStorage.setItem('classViewMode', 'list');
-    });
+    // Add active class to the clicked item
+    item.classList.add('toc-active');
   }
   
-  // Setup TOC navigation and highlighting
-  function setupTocNavigation() {
-    const tocLinks = document.querySelectorAll('.toc-nav a');
-    const sections = document.querySelectorAll('.content-section');
+  // Function to highlight TOC items based on scroll position
+  function initTOCHighlight() {
+    // Get all section elements
+    const sections = document.querySelectorAll('h2[id], .entity-item[id]');
     
-    // Add click event to smooth scroll to sections
-    tocLinks.forEach(link => {
-      link.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const targetId = this.getAttribute('href').substring(1);
-        const targetSection = document.getElementById(targetId);
-        
-        if (targetSection) {
-          window.scrollTo({
-            top: targetSection.offsetTop - 20,
-            behavior: 'smooth'
-          });
-          
-          // Update active state in TOC
-          tocLinks.forEach(l => l.classList.remove('active'));
-          this.classList.add('active');
-        }
-      });
-    });
-    
-    // Highlight TOC items based on scroll position
+    // Observe sections visibility
     window.addEventListener('scroll', function() {
-      let currentSectionId = '';
+      let currentSection = '';
       const scrollPosition = window.scrollY;
       
       // Find the current section
@@ -701,955 +813,28 @@
         const sectionHeight = section.offsetHeight;
         
         if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-          currentSectionId = section.id;
+          currentSection = section.getAttribute('id');
         }
       });
       
-      // Update active state in TOC
-      tocLinks.forEach(link => {
-        link.classList.remove('active');
-        if (link.getAttribute('href') === '#' + currentSectionId) {
-          link.classList.add('active');
+      // Highlight the corresponding TOC item
+      if (currentSection) {
+        const tocItem = document.querySelector(`.toc-list a[href="#${currentSection}"], .toc-sublist a[href="#${currentSection}"]`);
+        
+        if (tocItem) {
+          document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+            link.classList.remove('toc-active');
+          });
+          
+          tocItem.classList.add('toc-active');
+          
+          // If it's a subitem, also highlight its parent
+          const parent = tocItem.closest('.toc-sublist');
+          if (parent && parent.previousElementSibling) {
+            parent.previousElementSibling.classList.add('toc-active');
+          }
         }
-      });
+      }
     });
   }
 </script>
-
-<style>
-  /* Base styles */
-  :root {
-    --color-primary: #1565c0;
-    --color-primary-light: #e3f2fd;
-    --color-primary-dark: #0d47a1;
-    --color-secondary: #546e7a;
-    --color-accent: #2979ff;
-    
-    --color-text: #333333;
-    --color-text-secondary: #6b7280;
-    --color-text-tertiary: #9ca3af;
-    
-    --color-background: #ffffff;
-    --color-background-dark: #1a1a2e;
-    --color-background-sidebar: #f8f9fa;
-    --color-background-content: #ffffff;
-    
-    --color-border: #e5e7eb;
-    --color-border-light: #f3f4f6;
-    
-    --color-class: #4285f4;
-    --color-property: #ea4335;
-    --color-individual: #fbbc05;
-    --color-datatype: #34a853;
-    
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-    --font-mono: 'Consolas', 'Monaco', 'Andale Mono', 'Ubuntu Mono', monospace;
-    
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    
-    --breakpoint-sm: 640px;
-    --breakpoint-md: 768px;
-    --breakpoint-lg: 1024px;
-    --breakpoint-xl: 1280px;
-  }
-  
-  /* Layout */
-  body {
-    margin: 0;
-    padding: 0;
-    font-family: var(--font-sans);
-    line-height: 1.5;
-    color: var(--color-text);
-    background-color: var(--color-background);
-  }
-  
-  .ontology-container {
-    display: grid;
-    grid-template-columns: 250px 1fr 300px;
-    min-height: 100vh;
-  }
-  
-  /* TOC Sidebar */
-  .toc-sidebar {
-    background-color: var(--color-background-sidebar);
-    border-right: 1px solid var(--color-border);
-    padding: 1rem 0;
-    overflow-y: auto;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-  }
-  
-  .toc-header {
-    padding: 0 1.5rem 1rem;
-    border-bottom: 1px solid var(--color-border);
-  }
-  
-  .toc-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--color-text);
-  }
-  
-  .toc-nav {
-    padding: 1rem 0;
-  }
-  
-  .toc-nav ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .toc-nav li {
-    margin: 0;
-    padding: 0;
-  }
-  
-  .toc-nav a {
-    display: block;
-    padding: 0.5rem 1.5rem;
-    color: var(--color-text-secondary);
-    text-decoration: none;
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-  }
-  
-  .toc-nav a:hover, 
-  .toc-nav a.active {
-    color: var(--color-primary);
-    background-color: rgba(66, 133, 244, 0.05);
-    border-left-color: var(--color-primary);
-  }
-  
-  .toc-nav .subtoc {
-    padding-left: 1rem;
-  }
-  
-  .toc-nav .subtoc a {
-    padding: 0.375rem 1.5rem;
-    font-size: 0.9rem;
-  }
-  
-  /* Main Content */
-  .main-content {
-    padding: 2rem;
-    overflow-x: hidden;
-    background-color: var(--color-background-content);
-  }
-  
-  /* Action Sidebar */
-  .action-sidebar {
-    background-color: var(--color-background-sidebar);
-    border-left: 1px solid var(--color-border);
-    padding: 1.5rem 1rem;
-    overflow-y: auto;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-  }
-  
-  /* Header styles */
-  .ontology-header {
-    margin-bottom: 2rem;
-  }
-  
-  .breadcrumbs {
-    margin-bottom: 1rem;
-  }
-  
-  .breadcrumbs ul {
-    display: flex;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    flex-wrap: wrap;
-  }
-  
-  .breadcrumbs li {
-    display: flex;
-    align-items: center;
-    color: var(--color-text-secondary);
-    font-size: 0.875rem;
-  }
-  
-  .breadcrumbs li:not(:last-child)::after {
-    content: "/";
-    margin: 0 0.5rem;
-    color: var(--color-text-tertiary);
-  }
-  
-  .breadcrumbs a {
-    color: var(--color-text-secondary);
-    text-decoration: none;
-  }
-  
-  .breadcrumbs a:hover {
-    color: var(--color-primary);
-    text-decoration: underline;
-  }
-  
-  .ontology-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem;
-    color: var(--color-text);
-    border-bottom: none;
-  }
-  
-  .ontology-uri {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    margin-bottom: 0.5rem;
-  }
-  
-  .version-info {
-    display: flex;
-    gap: 1rem;
-    font-size: 0.875rem;
-    color: var(--color-text-tertiary);
-  }
-  
-  /* Section styles */
-  .content-section {
-    margin-bottom: 3rem;
-    scroll-margin-top: 2rem;
-  }
-  
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--color-border);
-  }
-  
-  .section-header h2 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--color-text);
-    border-bottom: none;
-  }
-  
-  .section-stats {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-    background-color: var(--color-primary-light);
-    padding: 0.25rem 0.75rem;
-    border-radius: var(--radius-md);
-  }
-  
-  .section-content {
-    padding: 0 0.5rem;
-  }
-  
-  /* Metadata grid */
-  .metadata-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .metadata-row {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 1.5rem;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  
-  .metadata-row:last-child {
-    border-bottom: none;
-  }
-  
-  .metadata-label {
-    font-weight: 600;
-    color: var(--color-text-secondary);
-  }
-  
-  .metadata-value {
-    overflow-wrap: break-word;
-  }
-  
-  .metadata-value code {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    background-color: var(--color-background-sidebar);
-    padding: 0.25rem 0.5rem;
-    border-radius: var(--radius-sm);
-  }
-  
-  .description-text {
-    line-height: 1.6;
-  }
-  
-  .contributor-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .contributor-list li {
-    margin-bottom: 0.25rem;
-  }
-  
-  /* Visualization styles */
-  .visualization-container {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-  
-  .visualization-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    background-color: var(--color-background-dark);
-    color: white;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .visualization-title h3 {
-    margin: 0 0 0.25rem;
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: white;
-  }
-  
-  .uri-info {
-    font-size: 0.75rem;
-    opacity: 0.7;
-    font-family: var(--font-mono);
-  }
-  
-  .version-info-small {
-    font-size: 0.75rem;
-    opacity: 0.7;
-  }
-  
-  .visualization-controls {
-    display: flex;
-    gap: 0.5rem;
-  }
-  
-  .control-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.375rem 0.75rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: var(--radius-sm);
-    color: white;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .control-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-  
-  .visualization-content {
-    height: 400px;
-    position: relative;
-    background-color: var(--color-background-dark);
-  }
-  
-  .visualization-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: white;
-  }
-  
-  .visualization-message {
-    text-align: center;
-    opacity: 0.7;
-  }
-  
-  .visualization-message svg {
-    margin: 0 auto 1rem;
-    display: block;
-    opacity: 0.5;
-  }
-  
-  .stats-summary {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin-top: 1.5rem;
-  }
-  
-  .stat-item {
-    text-align: center;
-  }
-  
-  .stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-  }
-  
-  .stat-label {
-    font-size: 0.875rem;
-    opacity: 0.7;
-  }
-  
-  .visualization-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-background-dark);
-    color: white;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-  
-  .legend-summary {
-    display: flex;
-    gap: 1rem;
-  }
-  
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    font-size: 0.75rem;
-    opacity: 0.8;
-  }
-  
-  .legend-item::before {
-    content: '';
-    display: block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  
-  .legend-item.class-node::before {
-    background-color: var(--color-class);
-  }
-  
-  .legend-item.property-edge::before {
-    background-color: var(--color-property);
-  }
-  
-  .legend-item.individual-node::before {
-    background-color: var(--color-individual);
-  }
-  
-  .legend-link {
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    font-size: 0.75rem;
-    transition: color 0.2s ease;
-  }
-  
-  .legend-link:hover {
-    color: white;
-    text-decoration: underline;
-  }
-  
-  /* Filter container */
-  .filter-container {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-  }
-  
-  .filter-input {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 0.5rem 0.75rem;
-    width: 100%;
-    max-width: 300px;
-  }
-  
-  .filter-input svg {
-    color: var(--color-text-tertiary);
-  }
-  
-  .filter-input input {
-    border: none;
-    outline: none;
-    width: 100%;
-    background: transparent;
-    font-size: 0.875rem;
-  }
-  
-  .view-toggle {
-    display: flex;
-    gap: 0.25rem;
-  }
-  
-  .view-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    background-color: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    color: var(--color-text-tertiary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  
-  .view-btn.active {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    color: white;
-  }
-  
-  .view-btn:hover:not(.active) {
-    border-color: var(--color-text-secondary);
-    color: var(--color-text-secondary);
-  }
-  
-  /* Classes container */
-  .class-container {
-    margin-bottom: 1.5rem;
-  }
-  
-  .class-container.grid-view {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-  }
-  
-  .class-container.list-view {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .class-item {
-    background-color: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .class-container.grid-view .class-item:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-  
-  .class-container.list-view .class-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 1rem;
-  }
-  
-  .class-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  
-  .class-container.list-view .class-header {
-    border-bottom: none;
-    padding: 0;
-    flex: 1;
-    display: flex;
-    align-items: center;
-  }
-  
-  .item-tag {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.625rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.025em;
-    border-radius: var(--radius-sm);
-    margin-bottom: 0.5rem;
-  }
-  
-  .class-container.list-view .item-tag {
-    margin-bottom: 0;
-    margin-right: 1rem;
-  }
-  
-  .class-tag {
-    background-color: var(--color-primary-light);
-    color: var(--color-primary-dark);
-  }
-  
-  .property-tag {
-    background-color: rgba(234, 67, 53, 0.1);
-    color: #c62828;
-  }
-  
-  .individual-tag {
-    background-color: rgba(251, 188, 5, 0.1);
-    color: #f57c00;
-  }
-  
-  .default-tag {
-    background-color: rgba(84, 110, 122, 0.1);
-    color: #37474f;
-  }
-  
-  .class-header h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-  
-  .class-header h3 a {
-    color: var(--color-text);
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-  
-  .class-header h3 a:hover {
-    color: var(--color-primary);
-  }
-  
-  .class-body {
-    padding: 1rem;
-  }
-  
-  .class-container.list-view .class-body {
-    padding: 0;
-    flex: 2;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-  }
-  
-  .class-uri {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    margin-top: 0.5rem;
-    word-break: break-all;
-  }
-  
-  .class-container.list-view .class-uri {
-    margin-top: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 400px;
-  }
-  
-  .class-container.list-view .class-uri code {
-    background-color: transparent;
-    padding: 0;
-  }
-  
-  /* Property table */
-  .property-table {
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-  
-  .table-header {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    background-color: var(--color-background-sidebar);
-    font-weight: 600;
-    font-size: 0.875rem;
-  }
-  
-  .table-header > div {
-    padding: 0.75rem 1rem;
-    border-right: 1px solid var(--color-border);
-  }
-  
-  .table-header > div:last-child {
-    border-right: none;
-  }
-  
-  .table-body {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  
-  .property-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  
-  .property-row:last-child {
-    border-bottom: none;
-  }
-  
-  .property-row > div {
-    padding: 0.75rem 1rem;
-    border-right: 1px solid var(--color-border-light);
-  }
-  
-  .property-row > div:last-child {
-    border-right: none;
-  }
-  
-  .property-row a {
-    color: var(--color-primary);
-    text-decoration: none;
-    font-weight: 500;
-  }
-  
-  .property-row a:hover {
-    text-decoration: underline;
-  }
-  
-  .small-uri {
-    font-size: 0.75rem;
-    color: var(--color-text-tertiary);
-    margin-top: 0.25rem;
-    font-family: var(--font-mono);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  
-  .unspecified {
-    color: var(--color-text-tertiary);
-    font-style: italic;
-    font-size: 0.875rem;
-  }
-  
-  /* Individual container */
-  .individual-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-  }
-  
-  .individual-item {
-    background-color: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .individual-item:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-  
-  .individual-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  
-  .individual-header h3 {
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 600;
-  }
-  
-  .individual-header h3 a {
-    color: var(--color-text);
-    text-decoration: none;
-    transition: color 0.2s ease;
-  }
-  
-  .individual-header h3 a:hover {
-    color: var(--color-primary);
-  }
-  
-  .individual-body {
-    padding: 1rem;
-  }
-  
-  .individual-uri {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    margin-top: 0.5rem;
-    word-break: break-all;
-  }
-  
-  /* Downloads section */
-  .download-options {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-  }
-  
-  .download-option {
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  .download-option:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-md);
-  }
-  
-  .download-info {
-    padding: 1rem;
-    text-align: center;
-  }
-  
-  .download-format {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-  
-  .download-extension {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-  }
-  
-  .download-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    background-color: var(--color-primary);
-    color: white;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
-  }
-  
-  .download-btn:hover {
-    background-color: var(--color-primary-dark);
-  }
-  
-  /* Legend section */
-  .legend-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-  }
-  
-  .legend-group h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 0 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--color-border);
-  }
-  
-  .legend-items {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .legend-item {
-    display: grid;
-    grid-template-columns: 40px 1fr;
-    gap: 1rem;
-    align-items: center;
-  }
-  
-  .legend-symbol {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .legend-symbol.class-node {
-    background-color: var(--color-class);
-  }
-  
-  .legend-symbol.individual-node {
-    background-color: var(--color-individual);
-  }
-  
-  .legend-symbol.datatype-node {
-    background-color: var(--color-datatype);
-  }
-  
-  .legend-symbol.subclass-edge,
-  .legend-symbol.property-edge,
-  .legend-symbol.datatype-edge {
-    position: relative;
-    background-color: transparent;
-    border-radius: 0;
-  }
-  
-  .legend-symbol.subclass-edge::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--color-secondary);
-  }
-  
-  .legend-symbol.property-edge::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--color-property);
-  }
-  
-  .legend-symbol.datatype-edge::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: var(--color-datatype);
-  }
-  
-  .legend-label {
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-  }
-  
-  .legend-description {
-    font-size: 0.875rem;
-    color: var(--color-text-secondary);
-  }
-  
-  /* Sidebar sections */
-  .sidebar-section {
-    margin-bottom: 2rem;
-  }
-  
-  .sidebar-header {
-    margin-bottom: 1rem;
-  }
-  
-  .sidebar-header h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    margin: 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--color-border);
-  }
