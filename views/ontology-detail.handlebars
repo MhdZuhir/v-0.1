@@ -1,4 +1,4 @@
-<!-- views/ontology-detail.handlebars -->
+<!-- views/ontology-detail.handlebars - Complete fixed version -->
 <div class="page-container">
   <!-- Table of Contents Sidebar -->
   <div class="toc-sidebar">
@@ -103,6 +103,7 @@
         {{ontology.description}}</p>
       {{/if}}
     </div>
+<script src="/js/simple-ontology-viz.js"></script>
 
     <h2 id="overview">Overview</h2>
     <div class="overview-section">
@@ -199,45 +200,133 @@
     <h2 id="annotation-properties">Annotation Properties</h2>
     <div class="annotation-props-section">
       <div class="entity-items">
-        <!-- Display annotation properties if available -->
+        <!-- Display annotation properties with clickable IRIs -->
         <div id="annot-contributor" class="entity-item">
-          <h3>contributor <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/contributor</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/contributor&showLabels={{showLabels}}" class="property-title-link">
+              contributor <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/contributor&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/contributor</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>An entity responsible for making contributions to the resource.</p>
+          </div>
         </div>
         
         <div id="annot-creator" class="entity-item">
-          <h3>creator <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/creator</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/creator&showLabels={{showLabels}}" class="property-title-link">
+              creator <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/creator&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/creator</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>An entity primarily responsible for making the resource.</p>
+          </div>
         </div>
         
         <div id="annot-description" class="entity-item">
-          <h3>description <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/description</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/description&showLabels={{showLabels}}" class="property-title-link">
+              description <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/description&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/description</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>An account of the resource. May include an abstract, table of contents, or free-text account of the resource.</p>
+          </div>
         </div>
         
         <div id="annot-created" class="entity-item">
-          <h3>created <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/created</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/created&showLabels={{showLabels}}" class="property-title-link">
+              created <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/created&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/created</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>Date of creation of the resource.</p>
+          </div>
         </div>
         
         <div id="annot-license" class="entity-item">
-          <h3>license <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/license</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/license&showLabels={{showLabels}}" class="property-title-link">
+              license <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/license&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/license</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>A legal document giving official permission to do something with the resource.</p>
+          </div>
         </div>
         
         <div id="annot-title" class="entity-item">
-          <h3>title <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/dc/terms/title</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/dc/terms/title&showLabels={{showLabels}}" class="property-title-link">
+              title <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/dc/terms/title&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/dc/terms/title</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>A name given to the resource.</p>
+          </div>
         </div>
         
         <div id="annot-prefix" class="entity-item">
-          <h3>preferred namespace prefix <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/vocab/vann/preferredNamespacePrefix</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespacePrefix&showLabels={{showLabels}}" class="property-title-link">
+              preferred namespace prefix <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespacePrefix&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/vocab/vann/preferredNamespacePrefix</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>The preferred namespace prefix to use when using terms from this vocabulary in an XML document.</p>
+          </div>
         </div>
         
         <div id="annot-uri" class="entity-item">
-          <h3>preferred namespace uri <sup>ap</sup></h3>
-          <p><strong>IRI</strong><code>http://purl.org/vocab/vann/preferredNamespaceUri</code></p>
+          <h3>
+            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespaceUri&showLabels={{showLabels}}" class="property-title-link">
+              preferred namespace uri <sup>ap</sup>
+            </a>
+          </h3>
+          <p><strong>IRI</strong>
+            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespaceUri&showLabels={{showLabels}}" class="iri-link">
+              <code>http://purl.org/vocab/vann/preferredNamespaceUri</code>
+            </a>
+          </p>
+          <div class="property-description">
+            <p>The preferred namespace URI to use when using terms from this vocabulary in an XML document.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -646,6 +735,39 @@
     display: none !important;
   }
   
+  /* Annotation properties specific styles */
+  .property-title-link {
+    color: #000080;
+    text-decoration: none;
+    display: inline-block;
+    transition: color 0.2s;
+  }
+  
+  .property-title-link:hover {
+    color: #0000c0;
+    text-decoration: underline;
+  }
+  
+  .iri-link {
+    text-decoration: none;
+  }
+  
+  .iri-link code {
+    transition: background-color 0.2s;
+  }
+  
+  .iri-link:hover code {
+    background-color: #e3f2fd;
+  }
+  
+  .property-description {
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    background-color: #f0f4f8;
+    border-left: 4px solid #0645ad;
+    border-radius: 0 4px 4px 0;
+  }
+  
   /* Responsive adjustments */
   @media (max-width: 992px) {
     .page-container {
@@ -671,6 +793,11 @@
     
     .namespaces-table td:first-child {
       width: 100px;
+    }
+    
+    .download-links,
+    .navigation-links {
+      flex-direction: column;
     }
   }
 </style>
@@ -720,6 +847,24 @@
     });
     
     // Smooth scrolling for anchor links
+    document.querySelectorAll('.toc-list a, .toc// Smooth scrolling for anchor links-sublist a').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const targetId = this.getAttribute('href').substring(1);
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'smooth'
+          });
+          
+          // Update URL without reload
+          history.pushState(null, null, `#${targetId}`);
+        }
+      });
+    });
     document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
         e.preventDefault();
