@@ -1236,7 +1236,7 @@ function renderWebVOWLVisualization(canvas, data, simulation) {
         const labelElement = elements.edgeLabels[labelIndex];
         labelElement.style.left = `${source.x + dx/2}px`;
         labelElement.style.top = `${source.y + dy/2 - 15}px`;
-      }
+      } 
     });
     
     // Continue animation if simulation is still active
