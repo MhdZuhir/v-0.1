@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       .viz-canvas {
         width: 100%;
-        height: 600px;
+        height: 500px;
         background-color: #f9f9fa;
         position: relative;
         overflow: hidden;
@@ -114,9 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
       .vowl-node-label {
         position: absolute;
         white-space: nowrap;
-        font-size: 12px;
+        font-size: 14px;
         background-color: rgba(255, 255, 255, 0.9);
-        padding: 2px 5px;
+        padding: 4px 8px;
         border-radius: 3px;
         border: 1px solid #ccc;
         pointer-events: none;
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .vowl-edge-label {
         position: absolute;
         white-space: nowrap;
-        font-size: 10px;
+        font-size: 12px;
         background-color: rgba(255, 255, 255, 0.8);
         padding: 1px 3px;
         border-radius: 2px;
@@ -149,8 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
       
       /* Node type styling */
       .vowl-class {
-        background-color: #1E88E5;
-        border: 2px solid rgba(30, 136, 229, 0.7);
+        background-color: #7FB5FF;
+        border: 2px solid #5495FF;
       }
       
       .vowl-property {
@@ -197,6 +197,18 @@ document.addEventListener('DOMContentLoaded', function() {
         transform-origin: 0 0;
         z-index: 6;
         pointer-events: none;
+      }
+      
+      /* Self-relationship loop */
+      .vowl-loop {
+        border: none;
+        border-top: 2px solid rgba(100, 100, 100, 0.8);
+        border-left: 2px solid rgba(100, 100, 100, 0.8);
+        border-right: 2px solid rgba(100, 100, 100, 0.8);
+        border-bottom: none;
+        border-radius: 50% 50% 0 0;
+        background-color: transparent;
+        height: auto;
       }
       
       /* Info panel for selected nodes */
@@ -284,6 +296,16 @@ document.addEventListener('DOMContentLoaded', function() {
         border-bottom-right-radius: 5px;
       }
       
+      /* Node content */
+      .vowl-node-content {
+        font-size: 12px;
+        display: block;
+        max-width: 90%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      
       /* Touch device optimization */
       @media (max-width: 768px) {
         .viz-canvas {
@@ -305,35 +327,24 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create content structure
     const vizContent = `
       <div class="viz-header">
-        <h3 class="viz-title">Ontology Visualization</h3>
+        <h3 class="viz-title">Digital Product Passport Ontology Design Pattern</h3>
         <div class="viz-controls">
           <button id="resetVisualization" class="viz-button">Reset</button>
-          <button id="togglePhysics" class="viz-button">Toggle Physics</button>
+          <button id="expandVisualization" class="viz-button">Expand All</button>
         </div>
       </div>
       
       <div id="vizCanvas" class="viz-canvas">
         <!-- Nodes and edges will be added here -->
-        
-        <!-- Zoom controls -->
         <div class="zoom-controls">
           <div class="zoom-btn zoom-in">+</div>
-          <div class="zoom-btn zoom-out">−</div>
-        </div>
-        
-        <!-- Info panel for selected nodes -->
-        <div class="vowl-info-panel" id="nodeInfoPanel">
-          <span class="info-close">&times;</span>
-          <h3 id="infoPanelTitle">Class Name</h3>
-          <p id="infoPanelType">Type: Class</p>
-          <p id="infoPanelDescription">Description of this entity...</p>
-          <div class="info-uri" id="infoPanelUri">http://example.org/ontology#Class</div>
+          <div class="zoom-btn zoom-out">-</div>
         </div>
       </div>
       
       <div class="viz-legend">
         <div class="legend-item">
-          <div class="legend-color" style="background-color: #1E88E5;"></div>
+          <div class="legend-color" style="background-color: #7FB5FF;"></div>
           <span>Class</span>
         </div>
         <div class="legend-item">
@@ -343,14 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="legend-item">
           <div class="legend-color" style="background-color: #FB8C00;"></div>
           <span>Individual</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background-color: #9C27B0;"></div>
-          <span>Literal</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-color" style="background-color: #607D8B;"></div>
-          <span>Annotation</span>
         </div>
       </div>
     `;
@@ -374,887 +377,745 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
-    // Initialize the visualization
-    initWebVOWLVisualization();
+    // Initialize the visualization after a short delay to ensure DOM is ready
+    setTimeout(() => {
+      initializeOntologyVisualization();
+    }, 100);
+  } else {
+    // If container already exists, just re-initialize the visualization
+    initializeOntologyVisualization();
   }
 });
 
 /**
- * Initialize and render the WebVOWL-style visualization
+ * Initialize the ontology visualization with all necessary components
  */
-function initWebVOWLVisualization() {
-  // Get the canvas element
+function initializeOntologyVisualization() {
+  // Define ontology data
+  const ontologyData = {
+    nodes: [
+      {
+        id: 'digitalProduct',
+        type: 'class',
+        label: 'Digital Product',
+        description: 'Digital representation of a physical product'
+      },
+      {
+        id: 'product',
+        type: 'class',
+        label: 'Product',
+        description: 'Physical product that is described by the DPP'
+      },
+      {
+        id: 'passport',
+        type: 'class',
+        label: 'Digital Passport',
+        description: 'Passport containing product information'
+      },
+      {
+        id: 'materialComposition',
+        type: 'class',
+        label: 'Material Composition',
+        description: 'Materials used in the product'
+      },
+      {
+        id: 'sustainability',
+        type: 'class',
+        label: 'Sustainability',
+        description: 'Sustainability metrics and certifications'
+      },
+      {
+        id: 'supplyChain',
+        type: 'class',
+        label: 'Supply Chain',
+        description: 'Supply chain information and actors'
+      },
+      {
+        id: 'circularityMetrics',
+        type: 'class',
+        label: 'Circularity Metrics',
+        description: 'Metrics related to circular economy'
+      },
+      {
+        id: 'lifecycle',
+        type: 'class',
+        label: 'Lifecycle',
+        description: 'Product lifecycle information'
+      }
+    ],
+    edges: [
+      {
+        source: 'digitalProduct',
+        target: 'product',
+        label: 'describes',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'digitalProduct',
+        label: 'has part',
+        type: 'relationship',
+        isLoop: true
+      },
+      {
+        source: 'product',
+        target: 'product',
+        label: 'has part',
+        type: 'relationship',
+        isLoop: true
+      },
+      {
+        source: 'passport',
+        target: 'digitalProduct',
+        label: 'contains',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'materialComposition',
+        label: 'has',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'sustainability',
+        label: 'has',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'supplyChain',
+        label: 'has',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'circularityMetrics',
+        label: 'has',
+        type: 'relationship'
+      },
+      {
+        source: 'digitalProduct',
+        target: 'lifecycle',
+        label: 'has',
+        type: 'relationship'
+      }
+    ]
+  };
+  
+  renderOntologyVisualization(ontologyData);
+  
+  // Set up event handlers
+  const resetButton = document.getElementById('resetVisualization');
+  if (resetButton) {
+    resetButton.addEventListener('click', () => {
+      renderOntologyVisualization(ontologyData);
+    });
+  }
+  
+  const expandButton = document.getElementById('expandVisualization');
+  if (expandButton) {
+    expandButton.addEventListener('click', () => {
+      // Example of expanding the visualization with more nodes
+      const expandedData = JSON.parse(JSON.stringify(ontologyData));
+      
+      // Add more detailed nodes
+      expandedData.nodes.push(
+        {
+          id: 'material',
+          type: 'class',
+          label: 'Material',
+          description: 'Material used in the product'
+        },
+        {
+          id: 'certificate',
+          type: 'class',
+          label: 'Certificate',
+          description: 'Product certifications'
+        },
+        {
+          id: 'manufacturer',
+          type: 'class',
+          label: 'Manufacturer',
+          description: 'Product manufacturer'
+        }
+      );
+      
+      // Add connections for new nodes
+      expandedData.edges.push(
+        {
+          source: 'materialComposition',
+          target: 'material',
+          label: 'contains',
+          type: 'relationship'
+        },
+        {
+          source: 'sustainability',
+          target: 'certificate',
+          label: 'has',
+          type: 'relationship'
+        },
+        {
+          source: 'supplyChain',
+          target: 'manufacturer',
+          label: 'involves',
+          type: 'relationship'
+        }
+      );
+      
+      renderOntologyVisualization(expandedData);
+    });
+  }
+  
+  // Set up zoom controls
+  const zoomIn = document.querySelector('.zoom-in');
+  const zoomOut = document.querySelector('.zoom-out');
+  
+  if (zoomIn && zoomOut) {
+    let scale = 1;
+    const canvas = document.getElementById('vizCanvas');
+    
+    zoomIn.addEventListener('click', () => {
+      scale *= 1.2;
+      applyZoom(canvas, scale);
+    });
+    
+    zoomOut.addEventListener('click', () => {
+      scale /= 1.2;
+      applyZoom(canvas, scale);
+    });
+  }
+}
+
+/**
+ * Apply zoom transformation to the visualization
+ */
+function applyZoom(canvas, scale) {
+  const nodes = canvas.querySelectorAll('.vowl-node');
+  const labels = canvas.querySelectorAll('.vowl-node-label');
+  const edges = canvas.querySelectorAll('.vowl-edge, .vowl-arrow, .vowl-loop');
+  const edgeLabels = canvas.querySelectorAll('.vowl-edge-label');
+  
+  // Get canvas dimensions
+  const width = canvas.offsetWidth;
+  const height = canvas.offsetHeight;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  
+  // Apply zoom to nodes
+  nodes.forEach(node => {
+    const x = parseFloat(node.dataset.x || 0);
+    const y = parseFloat(node.dataset.y || 0);
+    
+    // Calculate position relative to center
+    const relX = x - centerX;
+    const relY = y - centerY;
+    
+    // Apply zoom relative to center
+    const newX = centerX + relX * scale;
+    const newY = centerY + relY * scale;
+    
+    // Position and scale the node
+    const nodeSize = parseFloat(node.dataset.size || 70) * scale;
+    node.style.width = `${nodeSize}px`;
+    node.style.height = `${nodeSize}px`;
+    node.style.left = `${newX - nodeSize/2}px`;
+    node.style.top = `${newY - nodeSize/2}px`;
+    
+    // Store the absolute position for edge calculations
+    node.dataset.scaledX = newX;
+    node.dataset.scaledY = newY;
+    node.dataset.scaledSize = nodeSize;
+  });
+  
+  // Update labels
+  labels.forEach(label => {
+    const nodeId = label.dataset.for;
+    const node = document.querySelector(`.vowl-node[data-id="${nodeId}"]`);
+    
+    if (node) {
+      const x = parseFloat(node.dataset.scaledX || 0);
+      const y = parseFloat(node.dataset.scaledY || 0);
+      const nodeSize = parseFloat(node.dataset.scaledSize || 70);
+      
+      label.style.left = `${x - label.offsetWidth/2}px`;
+      label.style.top = `${y + nodeSize/2 + 10}px`;
+    }
+  });
+  
+  // Update edges
+  updateEdges();
+}
+
+/**
+ * Render the ontology visualization based on the provided data
+ */
+function renderOntologyVisualization(data) {
   const canvas = document.getElementById('vizCanvas');
   if (!canvas) return;
   
   // Clear any existing content
-  canvas.innerHTML = `
-    <!-- Zoom controls -->
-    <div class="zoom-controls">
-      <div class="zoom-btn zoom-in">+</div>
-      <div class="zoom-btn zoom-out">−</div>
-    </div>
-    
-    <!-- Info panel for selected nodes -->
-    <div class="vowl-info-panel" id="nodeInfoPanel">
-      <span class="info-close">&times;</span>
-      <h3 id="infoPanelTitle">Class Name</h3>
-      <p id="infoPanelType">Type: Class</p>
-      <p id="infoPanelDescription">Description of this entity...</p>
-      <div class="info-uri" id="infoPanelUri">http://example.org/ontology#Class</div>
-    </div>
-  `;
-  
-  // Extract ontology data from the page
-  const ontologyData = extractOntologyData();
-  
-  // Set up the physics simulation
-  const simulation = setupPhysicsSimulation(ontologyData, canvas);
-  
-  // Render the visualization with physics
-  const elements = renderWebVOWLVisualization(canvas, ontologyData, simulation);
-  
-  // Store elements globally for access in other functions
-  window.vowlElements = elements;
-  
-  // Add reset functionality
-  const resetButton = document.getElementById('resetVisualization');
-  if (resetButton) {
-    resetButton.addEventListener('click', function() {
-      resetSimulation(simulation, ontologyData);
-    });
+  // Keep zoom controls
+  const zoomControls = canvas.querySelector('.zoom-controls');
+  canvas.innerHTML = '';
+  if (zoomControls) {
+    canvas.appendChild(zoomControls);
   }
   
-  // Add physics toggle functionality
-  const toggleButton = document.getElementById('togglePhysics');
-  if (toggleButton) {
-    toggleButton.addEventListener('click', function() {
-      const isRunning = togglePhysics(simulation);
-      this.textContent = isRunning ? 'Pause Physics' : 'Resume Physics';
-    });
-  }
+  const width = canvas.offsetWidth;
+  const height = canvas.offsetHeight;
   
-  // Add zoom functionality
-  setupZoomControls(canvas);
+  // Calculate optimal node positions
+  const nodePositions = calculateNodePositions(data.nodes, width, height);
   
-  // Setup info panel behavior
-  setupInfoPanel();
-}
-
-/**
- * Extract ontology data from the current page
- */
-function extractOntologyData() {
-  const ontologyTitle = document.querySelector('h1')?.textContent || 'Ontology';
-  const ontologyUri = document.querySelector('.metadata-section code')?.textContent || '';
-  
-  // Collect classes from the page
-  const classes = [];
-  document.querySelectorAll('.class-item, #classes .entity-item, .entity-items .class-item').forEach((element, index) => {
-    const nameElement = element.querySelector('h3') || element;
-    const nameText = nameElement.textContent.replace(/\s*\<.*\>\s*$/, '').trim(); // Remove the type indicator like <c>
-    const descElement = element.querySelector('.property-description') || element.querySelector('p');
-    const description = descElement ? descElement.textContent.trim() : '';
-    const uriElement = element.querySelector('code');
-    const uri = uriElement ? uriElement.textContent.trim() : '';
+  // Create nodes
+  const nodeSize = 70;
+  data.nodes.forEach(node => {
+    const position = nodePositions[node.id];
     
-    classes.push({
-      id: `class_${index}`,
-      name: nameText,
-      description: description,
-      uri: uri,
-      type: 'class',
-      size: 60 + (description.length > 0 ? 10 : 0) // Bigger if it has a description
-    });
-  });
-  
-  // Collect properties from the page
-  const properties = [];
-  document.querySelectorAll('.property-item, #object-properties .entity-item, .entity-items .property-item').forEach((element, index) => {
-    const nameElement = element.querySelector('h3') || element;
-    const nameText = nameElement.textContent.replace(/\s*\<.*\>\s*$/, '').trim();
-    const descElement = element.querySelector('.property-description') || element.querySelector('p');
-    const description = descElement ? descElement.textContent.trim() : '';
-    const uriElement = element.querySelector('code');
-    const uri = uriElement ? uriElement.textContent.trim() : '';
-    
-    // Try to extract domain and range
-    let domain = '';
-    let range = '';
-    
-    const domainElement = element.textContent.match(/Domain:?\s*([^\n]+)/i);
-    if (domainElement) {
-      domain = domainElement[1].trim();
-    }
-    
-    const rangeElement = element.textContent.match(/Range:?\s*([^\n]+)/i);
-    if (rangeElement) {
-      range = rangeElement[1].trim();
-    }
-    
-    properties.push({
-      id: `property_${index}`,
-      name: nameText,
-      description: description,
-      uri: uri,
-      type: 'property',
-      domain: domain,
-      range: range,
-      size: 50
-    });
-  });
-  
-  // Collect individuals if available
-  const individuals = [];
-  document.querySelectorAll('.individual-item').forEach((element, index) => {
-    const nameElement = element.querySelector('h3') || element;
-    const nameText = nameElement.textContent.replace(/\s*\<.*\>\s*$/, '').trim();
-    const uriElement = element.querySelector('code');
-    const uri = uriElement ? uriElement.textContent.trim() : '';
-    
-    individuals.push({
-      id: `individual_${index}`,
-      name: nameText,
-      uri: uri,
-      type: 'individual',
-      size: 40
-    });
-  });
-  
-  // Add annotation properties
-  const annotations = [];
-  document.querySelectorAll('#annotation-properties .entity-item').forEach((element, index) => {
-    const nameElement = element.querySelector('h3') || element;
-    const nameText = nameElement.textContent.replace(/\s*\<.*\>\s*$/, '').trim();
-    const descElement = element.querySelector('.property-description') || element.querySelector('p');
-    const description = descElement ? descElement.textContent.trim() : '';
-    const uriElement = element.querySelector('code');
-    const uri = uriElement ? uriElement.textContent.trim() : '';
-    
-    annotations.push({
-      id: `annotation_${index}`,
-      name: nameText,
-      description: description,
-      uri: uri,
-      type: 'annotation',
-      size: 45
-    });
-  });
-  
-  // If not enough entities found, add placeholders based on stats
-  const statsElements = document.querySelectorAll('.stats-summary .stat-item');
-  let classStats = 0, propertyStats = 0, individualStats = 0;
-  
-  if (statsElements.length >= 3) {
-    classStats = parseInt(statsElements[0].querySelector('.stat-value')?.textContent || '0');
-    propertyStats = parseInt(statsElements[1].querySelector('.stat-value')?.textContent || '0');
-    individualStats = parseInt(statsElements[2].querySelector('.stat-value')?.textContent || '0');
-  }
-  
-  // Add placeholder classes if needed
-  if (classes.length === 0 && classStats > 0) {
-    for (let i = 0; i < Math.min(classStats, 10); i++) {
-      classes.push({
-        id: `class_placeholder_${i}`,
-        name: `Class ${i+1}`,
-        type: 'class',
-        size: 60
-      });
-    }
-  }
-  
-  // Add placeholder properties if needed
-  if (properties.length === 0 && propertyStats > 0) {
-    for (let i = 0; i < Math.min(propertyStats, 10); i++) {
-      properties.push({
-        id: `property_placeholder_${i}`,
-        name: `Property ${i+1}`,
-        type: 'property',
-        size: 50
-      });
-    }
-  }
-  
-  // Generate relationships between entities
-  const relationships = [];
-  
-  // Connect classes with properties based on domain/range
-  properties.forEach(property => {
-    // Find domain class
-    if (property.domain) {
-      const domainClass = classes.find(c => 
-        c.name === property.domain || 
-        property.domain.includes(c.name));
-      
-      if (domainClass) {
-        relationships.push({
-          source: domainClass.id,
-          target: property.id,
-          type: 'domain-range',
-          label: 'domain'
-        });
-      }
-    }
-    
-    // Find range class
-    if (property.range) {
-      const rangeClass = classes.find(c => 
-        c.name === property.range || 
-        property.range.includes(c.name));
-      
-      if (rangeClass) {
-        relationships.push({
-          source: property.id,
-          target: rangeClass.id,
-          type: 'domain-range',
-          label: 'range'
-        });
-      }
-    }
-  });
-  
-  // Connect classes with their subclasses if found in description
-  classes.forEach((classA, i) => {
-    classes.forEach((classB, j) => {
-      if (i !== j) {
-        // Check for subclass relationship in description
-        if (classB.description && 
-            (classB.description.toLowerCase().includes(`subclass of ${classA.name.toLowerCase()}`) ||
-             classB.description.toLowerCase().includes(`subclass of: ${classA.name.toLowerCase()}`))) {
-          relationships.push({
-            source: classB.id,
-            target: classA.id,
-            type: 'subclass',
-            label: 'subClassOf'
-          });
-        }
-      }
-    });
-  });
-  
-  // Add some placeholder relationships if none found
-  if (relationships.length === 0) {
-    // Connect each property with at least one class
-    properties.forEach((property, i) => {
-      if (classes.length > 0) {
-        const classIndex = i % classes.length;
-        relationships.push({
-          source: classes[classIndex].id,
-          target: property.id,
-          type: 'domain-range',
-          label: 'domain'
-        });
-        
-        // Add range to another class if available
-        if (classes.length > 1) {
-          const rangeIndex = (i + 1) % classes.length;
-          relationships.push({
-            source: property.id,
-            target: classes[rangeIndex].id,
-            type: 'domain-range',
-            label: 'range'
-          });
-        }
-      }
-    });
-    
-    // Add subclass relationships between classes
-    if (classes.length > 1) {
-      for (let i = 1; i < classes.length; i++) {
-        if (Math.random() > 0.3) { // 70% chance to create a subclass relationship
-          relationships.push({
-            source: classes[i].id,
-            target: classes[0].id,
-            type: 'subclass',
-            label: 'subClassOf'
-          });
-        }
-      }
-    }
-  }
-  
-  // Collect all nodes
-  const nodes = [
-    ...classes,
-    ...properties,
-    ...individuals,
-    ...annotations
-  ];
-  
-  return {
-    title: ontologyTitle,
-    uri: ontologyUri,
-    nodes: nodes,
-    edges: relationships,
-    stats: {
-      classes: classStats || classes.length,
-      properties: propertyStats || properties.length,
-      individuals: individualStats || individuals.length
-    }
-  };
-}
-
-/**
- * Set up the physics simulation for force-directed layout
- */
-function setupPhysicsSimulation(data, canvas) {
-  // Create a simple physics simulation
-  const nodes = data.nodes.map(node => ({
-    ...node,
-    x: Math.random() * canvas.offsetWidth,
-    y: Math.random() * canvas.offsetHeight,
-    vx: 0,
-    vy: 0,
-    fx: null,
-    fy: null
-  }));
-  
-  // Convert edge references from IDs to node objects
-  const edges = data.edges.map(edge => {
-    const sourceNode = nodes.find(n => n.id === edge.source);
-    const targetNode = nodes.find(n => n.id === edge.target);
-    
-    if (sourceNode && targetNode) {
-      return {
-        ...edge,
-        source: sourceNode,
-        target: targetNode
-      };
-    }
-    return null;
-  }).filter(e => e !== null);
-  
-  // Create simulation object
-  const simulation = {
-    nodes,
-    edges,
-    isRunning: true,
-    alpha: 1,
-    alphaMin: 0.001,
-    alphaDecay: 0.0228,
-    centerX: canvas.offsetWidth / 2,
-    centerY: canvas.offsetHeight / 2,
-    strength: -800,
-    distance: 150,
-    
-    // Physics tick function
-    tick: function() {
-      if (!this.isRunning || this.alpha < this.alphaMin) return;
-      
-      // Apply forces
-      // Repulsive force between all nodes
-      for (let i = 0; i < this.nodes.length; i++) {
-        for (let j = i + 1; j < this.nodes.length; j++) {
-          const nodeA = this.nodes[i];
-          const nodeB = this.nodes[j];
-          
-          // Skip fixed nodes
-          if ((nodeA.fx !== null && nodeA.fy !== null) && 
-              (nodeB.fx !== null && nodeB.fy !== null)) continue;
-          
-          const dx = nodeB.x - nodeA.x;
-          const dy = nodeB.y - nodeA.y;
-          const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-          
-          // Repulsive force (inverse square law)
-          const force = this.strength / (distance * distance);
-          
-          // Normalized direction vector
-          const unitX = dx / distance;
-          const unitY = dy / distance;
-          
-          // Apply forces
-          if (nodeA.fx === null) {
-            nodeA.vx -= unitX * force / nodeA.size;
-            nodeA.vy -= unitY * force / nodeA.size;
-          }
-          
-          if (nodeB.fx === null) {
-            nodeB.vx += unitX * force / nodeB.size;
-            nodeB.vy += unitY * force / nodeB.size;
-          }
-        }
-      }
-      
-      // Attractive force along edges
-      this.edges.forEach(edge => {
-        const source = edge.source;
-        const target = edge.target;
-        
-        // Skip fixed nodes
-        if ((source.fx !== null && source.fy !== null) && 
-            (target.fx !== null && target.fy !== null)) return;
-        
-        const dx = target.x - source.x;
-        const dy = target.y - source.y;
-        const distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        
-        // Spring force (Hooke's law)
-        const force = (distance - this.distance) * 0.1;
-        
-        // Normalized direction vector
-        const unitX = dx / distance;
-        const unitY = dy / distance;
-        
-        // Apply forces
-        if (source.fx === null) {
-          source.vx += unitX * force;
-          source.vy += unitY * force;
-        }
-        
-        if (target.fx === null) {
-          target.vx -= unitX * force;
-          target.vy -= unitY * force;
-        }
-      });
-      
-      // Centering force towards the middle of the canvas
-      this.nodes.forEach(node => {
-        if (node.fx !== null && node.fy !== null) return;
-        
-        const dx = this.centerX - node.x;
-        const dy = this.centerY - node.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // Gentle force towards center
-        node.vx += dx * 0.003;
-        node.vy += dy * 0.003;
-        
-        // Boundary forces to keep nodes on screen
-        const padding = node.size;
-        const canvasWidth = canvas.offsetWidth;
-        const canvasHeight = canvas.offsetHeight;
-        
-        if (node.x < padding) node.vx += 1;
-        if (node.x > canvasWidth - padding) node.vx -= 1;
-        if (node.y < padding) node.vy += 1;
-        if (node.y > canvasHeight - padding) node.vy -= 1;
-        
-        // Update position with velocity
-        node.x += node.vx * 0.5;
-        node.y += node.vy * 0.5;
-        
-        // Damping
-        node.vx *= 0.9;
-        node.vy *= 0.9;
-      });
-      
-      // Decay alpha
-      this.alpha *= (1 - this.alphaDecay);
-      
-      return true; // Simulation updated
-    },
-    
-    // Restart the simulation
-    restart: function() {
-      this.alpha = 1;
-      this.isRunning = true;
-    },
-    
-    // Toggle simulation state
-    toggle: function() {
-      this.isRunning = !this.isRunning;
-      if (this.isRunning && this.alpha < 0.1) {
-        this.alpha = 0.1; // Boost alpha when restarting
-      }
-      return this.isRunning;
-    },
-    
-    // Reset node positions
-    reset: function() {
-      this.nodes.forEach(node => {
-        node.x = Math.random() * canvas.offsetWidth;
-        node.y = Math.random() * canvas.offsetHeight;
-        node.vx = 0;
-        node.vy = 0;
-        node.fx = null;
-        node.fy = null;
-      });
-      this.alpha = 1;
-      this.isRunning = true;
-    }
-  };
-  
-  return simulation;
-}
-
-/**
- * Reset the simulation to its initial state
- */
-function resetSimulation(simulation, data) {
-  // Reset node positions
-  simulation.reset();
-}
-
-/**
- * Toggle the physics simulation on/off
- */
-function togglePhysics(simulation) {
-  return simulation.toggle();
-}
-
-/**
- * Set up zoom controls
- */
-function setupZoomControls(canvas) {
-  let currentScale = 1.0;
-  const minScale = 0.5;
-  const maxScale = 2.0;
-  const scaleStep = 0.1;
-  
-  // Set transform origin to center
-  canvas.style.transformOrigin = 'center center';
-  
-  // Get zoom buttons
-  const zoomInBtn = canvas.querySelector('.zoom-in');
-  const zoomOutBtn = canvas.querySelector('.zoom-out');
-  
-  // Add zoom in functionality
-  zoomInBtn.addEventListener('click', function() {
-    if (currentScale < maxScale) {
-      currentScale += scaleStep;
-      applyZoom();
-    }
-  });
-  
-  // Add zoom out functionality
-  zoomOutBtn.addEventListener('click', function() {
-    if (currentScale > minScale) {
-      currentScale -= scaleStep;
-      applyZoom();
-    }
-  });
-  
-  // Apply zoom level
-  function applyZoom() {
-    canvas.style.transform = `scale(${currentScale})`;
-  }
-  
-  // Add mousewheel zoom
-  canvas.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    
-    // Determine zoom direction
-    if (e.deltaY < 0 && currentScale < maxScale) {
-      // Zoom in
-      currentScale += scaleStep;
-    } else if (e.deltaY > 0 && currentScale > minScale) {
-      // Zoom out
-      currentScale -= scaleStep;
-    }
-    
-    applyZoom();
-  });
-}
-
-/**
- * Show info panel with node information
- */
-function showInfoPanel(node) {
-  const panel = document.getElementById('nodeInfoPanel');
-  const title = document.getElementById('infoPanelTitle');
-  const type = document.getElementById('infoPanelType');
-  const description = document.getElementById('infoPanelDescription');
-  const uri = document.getElementById('infoPanelUri');
-  
-  // Update panel content
-  title.textContent = node.name;
-  type.textContent = `Type: ${node.type.charAt(0).toUpperCase() + node.type.slice(1)}`;
-  description.textContent = node.description || 'No description available.';
-  uri.textContent = node.uri || '';
-  
-  // Show the panel
-  panel.style.display = 'block';
-}
-
-/**
- * Setup info panel behavior
- */
-function setupInfoPanel() {
-  const panel = document.getElementById('nodeInfoPanel');
-  const closeBtn = panel.querySelector('.info-close');
-  
-  // Add close button functionality
-  closeBtn.addEventListener('click', function() {
-    panel.style.display = 'none';
-  });
-}
-
-/**
- * Setup dragging behavior for nodes
- */
-function setupNodeDragging(element, node, simulation) {
-  let isDragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
-  
-  // Mouse down event
-  element.addEventListener('mousedown', startDrag);
-  element.addEventListener('touchstart', handleTouchStart);
-  
-  function startDrag(e) {
-    e.preventDefault();
-    isDragging = true;
-    
-    // Calculate offset from node center
-    const rect = element.getBoundingClientRect();
-    offsetX = e.clientX - (rect.left + rect.width/2);
-    offsetY = e.clientY - (rect.top + rect.height/2);
-    
-    // Fix node position during drag
-    node.fx = node.x;
-    node.fy = node.y;
-    
-    // Add move and up listeners to document
-    document.addEventListener('mousemove', drag);
-    document.addEventListener('mouseup', endDrag);
-  }
-  
-  function handleTouchStart(e) {
-    if (e.touches.length === 1) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      isDragging = true;
-      
-      // Calculate offset
-      const rect = element.getBoundingClientRect();
-      offsetX = touch.clientX - (rect.left + rect.width/2);
-      offsetY = touch.clientY - (rect.top + rect.height/2);
-      
-      // Fix node position
-      node.fx = node.x;
-      node.fy = node.y;
-      
-      // Add touch listeners
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-    }
-  }
-  
-  function drag(e) {
-    if (!isDragging) return;
-    
-    // Get canvas and its position
-    const canvas = document.getElementById('vizCanvas');
-    const canvasRect = canvas.getBoundingClientRect();
-    
-    // Update node fixed position
-    node.fx = e.clientX - canvasRect.left - offsetX;
-    node.fy = e.clientY - canvasRect.top - offsetY;
-    
-    // Ensure within boundaries
-    node.fx = Math.max(node.size/2, Math.min(canvas.offsetWidth - node.size/2, node.fx));
-    node.fy = Math.max(node.size/2, Math.min(canvas.offsetHeight - node.size/2, node.fy));
-  }
-  
-  function handleTouchMove(e) {
-    if (!isDragging || e.touches.length !== 1) return;
-    
-    const touch = e.touches[0];
-    const canvas = document.getElementById('vizCanvas');
-    const canvasRect = canvas.getBoundingClientRect();
-    
-    // Update node fixed position
-    node.fx = touch.clientX - canvasRect.left - offsetX;
-    node.fy = touch.clientY - canvasRect.top - offsetY;
-    
-    // Ensure within boundaries
-    node.fx = Math.max(node.size/2, Math.min(canvas.offsetWidth - node.size/2, node.fx));
-    node.fy = Math.max(node.size/2, Math.min(canvas.offsetHeight - node.size/2, node.fy));
-  }
-  
-  function endDrag() {
-    if (isDragging) {
-      isDragging = false;
-      
-      // When shift key is pressed, keep the node fixed, otherwise release it
-      if (!window.event.shiftKey) {
-        node.fx = null;
-        node.fy = null;
-      }
-      
-      // Remove event listeners
-      document.removeEventListener('mousemove', drag);
-      document.removeEventListener('mouseup', endDrag);
-    }
-  }
-  
-  function handleTouchEnd() {
-    if (isDragging) {
-      isDragging = false;
-      
-      // Release the node (mobile doesn't have shift key equivalent)
-      node.fx = null;
-      node.fy = null;
-      
-      // Remove touch event listeners
-      document.removeEventListener('touchmove', handleTouchMove);
-      document.removeEventListener('touchend', handleTouchEnd);
-    }
-  }
-}
-
-/**
- * Render the WebVOWL-style visualization
- */
-function renderWebVOWLVisualization(canvas, data, simulation) {
-  // Create DOM elements for nodes and edges
-  const elements = {
-    nodes: [],
-    edges: [],
-    nodeLabels: [],
-    edgeLabels: [],
-    arrows: []
-  };
-  
-  // Create edge elements first (lower z-index)
-  simulation.edges.forEach((edge, index) => {
-    // Create edge element
-    const edgeElement = document.createElement('div');
-    edgeElement.className = `vowl-edge vowl-${edge.type}`;
-    edgeElement.id = `edge_${index}`;
-    canvas.appendChild(edgeElement);
-    
-    // Create arrow element
-    const arrowElement = document.createElement('div');
-    arrowElement.className = 'vowl-arrow';
-    arrowElement.id = `arrow_${index}`;
-    canvas.appendChild(arrowElement);
-    
-    // Create edge label if it has one
-    if (edge.label) {
-      const labelElement = document.createElement('div');
-      labelElement.className = 'vowl-edge-label';
-      labelElement.id = `edge_label_${index}`;
-      labelElement.textContent = edge.label;
-      canvas.appendChild(labelElement);
-      elements.edgeLabels.push(labelElement);
-    }
-    
-    elements.edges.push(edgeElement);
-    elements.arrows.push(arrowElement);
-  });
-  
-  // Create node elements
-  simulation.nodes.forEach((node) => {
     // Create node element
     const nodeElement = document.createElement('div');
     nodeElement.className = `vowl-node vowl-${node.type}`;
-    nodeElement.id = node.id;
+    nodeElement.setAttribute('data-id', node.id);
+    nodeElement.setAttribute('data-x', position.x);
+    nodeElement.setAttribute('data-y', position.y);
+    nodeElement.setAttribute('data-size', nodeSize);
+    nodeElement.style.width = `${nodeSize}px`;
+    nodeElement.style.height = `${nodeSize}px`;
+    nodeElement.style.left = `${position.x - nodeSize/2}px`;
+    nodeElement.style.top = `${position.y - nodeSize/2}px`;
     
-    // Set size
-    nodeElement.style.width = `${node.size}px`;
-    nodeElement.style.height = `${node.size}px`;
+    // Add content to node
+    const nodeContent = document.createElement('span');
+    nodeContent.className = 'vowl-node-content';
+    nodeContent.textContent = node.label.split(' ')[0]; // First word only for brevity
+    nodeElement.appendChild(nodeContent);
     
-    // Set initial position
-    nodeElement.style.left = `${node.x - node.size/2}px`;
-    nodeElement.style.top = `${node.y - node.size/2}px`;
+    // Store the absolute position for edge calculations
+    nodeElement.dataset.scaledX = position.x;
+    nodeElement.dataset.scaledY = position.y;
+    nodeElement.dataset.scaledSize = nodeSize;
     
-    // Add abbreviated name inside
-    const nameAbbr = node.name.split(' ').map(word => word.charAt(0)).join('');
-    nodeElement.textContent = nameAbbr.length > 0 ? nameAbbr : '?';
+    // Add tooltip functionality
+    nodeElement.addEventListener('click', () => {
+      showNodeInfo(node, position.x, position.y);
+    });
+    
+    canvas.appendChild(nodeElement);
     
     // Create node label
     const labelElement = document.createElement('div');
     labelElement.className = 'vowl-node-label';
-    labelElement.textContent = node.name;
-    
-    // Add node to canvas
-    canvas.appendChild(nodeElement);
+    labelElement.setAttribute('data-for', node.id);
+    labelElement.textContent = node.label;
+    labelElement.style.left = `${position.x - (node.label.length * 4)}px`;
+    labelElement.style.top = `${position.y + nodeSize/2 + 10}px`;
     canvas.appendChild(labelElement);
-    
-    // Add click event to show info panel
-    nodeElement.addEventListener('click', function(e) {
-      showInfoPanel(node);
-      e.stopPropagation(); // Prevent canvas click
-    });
-    
-    // Add dragging behavior
-    setupNodeDragging(nodeElement, node, simulation);
-    
-    elements.nodes.push(nodeElement);
-    elements.nodeLabels.push(labelElement);
   });
   
-  // Set up animation loop
-  let animationFrameId;
+  // Create edges after nodes to ensure proper layering
+  data.edges.forEach(edge => {
+    createEdge(canvas, edge, nodePositions, nodeSize);
+  });
   
-  function animate() {
-    // Update simulation
-    const updated = simulation.tick();
-    
-    // Update node positions
-    simulation.nodes.forEach((node, i) => {
-      const nodeElement = elements.nodes[i];
-      const labelElement = elements.nodeLabels[i];
-      
-      // Update node position
-      nodeElement.style.left = `${node.x - node.size/2}px`;
-      nodeElement.style.top = `${node.y - node.size/2}px`;
-      
-      // Update label position
-      labelElement.style.left = `${node.x + node.size/2 + 5}px`;
-      labelElement.style.top = `${node.y - 10}px`;
+  // Make nodes draggable
+  makeNodesDraggable(canvas);
+}
+
+/**
+ * Calculate optimal positions for nodes using a simple force-directed algorithm
+ */
+function calculateNodePositions(nodes, width, height) {
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) * 0.35;
+  
+  const positions = {};
+  
+  // For smaller sets, use a circular layout
+  if (nodes.length <= 8) {
+    nodes.forEach((node, index) => {
+      const angle = (index / nodes.length) * 2 * Math.PI;
+      positions[node.id] = {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+      };
     });
+  } else {
+    // For larger sets, use a more complex layout
+    // This is a simplified version - in production, you'd use a proper force-directed algorithm
     
-    // Update edge positions and angles
-    simulation.edges.forEach((edge, i) => {
-      const edgeElement = elements.edges[i];
-      const arrowElement = elements.arrows[i];
+    // Start with a grid layout
+    const cols = Math.ceil(Math.sqrt(nodes.length));
+    const rows = Math.ceil(nodes.length / cols);
+    
+    const gridWidth = width * 0.8;
+    const gridHeight = height * 0.8;
+    
+    const cellWidth = gridWidth / cols;
+    const cellHeight = gridHeight / rows;
+    
+    nodes.forEach((node, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
       
-      // Get positions
-      const source = edge.source;
-      const target = edge.target;
-      
-      // Calculate distance and angle
-      const dx = target.x - source.x;
-      const dy = target.y - source.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
-      
-      // Position edge with offset from source node center
-      const sourceRadius = source.size / 2;
-      const targetRadius = target.size / 2;
-      
-      // Calculate start and end positions considering node radii
-      const edgeLength = distance - sourceRadius - targetRadius;
-      
-      // Update edge
-      edgeElement.style.width = `${edgeLength}px`;
-      edgeElement.style.left = `${source.x + sourceRadius * Math.cos(angle * Math.PI / 180)}px`;
-      edgeElement.style.top = `${source.y + sourceRadius * Math.sin(angle * Math.PI / 180)}px`;
-      edgeElement.style.transform = `rotate(${angle}deg)`;
-      
-      // Update arrow
-      arrowElement.style.left = `${target.x - targetRadius * Math.cos(angle * Math.PI / 180) - 8}px`;
-      arrowElement.style.top = `${target.y - targetRadius * Math.sin(angle * Math.PI / 180) - 5}px`;
-      arrowElement.style.transform = `rotate(${angle}deg)`;
-      
-      // Update edge label if it exists
-      const labelIndex = elements.edgeLabels.findIndex(label => label.id === `edge_label_${i}`);
-      if (labelIndex !== -1) {
-        const labelElement = elements.edgeLabels[labelIndex];
-        labelElement.style.left = `${source.x + dx/2}px`;
-        labelElement.style.top = `${source.y + dy/2 - 15}px`;
-      } 
+      positions[node.id] = {
+        x: (col + 0.5) * cellWidth + (width - gridWidth) / 2,
+        y: (row + 0.5) * cellHeight + (height - gridHeight) / 2
+      };
     });
-    
-    // Continue animation if simulation is still active
-    if (simulation.isRunning && simulation.alpha > simulation.alphaMin) {
-      animationFrameId = requestAnimationFrame(animate);
-    }
   }
   
-  // Start animation
-  animate();
+  return positions;
+}
+
+/**
+ * Create an edge between nodes
+ */
+function createEdge(canvas, edge, nodePositions, nodeSize) {
+  if (!nodePositions[edge.source] || !nodePositions[edge.target]) {
+    console.error('Missing node position for edge:', edge);
+    return;
+  }
   
-  // Add canvas click handler to hide info panel
-  canvas.addEventListener('click', function(e) {
-    if (e.target === canvas) {
-      document.getElementById('nodeInfoPanel').style.display = 'none';
+  // Handle self-loops (relationships to self)
+  if (edge.isLoop || edge.source === edge.target) {
+    createSelfRelationship(
+      canvas, 
+      nodePositions[edge.source].x, 
+      nodePositions[edge.source].y, 
+      nodeSize, 
+      edge.label
+    );
+    return;
+  }
+  
+  const sourceX = nodePositions[edge.source].x;
+  const sourceY = nodePositions[edge.source].y;
+  const targetX = nodePositions[edge.target].x;
+  const targetY = nodePositions[edge.target].y;
+  
+  // Calculate edge properties
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  
+  // Calculate start and end points considering node radii
+  const nodeRadius = nodeSize / 2;
+  const edgeStartX = sourceX + nodeRadius * Math.cos(angle * Math.PI / 180);
+  const edgeStartY = sourceY + nodeRadius * Math.sin(angle * Math.PI / 180);
+  const edgeEndX = targetX - nodeRadius * Math.cos(angle * Math.PI / 180);
+  const edgeEndY = targetY - nodeRadius * Math.sin(angle * Math.PI / 180);
+  const edgeLength = Math.sqrt(Math.pow(edgeEndX - edgeStartX, 2) + Math.pow(edgeEndY - edgeStartY, 2));
+  
+  // Create edge element
+  const edgeElement = document.createElement('div');
+  edgeElement.className = `vowl-edge vowl-${edge.type || 'relationship'}`;
+  edgeElement.setAttribute('data-source', edge.source);
+  edgeElement.setAttribute('data-target', edge.target);
+  
+  // Set edge position and dimensions
+  edgeElement.style.width = `${edgeLength}px`;
+  edgeElement.style.left = `${edgeStartX}px`;
+  edgeElement.style.top = `${edgeStartY}px`;
+  edgeElement.style.transform = `rotate(${angle}deg)`;
+  canvas.appendChild(edgeElement);
+  
+  // Create arrow
+  const arrowElement = document.createElement('div');
+  arrowElement.className = 'vowl-arrow';
+  arrowElement.setAttribute('data-source', edge.source);
+  arrowElement.setAttribute('data-target', edge.target);
+  arrowElement.style.left = `${edgeEndX - 5}px`;
+  arrowElement.style.top = `${edgeEndY - 5}px`;
+  arrowElement.style.transform = `rotate(${angle}deg)`;
+  canvas.appendChild(arrowElement);
+  
+  // Create edge label
+  if (edge.label) {
+    const labelElement = document.createElement('div');
+    labelElement.className = 'vowl-edge-label';
+    labelElement.setAttribute('data-source', edge.source);
+    labelElement.setAttribute('data-target', edge.target);
+    labelElement.textContent = edge.label;
+    
+    // Position label at the middle of the edge
+    labelElement.style.left = `${sourceX + dx/2 - (edge.label.length * 3)}px`;
+    labelElement.style.top = `${sourceY + dy/2 - 15}px`;
+    canvas.appendChild(labelElement);
+  }
+}
+
+/**
+ * Create a self-relationship loop
+ */
+function createSelfRelationship(canvas, x, y, nodeSize, label) {
+  const radius = nodeSize * 0.6;
+  const nodeRadius = nodeSize / 2;
+  
+  // Create loop element
+  const loopElement = document.createElement('div');
+  loopElement.className = 'vowl-loop';
+  loopElement.style.position = 'absolute';
+  loopElement.style.width = `${radius * 2}px`;
+  loopElement.style.height = `${radius}px`;
+  loopElement.style.left = `${x - radius}px`;
+  loopElement.style.top = `${y - nodeRadius - radius}px`;
+  loopElement.style.borderRadius = `${radius}px ${radius}px 0 0`;
+  canvas.appendChild(loopElement);
+  
+  // Create arrow at the end of the loop
+  const arrowElement = document.createElement('div');
+  arrowElement.className = 'vowl-arrow';
+  arrowElement.style.left = `${x + 5}px`;
+  arrowElement.style.top = `${y - nodeRadius - 5}px`;
+  arrowElement.style.transform = 'rotate(-90deg)';
+  canvas.appendChild(arrowElement);
+  
+  // Create label for the loop
+  if (label) {
+    const labelElement = document.createElement('div');
+    labelElement.className = 'vowl-edge-label';
+    labelElement.textContent = label;
+    labelElement.style.left = `${x}px`;
+    labelElement.style.top = `${y - nodeRadius - radius - 20}px`;
+    labelElement.style.transform = 'translateX(-50%)';
+    canvas.appendChild(labelElement);
+  }
+}
+
+/**
+ * Show info panel for the selected node
+ */
+function showNodeInfo(node, x, y) {
+  // Remove any existing info panel
+  const existingPanel = document.querySelector('.vowl-info-panel');
+  if (existingPanel) {
+    existingPanel.remove();
+  }
+  
+  // Create info panel
+  const infoPanel = document.createElement('div');
+  infoPanel.className = 'vowl-info-panel';
+  infoPanel.style.display = 'block';
+  
+  // Add content to panel
+  infoPanel.innerHTML = `
+    <span class="info-close">&times;</span>
+    <h3>${node.label}</h3>
+    <p><strong>Type:</strong> ${node.type.charAt(0).toUpperCase() + node.type.slice(1)}</p>
+    <p><strong>Description:</strong> ${node.description || 'No description available'}</p>
+    <div class="info-uri">ontology:${node.id}</div>
+  `;
+  
+  // Add panel to canvas
+  const canvas = document.getElementById('vizCanvas');
+  canvas.appendChild(infoPanel);
+  
+  // Add close functionality
+  const closeButton = infoPanel.querySelector('.info-close');
+  closeButton.addEventListener('click', () => {
+    infoPanel.remove();
+  });
+  
+  // Close panel when clicking outside
+  canvas.addEventListener('click', (e) => {
+    if (!infoPanel.contains(e.target) && !e.target.classList.contains('vowl-node')) {
+      infoPanel.remove();
+    }
+  });
+}
+
+/**
+ * Make nodes draggable
+ */
+function makeNodesDraggable(canvas) {
+  const nodes = canvas.querySelectorAll('.vowl-node');
+  
+  nodes.forEach(node => {
+    let isDragging = false;
+    let offsetX, offsetY;
+    
+    node.addEventListener('mousedown', startDrag);
+    node.addEventListener('touchstart', startDrag);
+    
+    function startDrag(e) {
+      e.preventDefault();
+      
+      isDragging = true;
+      
+      // Calculate offset
+      const rect = node.getBoundingClientRect();
+      if (e.type === 'mousedown') {
+        offsetX = e.clientX - rect.left;
+        offsetY = e.clientY - rect.top;
+      } else {
+        offsetX = e.touches[0].clientX - rect.left;
+        offsetY = e.touches[0].clientY - rect.top;
+      }
+      
+      // Add event listeners for drag and end
+      document.addEventListener('mousemove', drag);
+      document.addEventListener('touchmove', drag);
+      document.addEventListener('mouseup', endDrag);
+      document.addEventListener('touchend', endDrag);
+      
+      // Bring to front
+      node.style.zIndex = '30';
+    }
+    
+    function drag(e) {
+      if (!isDragging) return;
+      
+      e.preventDefault();
+      
+      // Calculate new position
+      const canvasRect = canvas.getBoundingClientRect();
+      let clientX, clientY;
+      
+      if (e.type === 'mousemove') {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      } else {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      }
+      
+      const x = clientX - canvasRect.left - offsetX + node.offsetWidth / 2;
+      const y = clientY - canvasRect.top - offsetY + node.offsetHeight / 2;
+      
+      // Update node position
+      const nodeSize = parseFloat(node.dataset.size || 70);
+      node.style.left = `${x - nodeSize/2}px`;
+      node.style.top = `${y - nodeSize/2}px`;
+      
+      // Update dataset values
+      node.dataset.x = x;
+      node.dataset.y = y;
+      node.dataset.scaledX = x;
+      node.dataset.scaledY = y;
+      
+      // Update label position
+      const nodeId = node.getAttribute('data-id');
+      const label = canvas.querySelector(`.vowl-node-label[data-for="${nodeId}"]`);
+      if (label) {
+        label.style.left = `${x - label.offsetWidth/2}px`;
+        label.style.top = `${y + nodeSize/2 + 10}px`;
+      }
+      
+      // Update edges
+      updateEdges();
+    }
+    
+    function endDrag() {
+      isDragging = false;
+      
+      // Reset z-index
+      node.style.zIndex = '10';
+      
+      // Remove event listeners
+      document.removeEventListener('mousemove', drag);
+      document.removeEventListener('touchmove', drag);
+      document.removeEventListener('mouseup', endDrag);
+      document.removeEventListener('touchend', endDrag);
+    }
+  });
+}
+
+/**
+ * Update all edges when nodes move
+ */
+function updateEdges() {
+  const canvas = document.getElementById('vizCanvas');
+  if (!canvas) return;
+  
+  // Update regular edges
+  const edges = canvas.querySelectorAll('.vowl-edge');
+  const arrows = canvas.querySelectorAll('.vowl-arrow:not([data-is-loop])');
+  const edgeLabels = canvas.querySelectorAll('.vowl-edge-label:not([data-is-loop])');
+  
+  edges.forEach(edge => {
+    const sourceId = edge.getAttribute('data-source');
+    const targetId = edge.getAttribute('data-target');
+    
+    if (sourceId === targetId) return; // Skip loops
+    
+    const sourceNode = canvas.querySelector(`.vowl-node[data-id="${sourceId}"]`);
+    const targetNode = canvas.querySelector(`.vowl-node[data-id="${targetId}"]`);
+    
+    if (!sourceNode || !targetNode) return;
+    
+    const sourceX = parseFloat(sourceNode.dataset.scaledX || 0);
+    const sourceY = parseFloat(sourceNode.dataset.scaledY || 0);
+    const targetX = parseFloat(targetNode.dataset.scaledX || 0);
+    const targetY = parseFloat(targetNode.dataset.scaledY || 0);
+    
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    
+    const nodeRadius = parseFloat(sourceNode.dataset.scaledSize || 70) / 2;
+    
+    // Calculate edge start and end points
+    const edgeStartX = sourceX + nodeRadius * Math.cos(angle * Math.PI / 180);
+    const edgeStartY = sourceY + nodeRadius * Math.sin(angle * Math.PI / 180);
+    const edgeEndX = targetX - nodeRadius * Math.cos(angle * Math.PI / 180);
+    const edgeEndY = targetY - nodeRadius * Math.sin(angle * Math.PI / 180);
+    const edgeLength = Math.sqrt(Math.pow(edgeEndX - edgeStartX, 2) + Math.pow(edgeEndY - edgeStartY, 2));
+    
+    // Update edge
+    edge.style.width = `${edgeLength}px`;
+    edge.style.left = `${edgeStartX}px`;
+    edge.style.top = `${edgeStartY}px`;
+    edge.style.transform = `rotate(${angle}deg)`;
+    
+    // Update corresponding arrow
+    const arrow = canvas.querySelector(`.vowl-arrow[data-source="${sourceId}"][data-target="${targetId}"]`);
+    if (arrow) {
+      arrow.style.left = `${edgeEndX - 5}px`;
+      arrow.style.top = `${edgeEndY - 5}px`;
+      arrow.style.transform = `rotate(${angle}deg)`;
+    }
+    
+    // Update corresponding label
+    const label = canvas.querySelector(`.vowl-edge-label[data-source="${sourceId}"][data-target="${targetId}"]`);
+    if (label) {
+      label.style.left = `${sourceX + dx/2 - label.offsetWidth/2}px`;
+      label.style.top = `${sourceY + dy/2 - 15}px`;
     }
   });
   
-  // Return created elements for reference
-  return elements;
+  // Update self-relationship loops
+  const loops = canvas.querySelectorAll('.vowl-loop');
+  loops.forEach(loop => {
+    // Find the corresponding node
+    const nodeId = loop.getAttribute('data-for');
+    const node = canvas.querySelector(`.vowl-node[data-id="${nodeId}"]`);
+    
+    if (!node) return;
+    
+    const x = parseFloat(node.dataset.scaledX || 0);
+    const y = parseFloat(node.dataset.scaledY || 0);
+    const nodeSize = parseFloat(node.dataset.scaledSize || 70);
+    const radius = nodeSize * 0.6;
+    
+    // Update loop position
+    loop.style.left = `${x - radius}px`;
+    loop.style.top = `${y - nodeSize/2 - radius}px`;
+    
+    // Update corresponding arrow
+    const arrow = canvas.querySelector(`.vowl-arrow[data-is-loop][data-for="${nodeId}"]`);
+    if (arrow) {
+      arrow.style.left = `${x + 5}px`;
+      arrow.style.top = `${y - nodeSize/2 - 5}px`;
+    }
+    
+    // Update corresponding label
+    const label = canvas.querySelector(`.vowl-edge-label[data-is-loop][data-for="${nodeId}"]`);
+    if (label) {
+      label.style.left = `${x}px`;
+      label.style.top = `${y - nodeSize/2 - radius - 20}px`;
+    }
+  });
 }
