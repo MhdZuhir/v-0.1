@@ -1,4 +1,4 @@
-// controllers/ontologyController.js
+// controllers/ontologyController.js - Enhanced version
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -18,7 +18,8 @@ exports.getOntologyListPage = async (req, res, next) => {
     res.render('home', {
       title: 'Välkommen till WikiGraph',
       ontologies,
-      showLabels: req.showLabels
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });
   } catch (err) {
     console.error('Error in getOntologyListPage:', err);
@@ -40,27 +41,20 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       });
     }
     
+    console.log(`Fetching ontology details for: ${uri}`);
+    
+    // Fetch enhanced metadata with classes and properties
     const metadata = await ontologyService.fetchOntologyMetadata(uri);
-    
-    // Fetch subjects for this ontology
-    const subjects = await fetchOntologySubjects(uri);
-    
-    // Add subjects to metadata
-    metadata.subjects = subjects;
     
     // Fetch related ontologies
     const relatedOntologies = await ontologyService.fetchRelatedOntologies(uri);
     metadata.relatedOntologies = relatedOntologies;
     
-    // Fetch SPO triples for this ontology
-    const triples = await fetchOntologyTriples(uri);
-    
-    // Generate sanitized filename base from the ontology title
+    // Generate download links for different formats
     const filenameBase = metadata.title ? 
       metadata.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() :
       'ontology';
     
-    // Generate download links for different formats
     const downloadLinks = [
       { 
         format: 'RDF/XML', 
@@ -90,73 +84,50 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       // Collect all URIs that need labels
       const urisToLabel = [uri];
       
-      // Add subject URIs
-      subjects.forEach(subject => {
-        urisToLabel.push(subject.uri);
-        if (subject.type) urisToLabel.push(subject.type);
+      // Add class URIs
+      metadata.classes.forEach(cls => {
+        urisToLabel.push(cls.uri);
       });
       
-      // Add product URIs
-      if (metadata.products) {
-        metadata.products.forEach(product => {
-          urisToLabel.push(product.uri);
-          if (product.type) urisToLabel.push(product.type);
+      // Add property URIs and their domains/ranges
+      if (metadata.properties.objectProperties) {
+        metadata.properties.objectProperties.forEach(prop => {
+          urisToLabel.push(prop.uri);
+          if (prop.domain) urisToLabel.push(prop.domain);
+          if (prop.range) urisToLabel.push(prop.range);
         });
       }
       
-      // Add relationship URIs
-      if (metadata.relationships) {
-        metadata.relationships.forEach(rel => {
-          urisToLabel.push(rel.property.uri);
-          if (rel.domain.uri) urisToLabel.push(rel.domain.uri);
-          if (rel.range.uri) urisToLabel.push(rel.range.uri);
+      if (metadata.properties.datatypeProperties) {
+        metadata.properties.datatypeProperties.forEach(prop => {
+          urisToLabel.push(prop.uri);
+          if (prop.domain) urisToLabel.push(prop.domain);
+        });
+      }
+      
+      if (metadata.properties.annotationProperties) {
+        metadata.properties.annotationProperties.forEach(prop => {
+          urisToLabel.push(prop.uri);
         });
       }
       
       // Add related ontology URIs
-      if (metadata.relatedOntologies) {
-        metadata.relatedOntologies.forEach(ontology => {
-          urisToLabel.push(ontology.uri);
-        });
-      }
-      
-      // Add triple URIs
-      if (triples) {
-        triples.forEach(triple => {
-          if (triple.s.type === 'uri') urisToLabel.push(triple.s.value);
-          if (triple.p.type === 'uri') urisToLabel.push(triple.p.value);
-          if (triple.o.type === 'uri') urisToLabel.push(triple.o.value);
-        });
-      }
+      metadata.relatedOntologies.forEach(ont => {
+        urisToLabel.push(ont.uri);
+      });
       
       // Fetch labels
       labelMap = await labelService.fetchLabelsForUris(urisToLabel);
-      
-      // Update subjects with fetched labels
-      subjects.forEach(subject => {
-        if (labelMap[subject.uri]) {
-          subject.label = labelMap[subject.uri];
-        }
-      });
-      
-      // Update related ontologies with fetched labels
-      if (metadata.relatedOntologies) {
-        metadata.relatedOntologies.forEach(ontology => {
-          if (labelMap[ontology.uri]) {
-            ontology.title = labelMap[ontology.uri];
-          }
-        });
-      }
+      console.log(`Fetched ${Object.keys(labelMap).length} labels for ontology detail page`);
     }
     
+    // Render the ontology detail page
     res.render('ontology-detail', {
       title: metadata.title || 'Ontology Details',
       ontology: {
         uri,
-        ...metadata,
-        subjects: subjects
+        ...metadata
       },
-      triples: triples,
       downloadLinks,
       labelMap,
       showLabels: req.showLabels,
@@ -167,132 +138,6 @@ exports.getOntologyDetailPage = async (req, res, next) => {
     next(err);
   }
 };
-
-/**
- * Fetch subjects defined in an ontology
- * @param {string} uri - Ontology URI
- * @returns {Promise<Array>} - Array of subject objects
- */
-async function fetchOntologySubjects(uri) {
-  try {
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Query to fetch subjects for this ontology
-    const subjectsQuery = `
-      SELECT DISTINCT ?subject ?type ?label WHERE {
-        {
-          ?subject <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          OPTIONAL { ?subject a ?type }
-          OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label }
-        } UNION {
-          ?subject a ?type .
-          FILTER(STRSTARTS(STR(?subject), STR(<${safeUri}>)))
-          OPTIONAL { ?subject <http://www.w3.org/2000/01/rdf-schema#label> ?label }
-        }
-      }
-      ORDER BY ?subject
-      LIMIT 50
-    `;
-    
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query: subjectsQuery }
-    });
-    
-    const subjects = [];
-    
-    if (response.data && response.data.results && response.data.results.bindings) {
-      response.data.results.bindings.forEach(binding => {
-        if (binding.subject && binding.subject.value) {
-          // Determine resource type for styling
-          let typeClass = 'default-tag';
-          let typeLabel = 'Resurs';
-          
-          if (binding.type && binding.type.value) {
-            if (binding.type.value.includes('Class')) {
-              typeClass = 'class-tag';
-              typeLabel = 'Klass';
-            } else if (binding.type.value.includes('Property')) {
-              typeClass = 'property-tag';
-              typeLabel = 'Egenskap';
-            } else if (binding.type.value.includes('Individual') || binding.type.value.includes('NamedIndividual')) {
-              typeClass = 'individual-tag';
-              typeLabel = 'Individ';
-            }
-          }
-          
-          // Get label or fallback to URI fragment
-          const label = binding.label ? 
-            binding.label.value : 
-            binding.subject.value.split(/[/#]/).pop();
-          
-          subjects.push({
-            uri: binding.subject.value,
-            label: label,
-            type: binding.type ? binding.type.value : null,
-            typeClass: typeClass,
-            typeLabel: typeLabel
-          });
-        }
-      });
-    }
-    
-    return subjects;
-  } catch (error) {
-    console.error('Error fetching ontology subjects:', error);
-    return [];
-  }
-}
-
-/**
- * Fetch SPO triples for an ontology
- * @param {string} uri - Ontology URI
- * @returns {Promise<Array>} - Array of SPO triple objects
- */
-async function fetchOntologyTriples(uri) {
-  try {
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Query to fetch SPO triples for this ontology
-    const triplesQuery = `
-      SELECT ?s ?p ?o WHERE {
-        {
-          ?s ?p ?o .
-          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-        } UNION {
-          ?s ?p ?o .
-          FILTER(STRSTARTS(STR(?s), STR(<${safeUri}>)))
-        }
-      }
-      ORDER BY ?s ?p ?o
-      LIMIT 100
-    `;
-    
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query: triplesQuery }
-    });
-    
-    const triples = [];
-    
-    if (response.data && response.data.results && response.data.results.bindings) {
-      response.data.results.bindings.forEach(binding => {
-        if (binding.s && binding.p && binding.o) {
-          triples.push({
-            s: binding.s,
-            p: binding.p,
-            o: binding.o
-          });
-        }
-      });
-    }
-    
-    return triples;
-  } catch (error) {
-    console.error('Error fetching ontology triples:', error);
-    return [];
-  }
-}
 
 /**
  * Handle ontology download request
@@ -368,7 +213,41 @@ exports.getOntologyTriples = async (req, res, next) => {
       });
     }
     
-    const triples = await fetchOntologyTriples(uri);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to fetch SPO triples for this ontology
+    const triplesQuery = `
+      SELECT ?s ?p ?o WHERE {
+        {
+          ?s ?p ?o .
+          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+        } UNION {
+          ?s ?p ?o .
+          FILTER(STRSTARTS(STR(?s), STR(<${safeUri}>)))
+        }
+      }
+      ORDER BY ?s ?p ?o
+      LIMIT 100
+    `;
+    
+    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+      headers: { 'Accept': 'application/sparql-results+json' },
+      params: { query: triplesQuery }
+    });
+    
+    const triples = [];
+    
+    if (response.data && response.data.results && response.data.results.bindings) {
+      response.data.results.bindings.forEach(binding => {
+        if (binding.s && binding.p && binding.o) {
+          triples.push({
+            s: binding.s,
+            p: binding.p,
+            o: binding.o
+          });
+        }
+      });
+    }
     
     res.json({
       uri,
@@ -381,23 +260,6 @@ exports.getOntologyTriples = async (req, res, next) => {
       error: 'Server error',
       message: err.message
     });
-  }
-};
-
-/**
- * Debug products page
- */
-exports.debugProducts = async (req, res, next) => {
-  try {
-    const products = await productService.detectProducts();
-    
-    res.render('debug-products', {
-      title: 'Debug Products',
-      products,
-      showLabels: req.showLabels
-    });
-  } catch (err) {
-    next(err);
   }
 };
 
@@ -416,7 +278,7 @@ exports.getOntologyProducts = async (req, res, next) => {
     }
     
     const metadata = await ontologyService.fetchOntologyMetadata(uri);
-    const products = await productService.fetchProductsByOntology(uri);
+    const products = await ontologyService.fetchProductsForOntology(uri);
     
     res.render('ontology-products', {
       title: `Products for ${metadata.title}`,
@@ -425,7 +287,26 @@ exports.getOntologyProducts = async (req, res, next) => {
         title: metadata.title
       },
       products,
-      showLabels: req.showLabels
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Debug products page
+ */
+exports.debugProducts = async (req, res, next) => {
+  try {
+    const products = await productService.detectProducts();
+    
+    res.render('debug-products', {
+      title: 'Debug Products',
+      products,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });
   } catch (err) {
     next(err);
@@ -444,7 +325,8 @@ exports.rebuildProductIndex = async (req, res, next) => {
       products,
       count: products.length,
       timestamp: new Date().toISOString(),
-      showLabels: req.showLabels
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
     });
   } catch (err) {
     next(err);
