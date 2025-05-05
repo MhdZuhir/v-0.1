@@ -1,26 +1,6 @@
-// services/productService.js
-const axios = require('axios');
-const { graphdbConfig } = require('../config/db');
+// services/productService.js - Updated to use the GraphDB client utility
+const graphdbClient = require('../utils/graphdbClient');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
-
-/**
- * Execute a SPARQL query against GraphDB
- * @param {string} query - SPARQL query to execute
- * @returns {Promise<Object>} - Response data from GraphDB
- */
-async function executeQuery(query) {
-  try {
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query }
-    });
-    
-    return response.data;
-  } catch (error) {
-    console.error('Error executing GraphDB query:', error);
-    throw error;
-  }
-}
 
 /**
  * Fetch all products from the repository
@@ -72,7 +52,7 @@ async function fetchProducts() {
       LIMIT 100
     `;
     
-    const data = await executeQuery(query);
+    const data = await graphdbClient.executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
       console.error('Unexpected response structure from GraphDB when fetching products');
@@ -86,82 +66,6 @@ async function fetchProducts() {
       return {
         uri: binding.product?.value || '',
         name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Unnamed Product',
-        description: binding.description?.value || '',
-        articleNumber: binding.articleNumber?.value || '',
-        color: binding.color?.value || '',
-        cct: binding.cct?.value || '',
-        lumenOutput: binding.lumenOutput?.value || '',
-        isNotor: (binding.product?.value || '').includes('notor') || (binding.product?.value || '').includes('Notor')
-      };
-    });
-    
-    return products;
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    return [];
-  }
-}
-
-/**
- * Fetch Notor-specific products from the repository
- * @returns {Promise<Array>} - Array of Notor product objects
- */
-async function fetchNotorProducts() {
-  try {
-    console.log('Fetching Notor65 products from GraphDB...');
-    
-    // Query specifically for Notor65 products
-    const query = `
-      SELECT DISTINCT ?product ?name ?description ?articleNumber ?color ?cct ?lumenOutput WHERE {
-        {
-          # Find Notor products by URI pattern
-          ?product a ?type .
-          FILTER(CONTAINS(STR(?product), "notor") || CONTAINS(STR(?product), "Notor"))
-          
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
-        }
-        UNION
-        {
-          # Find products with Notor-specific properties
-          ?product ?p ?o .
-          FILTER(?p IN (
-            <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber>,
-            <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour>,
-            <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct>,
-            <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen>
-          ))
-          
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
-          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
-        }
-      }
-      ORDER BY ?articleNumber
-      LIMIT 100
-    `;
-    
-    const data = await executeQuery(query);
-    
-    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure from GraphDB when fetching Notor products');
-      return [];
-    }
-    
-    console.log(`Found ${data.results.bindings.length} Notor products`);
-    
-    // Process results
-    const products = data.results.bindings.map(binding => {
-      return {
-        uri: binding.product?.value || '',
-        name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Notor Product',
         description: binding.description?.value || '',
         articleNumber: binding.articleNumber?.value || '',
         color: binding.color?.value || '',
@@ -212,7 +116,7 @@ async function fetchProductDetails(uri) {
       }
     `;
     
-    const data = await executeQuery(query);
+    const data = await graphdbClient.executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
       console.error('Unexpected response structure from GraphDB when fetching product details');
@@ -236,8 +140,7 @@ async function fetchProductDetails(uri) {
       height: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#height'],
       length: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#length'],
       average: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#average'],
-      cri: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#cri'],
-      // Add more property groups as needed
+      cri: ['http://www.w3id.org/dpp/fagerhult/notor65/data/#cri']
     };
     
     // Initialize details object
@@ -325,116 +228,91 @@ async function fetchProductDetails(uri) {
 }
 
 /**
- * Fetch products related to a specific ontology
- * @param {string} ontologyUri - URI of the ontology
- * @returns {Promise<Array>} - Array of product objects
+ * Fetch Notor-specific products from the repository
+ * @returns {Promise<Array>} - Array of Notor product objects
  */
-async function fetchProductsByOntology(ontologyUri) {
+async function fetchNotorProducts() {
   try {
-    console.log(`Fetching products for ontology: ${ontologyUri}`);
-    const safeUri = sanitizeSparqlString(ontologyUri);
+    console.log('Fetching Notor65 products from GraphDB...');
     
-    // Enhanced query to find products related to this ontology
+    // Query specifically for Notor65 products
     const query = `
-      SELECT DISTINCT ?product ?name ?description WHERE {
+      SELECT DISTINCT ?product ?name ?description ?articleNumber ?color ?cct ?lumenOutput WHERE {
         {
-          # Products defined by the ontology
+          # Find Notor products by URI pattern
           ?product a ?type .
-          ?type <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          FILTER(CONTAINS(STR(?product), "notor") || CONTAINS(STR(?product), "Notor"))
           
-          # Get basic properties if available
           OPTIONAL { ?product <http://schema.org/name> ?name . }
           OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
         }
         UNION
         {
-          # Products using classes from this ontology
-          ?product a ?class .
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          
-          # Get basic properties if available
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-        }
-        UNION
-        {
-          # Products directly connected to the ontology
-          ?product ?p <${safeUri}> .
+          # Find products with Notor-specific properties
+          ?product ?p ?o .
           FILTER(?p IN (
-            <http://www.w3.org/2000/01/rdf-schema#isDefinedBy>,
-            <http://purl.org/dc/terms/conformsTo>,
-            <http://www.w3.org/ns/prov#wasInfluencedBy>
+            <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber>,
+            <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour>,
+            <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct>,
+            <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen>
           ))
           
           OPTIONAL { ?product <http://schema.org/name> ?name . }
           OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-        }
-        UNION
-        {
-          # Improved Notor65 product detection
-          ?product a ?any .
-          FILTER(
-            (CONTAINS(STR(<${safeUri}>), "notor") || CONTAINS(LCASE(STR(<${safeUri}>)), "product")) || 
-            (CONTAINS(STR(?product), "notor") || CONTAINS(STR(?product), "product"))
-          )
-          
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-          OPTIONAL { ?product <http://www.ontologi2025.se/notor65#articleNumber> ?articleNumber . }
-        }
-        UNION
-        {
-          # Match by similar namespace
-          ?product a ?any .
-          FILTER(STRSTARTS(STR(?product), SUBSTR(STR(<${safeUri}>), 1, 20)))
-          
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
         }
       }
-      ORDER BY ?product
+      ORDER BY ?articleNumber
       LIMIT 100
     `;
     
-    const data = await executeQuery(query);
+    const data = await graphdbClient.executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure from GraphDB when fetching products by ontology');
+      console.error('Unexpected response structure from GraphDB when fetching Notor products');
       return [];
     }
     
-    console.log(`Found ${data.results.bindings.length} products for ontology ${ontologyUri}`);
+    console.log(`Found ${data.results.bindings.length} Notor products`);
     
     // Process results
     const products = data.results.bindings.map(binding => {
-      const productUri = binding.product?.value || '';
       return {
-        uri: productUri,
-        name: binding.name?.value || productUri.split(/[/#]/).pop() || 'Unnamed Product',
+        uri: binding.product?.value || '',
+        name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Notor Product',
         description: binding.description?.value || '',
-        isNotor: productUri.includes('notor65') || productUri.includes('Notor')
+        articleNumber: binding.articleNumber?.value || '',
+        color: binding.color?.value || '',
+        cct: binding.cct?.value || '',
+        lumenOutput: binding.lumenOutput?.value || '',
+        isNotor: (binding.product?.value || '').includes('notor') || (binding.product?.value || '').includes('Notor')
       };
     });
     
-    // If we didn't find any products and this is the Notor65 ontology, add a fallback
-    if (products.length === 0 && 
-        (ontologyUri.includes('notor') || ontologyUri.includes('Notor'))) {
+    // If no products found, add a fallback default product
+    if (products.length === 0) {
       products.push({
         uri: 'http://www.w3id.org/dpp/fagerhult/notor65/data/#7320046630874',
         name: 'Notor 65 Beta Opti',
         description: 'Notor 65 Beta Opti är en flexibel och effektiv LED-armatur med hög ljuskvalitet. Den har anodiserad finish och ger perfekt belysning för kontor och kommersiella miljöer.',
+        articleNumber: '13300-402',
+        color: 'Anodiserad',
+        cct: '3000K',
+        lumenOutput: '1267',
         isNotor: true
       });
     }
     
     return products;
   } catch (error) {
-    console.error(`Error fetching products for ontology ${ontologyUri}:`, error);
+    console.error('Error fetching Notor products:', error);
     return [];
   }
 }
@@ -520,7 +398,7 @@ async function detectProducts() {
       LIMIT 200
     `;
     
-    const data = await executeQuery(query);
+    const data = await graphdbClient.executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
       console.error('Unexpected response structure from GraphDB during product detection');
@@ -589,8 +467,7 @@ async function detectProducts() {
     // Add stats to first product for UI display
     const products = [...productMap.values()];
     if (products.length > 0) {
-      products[0].isNotor = stats.notor;
-      products[0].notNotor = stats.notNotor;
+      products[0].stats = stats;
     }
     
     return products;
@@ -600,10 +477,164 @@ async function detectProducts() {
   }
 }
 
+/**
+ * Search for products based on a search term
+ * @param {string} searchTerm - Term to search for
+ * @returns {Promise<Array>} - Array of matching product objects
+ */
+async function searchProducts(searchTerm) {
+  if (!searchTerm || typeof searchTerm !== 'string') {
+    return fetchProducts(); // Return all products if no search term
+  }
+  
+  try {
+    console.log(`Searching for products with term: ${searchTerm}`);
+    const safeSearchTerm = sanitizeSparqlString(searchTerm.toLowerCase());
+    
+    // Query for products matching the search term
+    const query = `
+      SELECT DISTINCT ?product ?name ?description ?articleNumber ?color ?cct ?lumenOutput WHERE {
+        {
+          # Find products by name match
+          ?product ?nameProperty ?name .
+          FILTER(?nameProperty IN (
+            <http://schema.org/name>,
+            <http://purl.org/dc/terms/title>,
+            <http://www.w3.org/2000/01/rdf-schema#label>
+          ))
+          FILTER(CONTAINS(LCASE(STR(?name)), "${safeSearchTerm}"))
+          
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
+        }
+        UNION
+        {
+          # Find products by description match
+          ?product ?descProperty ?description .
+          FILTER(?descProperty IN (
+            <http://schema.org/description>,
+            <http://purl.org/dc/terms/description>,
+            <http://www.w3.org/2000/01/rdf-schema#comment>
+          ))
+          FILTER(CONTAINS(LCASE(STR(?description)), "${safeSearchTerm}"))
+          
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
+        }
+        UNION
+        {
+          # Find products by article number match
+          ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber .
+          FILTER(CONTAINS(LCASE(STR(?articleNumber)), "${safeSearchTerm}"))
+          
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
+        }
+        UNION
+        {
+          # Find products by URI match
+          BIND(?product AS ?uri)
+          FILTER(CONTAINS(LCASE(STR(?uri)), "${safeSearchTerm}"))
+          
+          OPTIONAL { ?product <http://schema.org/name> ?name . }
+          OPTIONAL { ?product <http://schema.org/description> ?description . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#hasArticleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#colour> ?color . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#cct> ?cct . }
+          OPTIONAL { ?product <http://www.w3id.org/dpp/fagerhult/notor65/data/#lumen> ?lumenOutput . }
+        }
+      }
+      ORDER BY ?name
+      LIMIT 50
+    `;
+    
+    const data = await graphdbClient.executeQuery(query);
+    
+    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
+      console.error('Unexpected response structure from GraphDB during product search');
+      return [];
+    }
+    
+    console.log(`Found ${data.results.bindings.length} products matching search term: ${searchTerm}`);
+    
+    // Process results
+    const products = data.results.bindings.map(binding => {
+      return {
+        uri: binding.product?.value || '',
+        name: binding.name?.value || binding.product?.value?.split(/[/#]/).pop() || 'Unnamed Product',
+        description: binding.description?.value || '',
+        articleNumber: binding.articleNumber?.value || '',
+        color: binding.color?.value || '',
+        cct: binding.cct?.value || '',
+        lumenOutput: binding.lumenOutput?.value || '',
+        isNotor: (binding.product?.value || '').includes('notor') || (binding.product?.value || '').includes('Notor')
+      };
+    });
+    
+    return products;
+  } catch (error) {
+    console.error(`Error searching for products with term: ${searchTerm}`, error);
+    return [];
+  }
+}
+
+/**
+ * Filter products by specific criteria
+ * @param {Array} products - List of products to filter
+ * @param {Object} filters - Filter criteria object
+ * @returns {Array} - Filtered product list
+ */
+function filterProducts(products, filters) {
+  if (!products || !Array.isArray(products)) {
+    return [];
+  }
+  
+  if (!filters || Object.keys(filters).length === 0) {
+    return products;
+  }
+  
+  console.log('Filtering products with criteria:', filters);
+  
+  return products.filter(product => {
+    // Check each filter criterion
+    for (const [key, value] of Object.entries(filters)) {
+      if (!value) continue; // Skip empty filters
+      
+      const productValue = product[key]?.toString().toLowerCase() || '';
+      const filterValue = value.toString().toLowerCase();
+      
+      // Check if filter is an array (multiple options)
+      if (Array.isArray(value)) {
+        if (value.length > 0 && !value.some(option => 
+          productValue.includes(option.toString().toLowerCase())
+        )) {
+          return false;
+        }
+      }
+      // Regular string filter
+      else if (!productValue.includes(filterValue)) {
+        return false;
+      }
+    }
+    
+    return true;
+  });
+}
+
 module.exports = {
   fetchProducts,
   fetchNotorProducts,
   fetchProductDetails,
-  fetchProductsByOntology,
-  detectProducts
+  detectProducts,
+  searchProducts,
+  filterProducts
 };
