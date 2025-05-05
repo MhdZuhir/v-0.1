@@ -1,4 +1,9 @@
-// controllers/classController.js - Complete Fix
+// controllers/classController.js - Fixed version
+
+/**
+ * Controller for handling class and individual pages
+ */
+
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -18,25 +23,36 @@ exports.getClassPage = async (req, res, next) => {
     if (!classUri) {
       return res.status(400).render('error', {
         title: 'Error',
-        message: 'Ingen klass-URI angiven'
+        message: 'Ingen klass-URI angiven',
+        showLabels: req.showLabels,
+        showLabelsToggleState: req.showLabels ? 'false' : 'true'
       });
     }
     
-    // IMPORTANT: Remove system resource check completely
-    // This allows all classes to be displayed
+    console.log(`Fetching class page for ${classUri}`);
+    
+    // We'll no longer filter system resources to allow all classes to be displayed
     
     // Fetch basic class information
     const classInfo = await graphdbService.fetchClassInfo(classUri);
+    if (!classInfo) {
+      console.warn(`No class info found for ${classUri}`);
+    }
     
     // Fetch individuals belonging to this class
     const individuals = await graphdbService.fetchClassIndividuals(classUri);
+    console.log(`Found ${individuals.length} individuals for class ${classUri}`);
     
     // Get labels if needed
     let labelMap = {};
     if (req.showLabels) {
-      const uris = [classUri, ...individuals.map(item => item.uri)];
-      // Add property URIs
+      const uris = [classUri];
+      
+      // Add individual URIs
       individuals.forEach(individual => {
+        uris.push(individual.uri);
+        
+        // Add property URIs from individuals
         if (individual.properties) {
           individual.properties.forEach(prop => {
             if (prop.predicateUri) uris.push(prop.predicateUri);
@@ -44,21 +60,38 @@ exports.getClassPage = async (req, res, next) => {
           });
         }
       });
+      
+      // Fetch labels for all collected URIs
       labelMap = await labelService.fetchLabelsForUris(uris);
+      console.log(`Fetched ${Object.keys(labelMap).length} labels for class page`);
     }
     
+    // Determine class label - use label from info, labelMap, or URI fragment
+    const classLabel = (classInfo && classInfo.label) ? 
+      classInfo.label : 
+      (req.showLabels && labelMap[classUri]) ? 
+        labelMap[classUri] : 
+        classUri.split(/[/#]/).pop();
+    
+    // Render the class page
     res.render('class', {
-      title: req.showLabels && labelMap[classUri] ? labelMap[classUri] : classUri.split(/[/#]/).pop(),
+      title: classLabel,
       classUri,
-      classLabel: req.showLabels && labelMap[classUri] ? labelMap[classUri] : classUri.split(/[/#]/).pop(),
-      classInfo,
+      classLabel,
+      classInfo: classInfo || {},
       individuals: individuals.map(individual => ({
         ...individual,
-        label: req.showLabels && labelMap[individual.uri] ? labelMap[individual.uri] : individual.uri.split(/[/#]/).pop(),
+        label: req.showLabels && labelMap[individual.uri] ? 
+          labelMap[individual.uri] : 
+          individual.uri.split(/[/#]/).pop(),
         properties: individual.properties.map(prop => ({
           ...prop,
-          predicateLabel: req.showLabels && labelMap[prop.predicateUri] ? labelMap[prop.predicateUri] : prop.predicateUri.split(/[/#]/).pop(),
-          objectLabel: prop.objectUri && req.showLabels && labelMap[prop.objectUri] ? labelMap[prop.objectUri] : prop.objectValue
+          predicateLabel: req.showLabels && labelMap[prop.predicateUri] ? 
+            labelMap[prop.predicateUri] : 
+            prop.predicateUri.split(/[/#]/).pop(),
+          objectLabel: prop.objectUri && req.showLabels && labelMap[prop.objectUri] ? 
+            labelMap[prop.objectUri] : 
+            prop.objectValue
         }))
       })),
       labelMap,
@@ -84,12 +117,13 @@ exports.getIndividualPage = async (req, res, next) => {
     if (!uri) {
       return res.status(400).render('error', {
         title: 'Error',
-        message: 'Ingen individ-URI angiven'
+        message: 'Ingen individ-URI angiven',
+        showLabels: req.showLabels,
+        showLabelsToggleState: req.showLabels ? 'false' : 'true'
       });
     }
     
-    // IMPORTANT: Remove system resource check completely
-    // This allows all individuals to be displayed
+    console.log(`Fetching individual page for ${uri}`);
     
     // Fetch all properties of this individual
     const properties = await graphdbService.fetchResourceProperties(uri);
@@ -111,13 +145,20 @@ exports.getIndividualPage = async (req, res, next) => {
         if (prop.object?.type === 'uri') uris.push(prop.object.value);
       });
       
+      // Fetch labels
       labelMap = await labelService.fetchLabelsForUris(uris);
     }
     
+    // Determine individual label
+    const individualLabel = req.showLabels && labelMap[uri] ? 
+      labelMap[uri] : 
+      uri.split(/[/#]/).pop();
+    
+    // Render the individual page
     res.render('individual', {
-      title: req.showLabels && labelMap[uri] ? labelMap[uri] : uri.split(/[/#]/).pop(),
+      title: individualLabel,
       uri,
-      individualLabel: req.showLabels && labelMap[uri] ? labelMap[uri] : uri.split(/[/#]/).pop(),
+      individualLabel,
       classes: classes.map(classUri => ({
         uri: classUri,
         label: req.showLabels && labelMap[classUri] ? labelMap[classUri] : classUri.split(/[/#]/).pop()
@@ -178,11 +219,28 @@ exports.browseClassesPage = async (req, res, next) => {
       `;
     }
     
-    // Filter out system classes
+    // Filter out system classes except important ones
     query += `
-        FILTER(!STRSTARTS(STR(?class), "http://www.w3.org/1999/02/22-rdf-syntax-ns#"))
-        FILTER(!STRSTARTS(STR(?class), "http://www.w3.org/2000/01/rdf-schema#"))
-        FILTER(!STRSTARTS(STR(?class), "http://www.w3.org/2002/07/owl#"))
+        FILTER(
+          !STRSTARTS(STR(?class), "http://www.w3.org/1999/02/22-rdf-syntax-ns#") ||
+          ?class = <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>
+        )
+        FILTER(
+          !STRSTARTS(STR(?class), "http://www.w3.org/2000/01/rdf-schema#") ||
+          ?class IN (
+            <http://www.w3.org/2000/01/rdf-schema#Class>,
+            <http://www.w3.org/2000/01/rdf-schema#Resource>,
+            <http://www.w3.org/2000/01/rdf-schema#Literal>
+          )
+        )
+        FILTER(
+          !STRSTARTS(STR(?class), "http://www.w3.org/2002/07/owl#") ||
+          ?class IN (
+            <http://www.w3.org/2002/07/owl#Class>,
+            <http://www.w3.org/2002/07/owl#ObjectProperty>,
+            <http://www.w3.org/2002/07/owl#DatatypeProperty>
+          )
+        )
       }
       ORDER BY ?class
       LIMIT 100
@@ -194,6 +252,7 @@ exports.browseClassesPage = async (req, res, next) => {
       params: { query }
     });
     
+    // Extract class URIs from response
     const classUris = [];
     if (response.data && response.data.results && response.data.results.bindings) {
       response.data.results.bindings.forEach(binding => {
@@ -203,14 +262,16 @@ exports.browseClassesPage = async (req, res, next) => {
       });
     }
     
+    console.log(`Found ${classUris.length} classes matching the criteria`);
+    
     // Get details for each class
     const classDetails = await Promise.all(
       classUris.map(async uri => {
         try {
-          // Get class info
+          // Get class info (label, description)
           const info = await graphdbService.fetchClassInfo(uri);
           
-          // Count individuals
+          // Count individuals for each class
           const countQuery = `
             SELECT (COUNT(DISTINCT ?individual) AS ?count) WHERE {
               ?individual a <${uri}> .
@@ -221,6 +282,7 @@ exports.browseClassesPage = async (req, res, next) => {
             params: { query: countQuery }
           });
           
+          // Extract individual count
           let individualCount = 0;
           if (countResponse.data && 
               countResponse.data.results && 
@@ -230,6 +292,7 @@ exports.browseClassesPage = async (req, res, next) => {
             individualCount = parseInt(countResponse.data.results.bindings[0].count.value, 10);
           }
           
+          // Return class details object
           return {
             uri,
             label: info?.label || uri.split(/[/#]/).pop() || uri,
@@ -260,6 +323,7 @@ exports.browseClassesPage = async (req, res, next) => {
       });
     }
     
+    // Render the browse classes page
     res.render('browse-classes', {
       title: 'Bläddra i klasser',
       classType,

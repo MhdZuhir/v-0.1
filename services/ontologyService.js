@@ -1,10 +1,20 @@
-// services/ontologyService.js
+// services/ontologyService.js - Fixed version
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 // Import the description utilities
 const { generateOntologyDescription } = require('../utils/descriptionUtils');
 
+// Export all the functions we need to make available
+module.exports = {
+  fetchOntologies,
+  fetchOntologyMetadata,
+  getOntologyStats,
+  getDownloadUrl,
+  fetchProductsForOntology,
+  fetchOntologyRelationships,
+  fetchRelatedOntologies
+};
 /**
  * Execute a SPARQL query against GraphDB
  * @param {string} query - SPARQL query to execute
@@ -604,7 +614,6 @@ function getDownloadUrl(uri, format) {
   // GraphDB export URL with Content-Disposition header parameter
   return `${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}/statements?infer=false&context=<${encodeURIComponent(uri)}>&format=${encodeURIComponent(format)}&filename=ontology`;
 }
-// services/ontologyService.js - Add new function to fetch related ontologies
 
 /**
  * Fetch ontologies related to a specific ontology
@@ -726,14 +735,3 @@ async function fetchRelatedOntologies(uri) {
     return [];
   }
 }
-
-// Export the new function
-module.exports = {
-  fetchOntologies,
-  fetchOntologyMetadata,
-  getOntologyStats,
-  getDownloadUrl,
-  fetchProductsForOntology,
-  fetchOntologyRelationships,
-  fetchRelatedOntologies
-};

@@ -1,4 +1,8 @@
-// utils/uriUtils.js - Fixed to properly handle important system resources
+// utils/uriUtils.js - Fixed version
+
+/**
+ * Utility functions for working with RDF URIs
+ */
 
 const { systemNamespaces } = require('../config/db');
 
@@ -49,13 +53,20 @@ const isSystemResource = uri => {
  * @returns {Array} - Filtered results
  */
 const filterSystemResources = data => {
+  if (!Array.isArray(data)) {
+    console.error('Input to filterSystemResources is not an array:', data);
+    return [];
+  }
+  
   // If there are only a few results, don't filter (to avoid empty results)
-  if (!data || data.length <= 20) {
+  if (data.length <= 10) {
     console.log('Only a few results, skipping system resource filtering to avoid empty results');
     return data;
   }
 
   const filtered = data.filter(row => {
+    if (!row) return false;
+    
     // We'll check if all variables with URIs are system resources
     // Only filter if all URI values are system resources
     
@@ -63,23 +74,25 @@ const filterSystemResources = data => {
     let allSystemUris = true;
     
     // Check each variable/column in the row
-    Object.values(row).forEach(cell => {
+    for (const key in row) {
+      const cell = row[key];
       if (cell && cell.type === 'uri') {
         hasUriValue = true;
         if (!isSystemResource(cell.value)) {
           allSystemUris = false;
+          break; // We found a non-system URI, so we can stop checking
         }
       }
-    });
+    }
     
     // Keep the row if it either has no URIs or not all URIs are system resources
     return !hasUriValue || !allSystemUris;
   });
   
-  // If filtering would remove all results, return the original data
+  // If filtering would remove all results, return some of the original data
   if (filtered.length === 0 && data.length > 0) {
-    console.log('Filtering would remove all results, returning original data');
-    return data;
+    console.log('Filtering would remove all results, returning limited original data');
+    return data.slice(0, Math.min(20, data.length));
   }
   
   return filtered;
@@ -94,17 +107,19 @@ const extractUrisFromResults = results => {
   const uris = new Set();
   
   if (!results || !Array.isArray(results)) {
+    console.warn('Invalid results passed to extractUrisFromResults');
     return [];
   }
   
   results.forEach(row => {
     if (!row) return;
     
-    Object.values(row).forEach(cell => {
+    for (const key in row) {
+      const cell = row[key];
       if (cell && cell.type === 'uri') {
         uris.add(cell.value);
       }
-    });
+    }
   });
   
   return [...uris];

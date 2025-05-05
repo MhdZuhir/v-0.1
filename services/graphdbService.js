@@ -1,6 +1,6 @@
 // services/graphdbService.js - Fixed version
 const axios = require('axios');
-const { graphdbConfig } = require('../config/db');
+const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const { isSystemResource } = require('../utils/uriUtils');
 
@@ -105,7 +105,7 @@ async function fetchRelatedResources(uri) {
         { ?related ?p <${safeUri}> . FILTER(ISURI(?related)) }
         FILTER(?related != <${safeUri}>)
       }
-      LIMIT 10
+      LIMIT 20
     `;
     
     const data = await executeQuery(query);

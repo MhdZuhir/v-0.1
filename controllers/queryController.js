@@ -1,4 +1,9 @@
-// controllers/queryController.js - Updated with embedded mode support
+// controllers/queryController.js - Fixed version
+
+/**
+ * Controller for handling SPARQL query execution and display
+ */
+
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
 const { filterSystemResources, extractUrisFromResults } = require('../utils/uriUtils');
@@ -57,7 +62,8 @@ exports.executeQuery = async (req, res, next) => {
     console.log(`Executing SPARQL query: ${query}`);
     const response = await graphdbService.executeQuery(query);
     
-    console.log('Raw GraphDB response structure:', JSON.stringify(response, null, 2).substring(0, 500) + '...');
+    // Check the response structure
+    console.log('GraphDB response structure:', JSON.stringify(response).substring(0, 500) + '...');
     
     if (!response || !response.results) {
       console.error('Invalid response structure:', response);
@@ -120,15 +126,18 @@ exports.executeQuery = async (req, res, next) => {
   } catch (err) {
     console.error('Query execution error:', err);
     
+    // Handle errors - check if next is available (middleware chain)
     if (next) {
-      next(err);
-    } else {
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Ett fel uppstod vid körning av frågan: ' + err.message,
-        showLabels: req.showLabels,
-        showLabelsToggleState: req.showLabels ? 'false' : 'true'
-      });
+      return next(err);
     }
+    
+    // If next is not available, render the error page directly
+    res.status(500).render('error', {
+      title: 'Error',
+      message: `Ett fel uppstod vid körning av frågan: ${err.message}`,
+      error: err,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
   }
 };
