@@ -1,191 +1,131 @@
-// services/ontologyService.js - Fixed version
-const graphdbClient = require('../utils/graphdbClient');
-const { sanitizeSparqlString } = require('../utils/sparqlUtils');
-const { generateOntologyDescription } = require('../utils/descriptionUtils');
+// Add the new fetchRelatedOntologies function to the ontologyService.js file
 
 /**
- * Fetch all ontologies from the repository
- * @returns {Promise<Array>} - Array of ontology objects
+ * Fetch ontologies related to a specific ontology
+ * @param {string} uri - Ontology URI
+ * @returns {Promise<Array>} - Array of related ontology objects
  */
-async function fetchOntologies() {
+async function fetchRelatedOntologies(uri) {
   try {
-    // Improved query to find all ontology IRIs with better UNION structure
+    console.log(`Fetching related ontologies for: ${uri}`);
+    const safeUri = sanitizeSparqlString(uri);
+    
+    // Query to find related ontologies through imports, references, or extensions
     const query = `
-      SELECT DISTINCT ?ontology WHERE {
+      SELECT DISTINCT ?relatedOntology WHERE {
         {
-          ?ontology a <http://www.w3.org/2002/07/owl#Ontology> .
-        } 
-        UNION 
+          # Imported ontologies
+          <${safeUri}> <http://www.w3.org/2002/07/owl#imports> ?relatedOntology .
+        }
+        UNION
         {
-          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?ontology .
-        } 
-        UNION 
+          # Ontologies that import this ontology
+          ?relatedOntology <http://www.w3.org/2002/07/owl#imports> <${safeUri}> .
+          ?relatedOntology a <http://www.w3.org/2002/07/owl#Ontology> .
+        }
+        UNION
         {
-          ?s <http://www.w3.org/2002/07/owl#imports> ?ontology .
+          # Ontologies referenced by classes or properties in this ontology
+          ?resource <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?resource ?p ?o .
+          ?o <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?relatedOntology .
+          FILTER(?relatedOntology != <${safeUri}>)
+        }
+        UNION
+        {
+          # Ontologies that reference classes or properties from this ontology
+          ?resource <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?relatedOntology .
+          ?resource ?p ?o .
+          ?o <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          FILTER(?relatedOntology != <${safeUri}>)
         }
       }
-      ORDER BY ?ontology
+      LIMIT 10
     `;
     
-    console.log('Fetching all ontologies...');
     const data = await graphdbClient.executeQuery(query);
+    const relatedOntologies = [];
     
-    if (!data || !data.results || !data.results.bindings) {
-      console.error('Unexpected response format when fetching ontologies:', JSON.stringify(data).substring(0, 500));
-      return [];
-    }
-    
-    console.log(`Found ${data.results.bindings.length} ontologies`);
-    const ontologyUris = data.results.bindings
-      .filter(binding => binding.ontology && binding.ontology.value)
-      .map(binding => binding.ontology.value);
-    
-    // Get metadata for each ontology using Promise.all for parallel processing
-    // but with a limit to prevent overwhelming the server
-    const results = [];
-    const batchSize = 5; // Process 5 ontologies at a time
-    
-    for (let i = 0; i < ontologyUris.length; i += batchSize) {
-      const batch = ontologyUris.slice(i, i + batchSize);
-      const batchResults = await Promise.all(
-        batch.map(async uri => {
-          try {
-            const metadata = await fetchOntologyMetadata(uri);
-            return {
-              uri,
-              ...metadata
-            };
-          } catch (err) {
-            console.error(`Error fetching metadata for ${uri}:`, err.message);
-            return {
-              uri,
-              title: uri.split(/[/#]/).pop() || uri,
-              description: generateOntologyDescription(uri),
-              error: true,
-              stats: { classes: 0, properties: 0, individuals: 0 }
-            };
-          }
-        })
-      );
+    if (data && data.results && data.results.bindings) {
+      console.log(`Found ${data.results.bindings.length} related ontologies`);
       
-      results.push(...batchResults);
+      // Process in batches for metadata retrieval
+      const ontologyUris = data.results.bindings
+        .filter(binding => binding.relatedOntology && binding.relatedOntology.value)
+        .map(binding => binding.relatedOntology.value);
+      
+      // Get basic metadata for each related ontology
+      for (const relatedUri of ontologyUris) {
+        try {
+          // Get minimal metadata
+          const metadata = await fetchMinimalOntologyMetadata(relatedUri);
+          relatedOntologies.push({
+            uri: relatedUri,
+            title: metadata.title || relatedUri.split(/[/#]/).pop() || relatedUri,
+            description: metadata.description || ''
+          });
+        } catch (err) {
+          console.error(`Error fetching metadata for related ontology ${relatedUri}:`, err.message);
+          // Still include the ontology, but with limited info
+          relatedOntologies.push({
+            uri: relatedUri,
+            title: relatedUri.split(/[/#]/).pop() || relatedUri,
+            description: ''
+          });
+        }
+      }
     }
     
-    console.log(`Successfully processed ${results.length} ontologies`);
-    return results;
+    return relatedOntologies;
   } catch (error) {
-    console.error('Error fetching ontologies:', error.message);
+    console.error(`Error fetching related ontologies for ${uri}:`, error);
     return [];
   }
 }
 
 /**
- * Fetch metadata for a specific ontology
+ * Fetch minimal metadata for a related ontology (avoids full metadata fetch)
  * @param {string} uri - Ontology URI
- * @returns {Promise<Object>} - Ontology metadata
+ * @returns {Promise<Object>} - Basic ontology metadata
  */
-async function fetchOntologyMetadata(uri) {
+async function fetchMinimalOntologyMetadata(uri) {
   try {
-    console.log(`Fetching metadata for ontology: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     
-    // Expanded query to capture more description predicates
+    // Simplified query to just get title and description
     const query = `
-      SELECT ?p ?o ?lang WHERE {
+      SELECT ?p ?o WHERE {
         <${safeUri}> ?p ?o .
-        OPTIONAL { 
-          BIND(LANG(?o) AS ?lang) 
-        }
         FILTER(?p IN (
           <http://www.w3.org/2000/01/rdf-schema#label>,
-          <http://www.w3.org/2000/01/rdf-schema#comment>,
           <http://purl.org/dc/terms/title>,
           <http://purl.org/dc/elements/1.1/title>,
+          <http://www.w3.org/2000/01/rdf-schema#comment>,
           <http://purl.org/dc/terms/description>,
-          <http://purl.org/dc/elements/1.1/description>,
-          <http://www.w3.org/2004/02/skos/core#definition>,
-          <http://www.w3.org/ns/prov#description>,
-          <http://schema.org/description>,
-          <http://purl.org/vocab/vann/description>,
-          <http://purl.org/dc/terms/abstract>,
-          <http://purl.org/dc/terms/creator>,
-          <http://purl.org/dc/elements/1.1/creator>,
-          <http://purl.org/dc/terms/publisher>,
-          <http://purl.org/dc/elements/1.1/publisher>,
-          <http://purl.org/dc/terms/created>,
-          <http://purl.org/dc/terms/modified>,
-          <http://www.w3.org/2002/07/owl#versionInfo>,
-          <http://purl.org/vocab/vann/preferredNamespacePrefix>,
-          <http://purl.org/vocab/vann/preferredNamespaceUri>,
-          <http://purl.org/dc/terms/license>
+          <http://purl.org/dc/elements/1.1/description>
         ))
       }
+      LIMIT 5
     `;
     
     const data = await graphdbClient.executeQuery(query);
-    
-    // Enhanced metadata extraction with language preference
     const metadata = {
       title: null,
-      titlesByLang: { sv: null, en: null, default: null },
-      description: null,
-      descriptionsByLang: { sv: null, en: null, default: null },
-      creator: null,
-      publisher: null,
-      created: null,
-      modified: null,
-      version: null,
-      license: null,
-      preferredNamespacePrefix: null,
-      preferredNamespaceUri: null
+      description: null
     };
     
-    // First pass: collect all values grouped by predicate and language
     if (data && data.results && data.results.bindings) {
       data.results.bindings.forEach(result => {
         const predicate = result.p.value;
         const value = result.o.value;
-        const lang = result.lang ? result.lang.value : 'default';
         
-        // Group labels and titles
         if (predicate.includes('label') || predicate.includes('title')) {
-          if (lang === 'sv') metadata.titlesByLang.sv = value;
-          else if (lang === 'en') metadata.titlesByLang.en = value;
-          else if (!metadata.titlesByLang.default) metadata.titlesByLang.default = value;
-        } 
-        // Group descriptions, comments, definitions, abstracts
-        else if (predicate.includes('comment') || 
-                predicate.includes('description') || 
-                predicate.includes('definition') || 
-                predicate.includes('abstract')) {
-          if (lang === 'sv') metadata.descriptionsByLang.sv = value;
-          else if (lang === 'en') metadata.descriptionsByLang.en = value;
-          else if (!metadata.descriptionsByLang.default) metadata.descriptionsByLang.default = value;
-        } 
-        // Handle other properties
-        else if (predicate.includes('creator')) {
-          metadata.creator = value;
-        } else if (predicate.includes('publisher')) {
-          metadata.publisher = value;
-        } else if (predicate.includes('created')) {
-          metadata.created = value;
-        } else if (predicate.includes('modified')) {
-          metadata.modified = value;
-        } else if (predicate.includes('versionInfo')) {
-          metadata.version = value;
-        } else if (predicate.includes('license')) {
-          metadata.license = value;
-        } else if (predicate.includes('preferredNamespacePrefix')) {
-          metadata.preferredNamespacePrefix = value;
-        } else if (predicate.includes('preferredNamespaceUri')) {
-          metadata.preferredNamespaceUri = value;
+          metadata.title = value;
+        } else if (predicate.includes('comment') || predicate.includes('description')) {
+          metadata.description = value;
         }
       });
     }
-    
-    // Second pass: select the best value with language preference (Swedish > English > default)
-    metadata.title = metadata.titlesByLang.sv || metadata.titlesByLang.en || metadata.titlesByLang.default;
-    metadata.description = metadata.descriptionsByLang.sv || metadata.descriptionsByLang.en || metadata.descriptionsByLang.default;
     
     // If title is still not found, use the last part of the URI
     if (!metadata.title) {
@@ -193,369 +133,159 @@ async function fetchOntologyMetadata(uri) {
       metadata.title = uriParts[uriParts.length - 1] || uri;
     }
     
-    // If description is not found, generate a fallback
-    if (!metadata.description) {
-      metadata.description = generateOntologyDescription(uri);
-    }
-    
-    // Count classes, properties, and individuals with improved queries
-    try {
-      const stats = await getOntologyStats(uri);
-      metadata.stats = stats;
-    } catch (statsError) {
-      console.error(`Error getting stats for ${uri}:`, statsError.message);
-      metadata.stats = { classes: 0, properties: 0, individuals: 0 };
-    }
-    
-    // Fetch namespaces used in this ontology
-    try {
-      const namespaces = await fetchOntologyNamespaces(uri);
-      metadata.namespaces = namespaces;
-    } catch (nsError) {
-      console.error(`Error fetching namespaces for ${uri}:`, nsError.message);
-      metadata.namespaces = [];
-    }
-    
     return metadata;
   } catch (error) {
-    console.error(`Error fetching metadata for ontology ${uri}:`, error.message);
+    console.error(`Error fetching minimal metadata for ontology ${uri}:`, error);
     return {
       title: uri.split(/[/#]/).pop() || uri,
-      description: generateOntologyDescription(uri),
-      stats: { classes: 0, properties: 0, individuals: 0 }
+      description: null
     };
   }
 }
-
 /**
- * Fetch namespaces used in an ontology
+ * Fetch ontologies related to a specific ontology
  * @param {string} uri - Ontology URI
- * @returns {Promise<Array>} - Array of namespace objects
+ * @returns {Promise<Array>} - Array of related ontology objects
  */
-async function fetchOntologyNamespaces(uri) {
+async function fetchRelatedOntologies(uri) {
   try {
+    console.log(`Fetching related ontologies for: ${uri}`);
     const safeUri = sanitizeSparqlString(uri);
     
-    // Modified query with proper syntax
+    // Query to find related ontologies through imports, references, or extensions
     const query = `
-      SELECT DISTINCT ?prefix ?namespace WHERE {
-        # Find explicit namespace declarations
+      SELECT DISTINCT ?relatedOntology WHERE {
         {
-          <${safeUri}> <http://purl.org/vocab/vann/preferredNamespacePrefix> ?prefix .
-          <${safeUri}> <http://purl.org/vocab/vann/preferredNamespaceUri> ?namespace .
+          # Imported ontologies
+          <${safeUri}> <http://www.w3.org/2002/07/owl#imports> ?relatedOntology .
         }
         UNION
         {
-          # Try to extract namespaces from resources defined in this ontology
-          ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          BIND(REPLACE(STR(?s), "(#|/)[^#/]*$", "$1") AS ?namespace)
-          BIND(STRAFTER(STRBEFORE(STR(?namespace), "/ontology/"), "/") AS ?prefix)
-          FILTER(BOUND(?prefix) && ?prefix != "")
+          # Ontologies that import this ontology
+          ?relatedOntology <http://www.w3.org/2002/07/owl#imports> <${safeUri}> .
+          ?relatedOntology a <http://www.w3.org/2002/07/owl#Ontology> .
+        }
+        UNION
+        {
+          # Ontologies referenced by classes or properties in this ontology
+          ?resource <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          ?resource ?p ?o .
+          ?o <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?relatedOntology .
+          FILTER(?relatedOntology != <${safeUri}>)
+        }
+        UNION
+        {
+          # Ontologies that reference classes or properties from this ontology
+          ?resource <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> ?relatedOntology .
+          ?resource ?p ?o .
+          ?o <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
+          FILTER(?relatedOntology != <${safeUri}>)
         }
       }
       LIMIT 10
     `;
     
     const data = await graphdbClient.executeQuery(query);
-    const namespaces = [];
+    const relatedOntologies = [];
     
     if (data && data.results && data.results.bindings) {
-      data.results.bindings.forEach(binding => {
-        if (binding.prefix && binding.namespace) {
-          namespaces.push({
-            prefix: binding.prefix.value,
-            uri: binding.namespace.value
-          });
-        }
-      });
-    }
-    
-    // Add common namespaces if none found
-    if (namespaces.length === 0) {
-      namespaces.push(
-        { prefix: 'rdf', uri: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' },
-        { prefix: 'rdfs', uri: 'http://www.w3.org/2000/01/rdf-schema#' },
-        { prefix: 'owl', uri: 'http://www.w3.org/2002/07/owl#' },
-        { prefix: 'xsd', uri: 'http://www.w3.org/2001/XMLSchema#' }
-      );
+      console.log(`Found ${data.results.bindings.length} related ontologies`);
       
-      // Try to extract a namespace from the ontology URI
-      const baseUri = uri.replace(/[#/][^#/]*$/, '');
-      if (baseUri) {
-        const prefix = baseUri.split('/').pop() || 'ont';
-        namespaces.push({ prefix, uri: baseUri + '#' });
+      // Process in batches for metadata retrieval
+      const ontologyUris = data.results.bindings
+        .filter(binding => binding.relatedOntology && binding.relatedOntology.value)
+        .map(binding => binding.relatedOntology.value);
+      
+      // Get basic metadata for each related ontology
+      for (const relatedUri of ontologyUris) {
+        try {
+          // Get minimal metadata
+          const metadata = await fetchMinimalOntologyMetadata(relatedUri);
+          relatedOntologies.push({
+            uri: relatedUri,
+            title: metadata.title || relatedUri.split(/[/#]/).pop() || relatedUri,
+            description: metadata.description || ''
+          });
+        } catch (err) {
+          console.error(`Error fetching metadata for related ontology ${relatedUri}:`, err.message);
+          // Still include the ontology, but with limited info
+          relatedOntologies.push({
+            uri: relatedUri,
+            title: relatedUri.split(/[/#]/).pop() || relatedUri,
+            description: ''
+          });
+        }
       }
     }
     
-    return namespaces;
+    return relatedOntologies;
   } catch (error) {
-    console.error(`Error fetching namespaces for ontology ${uri}:`, error);
-    return [
-      { prefix: 'rdf', uri: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#' },
-      { prefix: 'rdfs', uri: 'http://www.w3.org/2000/01/rdf-schema#' },
-      { prefix: 'owl', uri: 'http://www.w3.org/2002/07/owl#' },
-      { prefix: 'xsd', uri: 'http://www.w3.org/2001/XMLSchema#' }
-    ];
+    console.error(`Error fetching related ontologies for ${uri}:`, error);
+    return [];
   }
 }
 
 /**
- * Fetch ontology classes defined in an ontology
+ * Fetch minimal metadata for a related ontology (avoids full metadata fetch)
  * @param {string} uri - Ontology URI
- * @returns {Promise<Array>} - Array of class objects
+ * @returns {Promise<Object>} - Basic ontology metadata
  */
-async function fetchOntologyClasses(uri) {
+async function fetchMinimalOntologyMetadata(uri) {
   try {
     const safeUri = sanitizeSparqlString(uri);
+    
+    // Simplified query to just get title and description
     const query = `
-      SELECT DISTINCT ?class ?label ?comment WHERE {
-        {
-          ?class a <http://www.w3.org/2002/07/owl#Class> .
-          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label }
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#comment> ?comment }
-        }
-        UNION
-        {
-          ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
-          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label }
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#comment> ?comment }
-        }
-        UNION
-        {
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          ?class a ?type .
-          FILTER(?type IN (<http://www.w3.org/2002/07/owl#Class>, <http://www.w3.org/2000/01/rdf-schema#Class>))
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#label> ?label }
-          OPTIONAL { ?class <http://www.w3.org/2000/01/rdf-schema#comment> ?comment }
-        }
+      SELECT ?p ?o WHERE {
+        <${safeUri}> ?p ?o .
+        FILTER(?p IN (
+          <http://www.w3.org/2000/01/rdf-schema#label>,
+          <http://purl.org/dc/terms/title>,
+          <http://purl.org/dc/elements/1.1/title>,
+          <http://www.w3.org/2000/01/rdf-schema#comment>,
+          <http://purl.org/dc/terms/description>,
+          <http://purl.org/dc/elements/1.1/description>
+        ))
       }
-      ORDER BY ?class
-      LIMIT 100
+      LIMIT 5
     `;
     
     const data = await graphdbClient.executeQuery(query);
-    const classes = [];
+    const metadata = {
+      title: null,
+      description: null
+    };
     
     if (data && data.results && data.results.bindings) {
-      data.results.bindings.forEach(binding => {
-        if (binding.class) {
-          classes.push({
-            uri: binding.class.value,
-            label: binding.label ? binding.label.value : binding.class.value.split(/[/#]/).pop(),
-            description: binding.comment ? binding.comment.value : null
-          });
+      data.results.bindings.forEach(result => {
+        const predicate = result.p.value;
+        const value = result.o.value;
+        
+        if (predicate.includes('label') || predicate.includes('title')) {
+          metadata.title = value;
+        } else if (predicate.includes('comment') || predicate.includes('description')) {
+          metadata.description = value;
         }
       });
     }
     
-    return classes;
-  } catch (error) {
-    console.error(`Error fetching classes for ontology ${uri}:`, error);
-    return [];
-  }
-}
-
-/**
- * Get statistics for an ontology
- * @param {string} uri - Ontology URI
- * @returns {Promise<Object>} - Ontology statistics
- */
-async function getOntologyStats(uri) {
-  try {
-    console.log(`Getting stats for ontology: ${uri}`);
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Simplified query to count classes in the ontology
-    const classesQuery = `
-      SELECT (COUNT(DISTINCT ?class) AS ?count) WHERE {
-        {
-          ?class a <http://www.w3.org/2002/07/owl#Class> .
-          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-        } 
-        UNION 
-        {
-          ?class a <http://www.w3.org/2000/01/rdf-schema#Class> .
-          FILTER(STRSTARTS(STR(?class), STR(<${safeUri}>)))
-        }
-        UNION
-        {
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          ?class a ?type .
-          FILTER(?type IN (<http://www.w3.org/2002/07/owl#Class>, <http://www.w3.org/2000/01/rdf-schema#Class>))
-        }
-      }
-    `;
-    
-    // Simplified query to count properties
-    const propertiesQuery = `
-      SELECT (COUNT(DISTINCT ?property) AS ?count) WHERE {
-        {
-          ?property a ?type .
-          FILTER(?type IN (
-            <http://www.w3.org/2002/07/owl#ObjectProperty>, 
-            <http://www.w3.org/2002/07/owl#DatatypeProperty>,
-            <http://www.w3.org/2002/07/owl#AnnotationProperty>,
-            <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>
-          ))
-          FILTER(STRSTARTS(STR(?property), STR(<${safeUri}>)))
-        }
-        UNION
-        {
-          ?property <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          ?property a ?type .
-          FILTER(?type IN (
-            <http://www.w3.org/2002/07/owl#ObjectProperty>, 
-            <http://www.w3.org/2002/07/owl#DatatypeProperty>,
-            <http://www.w3.org/2002/07/owl#AnnotationProperty>,
-            <http://www.w3.org/1999/02/22-rdf-syntax-ns#Property>
-          ))
-        }
-      }
-    `;
-    
-    // Simplified query to count individuals
-    const individualsQuery = `
-      SELECT (COUNT(DISTINCT ?individual) AS ?count) WHERE {
-        {
-          ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
-          FILTER(STRSTARTS(STR(?individual), STR(<${safeUri}>)))
-        }
-        UNION
-        {
-          ?individual <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          ?individual a <http://www.w3.org/2002/07/owl#NamedIndividual> .
-        }
-        UNION
-        {
-          ?individual a ?class .
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          FILTER NOT EXISTS { 
-            ?individual a <http://www.w3.org/2002/07/owl#Class> .
-          }
-          FILTER NOT EXISTS {
-            ?individual a <http://www.w3.org/2000/01/rdf-schema#Class> .
-          }
-        }
-      }
-    `;
-    
-    // Execute all queries in parallel
-    console.log('Executing ontology stats queries...');
-    const [classesResult, propertiesResult, individualsResult] = await Promise.all([
-      graphdbClient.executeQuery(classesQuery),
-      graphdbClient.executeQuery(propertiesQuery),
-      graphdbClient.executeQuery(individualsQuery)
-    ]);
-    
-    // Extract counts from results
-    const classesCount = classesResult?.results?.bindings[0]?.count?.value || 0;
-    const propertiesCount = propertiesResult?.results?.bindings[0]?.count?.value || 0;
-    const individualsCount = individualsResult?.results?.bindings[0]?.count?.value || 0;
-    
-    console.log(`Stats for ${uri}: Classes=${classesCount}, Properties=${propertiesCount}, Individuals=${individualsCount}`);
-    
-    return {
-      classes: parseInt(classesCount, 10),
-      properties: parseInt(propertiesCount, 10),
-      individuals: parseInt(individualsCount, 10)
-    };
-  } catch (error) {
-    console.error(`Error getting stats for ontology ${uri}:`, error);
-    return {
-      classes: 0,
-      properties: 0,
-      individuals: 0
-    };
-  }
-}
-
-/**
- * Fetch products related to a specific ontology
- * @param {string} uri - Ontology URI
- * @returns {Promise<Array>} - Array of products
- */
-async function fetchProductsForOntology(uri) {
-  try {
-    console.log(`Fetching products for ontology: ${uri}`);
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Query to find products related to this ontology
-    const query = `
-      SELECT DISTINCT ?product ?name ?description WHERE {
-        {
-          # Products defined by the ontology
-          ?product a ?type .
-          ?type <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          
-          # Get basic properties if available
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-        }
-        UNION
-        {
-          # Products using classes from this ontology
-          ?product a ?class .
-          ?class <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-          
-          # Get basic properties if available
-          OPTIONAL { ?product <http://schema.org/name> ?name . }
-          OPTIONAL { ?product <http://schema.org/description> ?description . }
-          OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-        }
-      }
-      ORDER BY ?product
-      LIMIT 100
-    `;
-    
-    const data = await graphdbClient.executeQuery(query);
-    
-    if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure when fetching products by ontology');
-      return [];
+    // If title is still not found, use the last part of the URI
+    if (!metadata.title) {
+      const uriParts = uri.split(/[/#]/);
+      metadata.title = uriParts[uriParts.length - 1] || uri;
     }
     
-    console.log(`Found ${data.results.bindings.length} products for ontology ${uri}`);
-    
-    // Process results
-    const products = data.results.bindings.map(binding => {
-      const productUri = binding.product?.value || '';
-      return {
-        uri: productUri,
-        name: binding.name?.value || productUri.split(/[/#]/).pop() || 'Unnamed Product',
-        description: binding.description?.value || '',
-        isNotor: productUri.includes('notor65') || productUri.includes('Notor')
-      };
-    });
-    
-    return products;
+    return metadata;
   } catch (error) {
-    console.error(`Error fetching products for ontology ${uri}:`, error);
-    return [];
+    console.error(`Error fetching minimal metadata for ontology ${uri}:`, error);
+    return {
+      title: uri.split(/[/#]/).pop() || uri,
+      description: null
+    };
   }
 }
 
-/**
- * Get download URL for an ontology in a specific format
- * @param {string} uri - Ontology URI
- * @param {string} format - Download format MIME type (e.g., 'application/rdf+xml')
- * @returns {string} - Download URL
- */
-function getDownloadUrl(uri, format) {
-  return graphdbClient.getDownloadUrl(uri, format);
-}
-
-/**
- * Execute a SPARQL query against GraphDB (wrapper for backward compatibility)
- * @param {string} query - SPARQL query to execute
- * @returns {Promise<Object>} - Response data from GraphDB
- */
-function executeQuery(query) {
-  return graphdbClient.executeQuery(query);
-}
-
+// Make sure to also add fetchRelatedOntologies to the module.exports
 module.exports = {
   executeQuery,
   fetchOntologies,
@@ -564,5 +294,8 @@ module.exports = {
   getDownloadUrl,
   fetchProductsForOntology,
   fetchOntologyNamespaces,
-  fetchOntologyClasses
+  fetchOntologyClasses,
+  fetchMinimalOntologyMetadata,
+  fetchRelatedOntologies, // Add this to the exports
+  fetchMinimalOntologyMetadata // Also add this helper function
 };
