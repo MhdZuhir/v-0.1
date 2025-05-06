@@ -559,15 +559,13 @@ async function fetchMinimalOntologyMetadata(uri) {
     };
   }
 }
-=======
 // services/ontologyService.js - Fixed version
 const graphdbClient = require('../utils/graphdbClient');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
-const { generateOntologyDescription } = require('../utils/descriptionUtils');
->>>>>>> parent of b008243 (g)
-=======
+const { generateOntologyDescription } = require('../utils/descriptionUtils')
+ parent of b008243 (g)
 // Add the new fetchRelatedOntologies function to the ontologyService.js file
->>>>>>> parent of 0cf6365 (fixat)
+parent of 0cf6365 (fixat)
 
 /**
  * Fetch all ontologies from the repository
@@ -645,8 +643,7 @@ async function fetchOntologies() {
   }
 }
 
-<<<<<<< HEAD
-=======
+
 /**
  * Fetch metadata for a specific ontology
  * @param {string} uri - Ontology URI
