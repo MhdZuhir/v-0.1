@@ -264,6 +264,154 @@ exports.getOntologyTriples = async (req, res, next) => {
 };
 
 /**
+ * Rebuild product index
+ */
+exports.rebuildProductIndex = async (req, res, next) => {
+  try {
+    const products = await productService.detectProducts();
+    
+    res.render('rebuild-results', {
+      title: 'Product Index Rebuilt',
+      products,
+      count: products.length,
+      timestamp: new Date().toISOString(),
+      showLabels: req.showLabels
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+// controllers/ontologyController.js - Update to include related ontologies
+
+/**
+ * Handle ontology detail page request
+ */
+exports.getOntologyDetailPage = async (req, res, next) => {
+  try {
+    const uri = req.query.uri;
+    
+    if (!uri) {
+      return res.status(400).render('error', {
+        title: 'Error',
+        message: 'No ontology URI provided'
+      });
+    }
+    
+    const metadata = await ontologyService.fetchOntologyMetadata(uri);
+    
+    // Fetch subjects for this ontology
+    const subjects = await fetchOntologySubjects(uri);
+    
+    // Add subjects to metadata
+    metadata.subjects = subjects;
+    
+    // Fetch related ontologies
+    const relatedOntologies = await ontologyService.fetchRelatedOntologies(uri);
+    metadata.relatedOntologies = relatedOntologies;
+    
+    // Generate sanitized filename base from the ontology title
+    const filenameBase = metadata.title ? 
+      metadata.title.replace(/[^a-z0-9]/gi, '_').toLowerCase() :
+      'ontology';
+    
+    // Generate download links for different formats
+    const downloadLinks = [
+      { 
+        format: 'RDF/XML', 
+        url: `/ontology/download?uri=${encodeURIComponent(uri)}&format=rdf`, 
+        extension: 'rdf' 
+      },
+      { 
+        format: 'Turtle', 
+        url: `/ontology/download?uri=${encodeURIComponent(uri)}&format=ttl`, 
+        extension: 'ttl' 
+      },
+      { 
+        format: 'N-Triples', 
+        url: `/ontology/download?uri=${encodeURIComponent(uri)}&format=nt`, 
+        extension: 'nt' 
+      },
+      { 
+        format: 'JSON-LD', 
+        url: `/ontology/download?uri=${encodeURIComponent(uri)}&format=jsonld`, 
+        extension: 'jsonld' 
+      }
+    ];
+    
+    // Fetch labels for all URIs if needed
+    let labelMap = {};
+    if (req.showLabels) {
+      // Collect all URIs that need labels
+      const urisToLabel = [uri];
+      
+      // Add subject URIs
+      subjects.forEach(subject => {
+        urisToLabel.push(subject.uri);
+        if (subject.type) urisToLabel.push(subject.type);
+      });
+      
+      // Add product URIs
+      if (metadata.products) {
+        metadata.products.forEach(product => {
+          urisToLabel.push(product.uri);
+          if (product.type) urisToLabel.push(product.type);
+        });
+      }
+      
+      // Add relationship URIs
+      if (metadata.relationships) {
+        metadata.relationships.forEach(rel => {
+          urisToLabel.push(rel.property.uri);
+          if (rel.domain.uri) urisToLabel.push(rel.domain.uri);
+          if (rel.range.uri) urisToLabel.push(rel.range.uri);
+        });
+      }
+      
+      // Add related ontology URIs
+      if (metadata.relatedOntologies) {
+        metadata.relatedOntologies.forEach(ontology => {
+          urisToLabel.push(ontology.uri);
+        });
+      }
+      
+      // Fetch labels
+      labelMap = await labelService.fetchLabelsForUris(urisToLabel);
+      
+      // Update subjects with fetched labels
+      subjects.forEach(subject => {
+        if (labelMap[subject.uri]) {
+          subject.label = labelMap[subject.uri];
+        }
+      });
+      
+      // Update related ontologies with fetched labels
+      if (metadata.relatedOntologies) {
+        metadata.relatedOntologies.forEach(ontology => {
+          if (labelMap[ontology.uri]) {
+            ontology.title = labelMap[ontology.uri];
+          }
+        });
+      }
+    }
+    
+    res.render('ontology-detail', {
+      title: metadata.title || 'Ontology Details',
+      ontology: {
+        uri,
+        ...metadata,
+        subjects: subjects
+      },
+      downloadLinks,
+      labelMap,
+      showLabels: req.showLabels,
+      showLabelsToggleState: req.showLabels ? 'false' : 'true'
+    });
+  } catch (err) {
+    console.error('Error in getOntologyDetailPage:', err);
+    next(err);
+  }
+};
+/**
  * Get ontology products page
  */
 exports.getOntologyProducts = async (req, res, next) => {

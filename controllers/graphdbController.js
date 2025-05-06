@@ -25,36 +25,13 @@ exports.getDiagnosticPage = async (req, res) => {
     
     // Allow a custom query for diagnostics
     const customQuery = req.query.query;
-    
-    // Determine the query to execute
-    let query;
-    if (customQuery) {
-      query = customQuery;
-    } else if (ontologyUri) {
-      // If ontology URI is provided, fetch triples for that ontology
-      query = `
-        SELECT ?s ?p ?o WHERE { 
-          ?s ?p ?o .
-          {
-            ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${ontologyUri}> .
-          } UNION {
-            FILTER(STRSTARTS(STR(?s), STR(<${ontologyUri}>)))
-          }
-        } 
-        ORDER BY ?s ?p ?o
-        LIMIT 100
-      `;
-      debugInfo.ontologyUri = ontologyUri;
-    } else {
-      // Default query for diagnostic
-      query = `
-        SELECT ?s ?p ?o WHERE { 
-          ?s ?p ?o 
-          FILTER(STRSTARTS(STR(?s), "http://www.w3id.org/")) 
-        } 
-        LIMIT 100
-      `;
-    }
+    const query = customQuery || `
+      SELECT ?s ?p ?o WHERE { 
+        ?s ?p ?o 
+        FILTER(STRSTARTS(STR(?s), "http://www.w3id.org/")) 
+      } 
+      LIMIT 20
+    `;
     
     debugInfo.query = query;
     
@@ -162,9 +139,8 @@ exports.getDiagnosticPage = async (req, res) => {
     
     debugInfo.originalCount = bindings.length;
     
-    // For the graphdb routes, let's just display the raw triples
     res.render('graphdb', {
-      title: ontologyUri ? `Triples for ${ontologyUri}` : 'GraphDB Diagnostic Data',
+      title: 'GraphDB Diagnostic Data',
       message: errorMessage || 'Raw Data from GraphDB:',
       rows: bindings,
       labelMap: {},
