@@ -1,11 +1,7 @@
-// controllers/ontologyController.js - Enhanced version
-const axios = require('axios');
-const { graphdbConfig } = require('../config/db');
-const { sanitizeSparqlString } = require('../utils/sparqlUtils');
+// controllers/ontologyController.js - Fixed version
 const ontologyService = require('../services/ontologyService');
-const productService = require('../services/productService');
 const labelService = require('../services/labelService');
-const { generateOntologyDescription } = require('../utils/descriptionUtils');
+const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 
 /**
  * Render ontology list page
@@ -28,54 +24,6 @@ exports.getOntologyListPage = async (req, res, next) => {
 };
 
 /**
- * Fetch subjects for a specific ontology URI
- * @param {string} uri - The ontology URI
- * @returns {Promise<Array>} - Array of subject objects
- */
-async function fetchOntologySubjects(uri) {
-  try {
-    const safeUri = sanitizeSparqlString(uri);
-    
-    // Query to fetch subjects defined in this ontology
-    const subjectsQuery = `
-      SELECT DISTINCT ?uri ?type WHERE {
-        {
-          ?uri a ?type .
-          ?uri <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${safeUri}> .
-        } UNION {
-          ?uri a ?type .
-          FILTER(STRSTARTS(STR(?uri), STR(<${safeUri}>)))
-        }
-      }
-      ORDER BY ?uri
-    `;
-    
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query: subjectsQuery }
-    });
-    
-    const subjects = [];
-    
-    if (response.data && response.data.results && response.data.results.bindings) {
-      response.data.results.bindings.forEach(binding => {
-        if (binding.uri && binding.type) {
-          subjects.push({
-            uri: binding.uri.value,
-            type: binding.type.value
-          });
-        }
-      });
-    }
-    
-    return subjects;
-  } catch (error) {
-    console.error('Error fetching ontology subjects:', error);
-    return [];
-  }
-}
-
-/**
  * Handle ontology detail page request
  */
 exports.getOntologyDetailPage = async (req, res, next) => {
@@ -89,13 +37,18 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       });
     }
     
+    // Fetch ontology metadata
     const metadata = await ontologyService.fetchOntologyMetadata(uri);
     
-    // Fetch subjects for this ontology
-    const subjects = await fetchOntologySubjects(uri);
+    // Fetch classes for this ontology
+    const classes = await ontologyService.fetchOntologyClasses(uri);
     
-    // Add subjects to metadata
-    metadata.subjects = subjects;
+    // Add classes to metadata
+    metadata.classes = classes;
+    
+    // Fetch properties organized by type
+    const properties = await ontologyService.fetchOntologyProperties(uri);
+    metadata.properties = properties;
     
     // Fetch related ontologies
     const relatedOntologies = await ontologyService.fetchRelatedOntologies(uri);
@@ -136,28 +89,19 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       // Collect all URIs that need labels
       const urisToLabel = [uri];
       
-      // Add subject URIs
-      subjects.forEach(subject => {
-        urisToLabel.push(subject.uri);
-        if (subject.type) urisToLabel.push(subject.type);
+      // Add class URIs
+      classes.forEach(cls => {
+        urisToLabel.push(cls.uri);
       });
       
-      // Add product URIs
-      if (metadata.products) {
-        metadata.products.forEach(product => {
-          urisToLabel.push(product.uri);
-          if (product.type) urisToLabel.push(product.type);
+      // Add property URIs and their domains/ranges
+      Object.values(metadata.properties).forEach(propGroup => {
+        propGroup.forEach(prop => {
+          urisToLabel.push(prop.uri);
+          if (prop.domain) urisToLabel.push(prop.domain);
+          if (prop.range) urisToLabel.push(prop.range);
         });
-      }
-      
-      // Add relationship URIs
-      if (metadata.relationships) {
-        metadata.relationships.forEach(rel => {
-          urisToLabel.push(rel.property.uri);
-          if (rel.domain.uri) urisToLabel.push(rel.domain.uri);
-          if (rel.range.uri) urisToLabel.push(rel.range.uri);
-        });
-      }
+      });
       
       // Add related ontology URIs
       if (metadata.relatedOntologies) {
@@ -169,11 +113,30 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       // Fetch labels
       labelMap = await labelService.fetchLabelsForUris(urisToLabel);
       
-      // Update subjects with fetched labels
-      subjects.forEach(subject => {
-        if (labelMap[subject.uri]) {
-          subject.label = labelMap[subject.uri];
+      // Update classes with fetched labels
+      classes.forEach(cls => {
+        if (labelMap[cls.uri]) {
+          cls.label = labelMap[cls.uri];
         }
+      });
+      
+      // Update properties with fetched labels
+      Object.keys(metadata.properties).forEach(propType => {
+        metadata.properties[propType].forEach(prop => {
+          // Update property label
+          if (labelMap[prop.uri]) {
+            prop.label = labelMap[prop.uri];
+          }
+          
+          // Update domain and range labels if they exist
+          if (prop.domain && labelMap[prop.domain]) {
+            prop.domainLabel = labelMap[prop.domain];
+          }
+          
+          if (prop.range && labelMap[prop.range]) {
+            prop.rangeLabel = labelMap[prop.range];
+          }
+        });
       });
       
       // Update related ontologies with fetched labels
@@ -186,12 +149,18 @@ exports.getOntologyDetailPage = async (req, res, next) => {
       }
     }
     
+    console.log('Rendering ontology detail page with data:', {
+      uri,
+      title: metadata.title,
+      classCount: classes.length,
+      relatedCount: metadata.relatedOntologies?.length || 0
+    });
+    
     res.render('ontology-detail', {
       title: metadata.title || 'Ontology Details',
       ontology: {
         uri,
-        ...metadata,
-        subjects: subjects
+        ...metadata
       },
       downloadLinks,
       labelMap,
@@ -295,15 +264,12 @@ exports.getOntologyTriples = async (req, res, next) => {
       LIMIT 100
     `;
     
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query: triplesQuery }
-    });
+    const data = await ontologyService.executeQuery(triplesQuery);
     
     const triples = [];
     
-    if (response.data && response.data.results && response.data.results.bindings) {
-      response.data.results.bindings.forEach(binding => {
+    if (data && data.results && data.results.bindings) {
+      data.results.bindings.forEach(binding => {
         if (binding.s && binding.p && binding.o) {
           triples.push({
             s: binding.s,
@@ -365,7 +331,8 @@ exports.getOntologyProducts = async (req, res, next) => {
  */
 exports.debugProducts = async (req, res, next) => {
   try {
-    const products = await productService.detectProducts();
+    // This should be replaced with a call to the productService
+    const products = [];
     
     res.render('debug-products', {
       title: 'Debug Products',
@@ -383,7 +350,8 @@ exports.debugProducts = async (req, res, next) => {
  */
 exports.rebuildProductIndex = async (req, res, next) => {
   try {
-    const products = await productService.detectProducts();
+    // This should be replaced with a call to the productService
+    const products = [];
     
     res.render('rebuild-results', {
       title: 'Product Index Rebuilt',

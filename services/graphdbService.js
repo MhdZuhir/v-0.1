@@ -1,7 +1,59 @@
-// services/graphdbService.js - Updated to use the GraphDB client utility
-const graphdbClient = require('../utils/graphdbClient');
+// services/graphdbService.js - Fixed version
+const axios = require('axios');
+const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const { isSystemResource } = require('../utils/uriUtils');
+
+/**
+ * Execute a SPARQL query against GraphDB
+ * @param {string} query - SPARQL query to execute
+ * @returns {Promise<Object>} - Response data from GraphDB
+ */
+async function executeQuery(query) {
+  try {
+    console.log(`Sending query to GraphDB: ${query}`);
+    
+    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+      headers: { 'Accept': 'application/sparql-results+json' },
+      params: { query }
+    });
+    
+    // Log the status and check for success
+    console.log(`GraphDB response status: ${response.status}`);
+    
+    if (!response.data) {
+      console.error('GraphDB returned empty data');
+      throw new Error('No data returned from GraphDB');
+    }
+    
+    // Check for basic structure
+    if (!response.data.results) {
+      console.error('GraphDB response missing results object:', response.data);
+      throw new Error('Invalid response format from GraphDB');
+    }
+    
+    // Ensure bindings is always an array
+    if (!Array.isArray(response.data.results.bindings)) {
+      console.warn('GraphDB response missing bindings array, creating empty array');
+      response.data.results.bindings = [];
+    }
+    
+    return response.data;
+  } catch (error) {
+    // Enhanced error logging
+    console.error('Error executing GraphDB query:', error);
+    
+    if (error.response) {
+      // The request was made and the server responded with a non-2xx status
+      console.error('GraphDB error response:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received from GraphDB');
+    }
+    
+    throw error;
+  }
+}
 
 /**
  * Fetch resource description (comments, definitions, etc.)
@@ -27,7 +79,7 @@ async function fetchResourceDescription(uri) {
       LIMIT 1
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     const bindings = data.results.bindings || [];
     return bindings.length > 0 && bindings[0].description ? bindings[0].description.value : null;
   } catch (error) {
@@ -56,7 +108,7 @@ async function fetchRelatedResources(uri) {
       LIMIT 20
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     const bindings = data.results.bindings || [];
     let relatedUris = bindings.map(binding => binding.related.value);
     
@@ -94,7 +146,7 @@ async function fetchCategories() {
       LIMIT 100
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     const bindings = data.results.bindings || [];
     const categories = bindings.map(binding => binding.category.value);
     return categories.filter(category => !isSystemResource(category));
@@ -122,7 +174,7 @@ async function fetchResourcesByCategory(category) {
       LIMIT 100
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     const bindings = data.results.bindings || [];
     const resources = bindings.map(binding => binding.resource.value);
     return resources.filter(resource => !isSystemResource(resource));
@@ -158,7 +210,7 @@ async function searchResources(searchTerm) {
       LIMIT 50
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
       throw new Error('Unexpected response structure from GraphDB');
@@ -208,7 +260,7 @@ async function fetchResourceTypes(uri) {
       } LIMIT 10
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
       console.warn('Unexpected response format when fetching resource types');
@@ -253,11 +305,11 @@ async function fetchResourceProperties(uri) {
       LIMIT 200
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     
     // Ensure we have a valid response with bindings array
     if (!data || !data.results || !Array.isArray(data.results.bindings)) {
-      console.error('Unexpected response structure when fetching resource properties');
+      console.error('Unexpected response structure from GraphDB when fetching resource properties');
       return [];
     }
     
@@ -271,6 +323,11 @@ async function fetchResourceProperties(uri) {
       if (properties.length > 0) {
         console.log(`Added hardcoded information for ${uri}`);
       }
+    }
+    
+    // Debug a sample property if available
+    if (properties.length > 0) {
+      console.log('Sample property structure:', JSON.stringify(properties[0]).substring(0, 200));
     }
     
     // Validate each property to ensure it has the expected structure
@@ -367,6 +424,50 @@ function getCoreRdfResourceProperties(uri) {
         }
       ];
     
+    case 'http://www.w3.org/2000/01/rdf-schema#Resource':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Resource' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of everything. All other classes are subclasses of this class.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#' }
+        }
+      ];
+      
+    case 'http://www.w3.org/2002/07/owl#Class':
+      return [
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#label' },
+          object: { type: 'literal', value: 'Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#comment' },
+          object: { type: 'literal', value: 'The class of OWL classes.' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#isDefinedBy' },
+          object: { type: 'uri', value: 'http://www.w3.org/2002/07/owl#' }
+        },
+        {
+          predicate: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#subClassOf' },
+          object: { type: 'uri', value: 'http://www.w3.org/2000/01/rdf-schema#Class' }
+        }
+      ];
+      
     default:
       return [];
   }
@@ -420,7 +521,7 @@ async function fetchClassInfo(uri) {
       }
     `;
     
-    const data = await graphdbClient.executeQuery(query);
+    const data = await executeQuery(query);
     const properties = {};
     
     if (data && data.results && data.results.bindings) {
@@ -486,7 +587,7 @@ async function fetchClassIndividuals(classUri) {
       LIMIT 100
     `;
     
-    const data = await graphdbClient.executeQuery(individualsQuery);
+    const data = await executeQuery(individualsQuery);
     const individualUris = [];
     
     if (data && data.results && data.results.bindings) {
@@ -537,7 +638,7 @@ async function fetchIndividualProperties(uri) {
       LIMIT 100
     `;
     
-    const data = await graphdbClient.executeQuery(propertiesQuery);
+    const data = await executeQuery(propertiesQuery);
     const properties = [];
     
     if (data && data.results && data.results.bindings) {
@@ -564,15 +665,6 @@ async function fetchIndividualProperties(uri) {
     console.error(`Error fetching properties for individual ${uri}:`, error);
     return [];
   }
-}
-
-/**
- * Execute a SPARQL query against GraphDB (wrapper for backward compatibility)
- * @param {string} query - SPARQL query to execute
- * @returns {Promise<Object>} - Response data from GraphDB
- */
-function executeQuery(query) {
-  return graphdbClient.executeQuery(query);
 }
 
 module.exports = {

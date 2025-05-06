@@ -1,5 +1,5 @@
-// controllers/graphdbController.js - Updated to use the GraphDB client utility
-const graphdbClient = require('../utils/graphdbClient');
+// controllers/graphdbController.js
+const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 
 /**
@@ -20,9 +20,6 @@ exports.getDiagnosticPage = async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
-    // Check if a specific ontology URI is provided
-    const ontologyUri = req.query.uri;
-    
     // Allow a custom query for diagnostics
     const customQuery = req.query.query;
     const query = customQuery || `
@@ -38,13 +35,16 @@ exports.getDiagnosticPage = async (req, res) => {
     try {
       console.log(`Executing diagnostic query: ${query}`);
       
-      const response = await graphdbClient.executeQuery(query);
+      const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+        headers: { 'Accept': 'application/sparql-results+json' },
+        params: { query }
+      });
       
       debugInfo.queryExecuted = true;
-      debugInfo.responseStatus = 200;
+      debugInfo.responseStatus = response.status;
       
-      if (response && response.results && Array.isArray(response.results.bindings)) {
-        bindings = response.results.bindings || [];
+      if (response.data && response.data.results && Array.isArray(response.data.results.bindings)) {
+        bindings = response.data.results.bindings || [];
         debugInfo.resultCount = bindings.length;
         
         if (bindings.length > 0) {
@@ -64,7 +64,7 @@ exports.getDiagnosticPage = async (req, res) => {
         }
       } else {
         debugInfo.unexpectedResponseStructure = true;
-        debugInfo.responsePreview = JSON.stringify(response).substring(0, 500);
+        debugInfo.responsePreview = JSON.stringify(response.data).substring(0, 500);
         errorMessage = "GraphDB response doesn't have the expected structure";
       }
     } catch (dbErr) {
@@ -89,12 +89,13 @@ exports.getDiagnosticPage = async (req, res) => {
         LIMIT 10
       `;
       
-      const ontologyResponse = await graphdbClient.executeQuery(ontologyQuery);
+      const ontologyResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+        headers: { 'Accept': 'application/sparql-results+json' },
+        params: { query: ontologyQuery }
+      });
       
-      if (ontologyResponse && 
-          ontologyResponse.results && 
-          Array.isArray(ontologyResponse.results.bindings)) {
-        const ontologies = ontologyResponse.results.bindings.map(binding => binding.ontology.value);
+      if (ontologyResponse.data && ontologyResponse.data.results && Array.isArray(ontologyResponse.data.results.bindings)) {
+        const ontologies = ontologyResponse.data.results.bindings.map(binding => binding.ontology.value);
         debugInfo.detectedOntologies = ontologies;
         
         // For the first ontology, get class and property counts to debug the stats issue
@@ -122,13 +123,14 @@ exports.getDiagnosticPage = async (req, res) => {
             }
           `;
           
-          const classResponse = await graphdbClient.executeQuery(classTestQuery);
+          const classResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+            headers: { 'Accept': 'application/sparql-results+json' },
+            params: { query: classTestQuery }
+          });
           
-          if (classResponse && 
-              classResponse.results && 
-              classResponse.results.bindings.length > 0) {
+          if (classResponse.data && classResponse.data.results && classResponse.data.results.bindings.length > 0) {
             debugInfo.testOntology = testOntology;
-            debugInfo.testClassCount = classResponse.results.bindings[0].count?.value || '0';
+            debugInfo.testClassCount = classResponse.data.results.bindings[0].count?.value || '0';
           }
         }
       }
@@ -155,54 +157,5 @@ exports.getDiagnosticPage = async (req, res) => {
       <p>There was an error processing your request:</p>
       <pre>${err.stack}</pre>
     `);
-  }
-};
-
-/**
- * Get SPO triples for a specific URI
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
-exports.getTriples = async (req, res) => {
-  try {
-    const uri = req.query.uri;
-    
-    if (!uri) {
-      return res.status(400).json({
-        error: 'No URI provided',
-        message: 'A URI parameter is required to fetch triples'
-      });
-    }
-    
-    // Query to fetch triples for this URI
-    const query = `
-      SELECT ?s ?p ?o WHERE { 
-        ?s ?p ?o .
-        FILTER(?s = <${uri}> || ?p = <${uri}> || ?o = <${uri}>)
-      } 
-      ORDER BY ?s ?p ?o
-      LIMIT 100
-    `;
-    
-    const response = await graphdbClient.executeQuery(query);
-    
-    if (response && response.results && Array.isArray(response.results.bindings)) {
-      res.json({
-        uri,
-        triples: response.results.bindings,
-        count: response.results.bindings.length
-      });
-    } else {
-      res.status(500).json({
-        error: 'Unexpected response structure',
-        message: 'The GraphDB response does not have the expected structure'
-      });
-    }
-  } catch (err) {
-    console.error('Error in getTriples:', err);
-    res.status(500).json({
-      error: 'Server error',
-      message: err.message
-    });
   }
 };
