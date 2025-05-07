@@ -324,11 +324,8 @@ async function fetchOntologySubjects(uri) {
   }
 }
 
-/**
- * Enrich a subject with metadata from GraphDB
- * @param {Object} subject - Basic subject object with URI and type
- * @returns {Promise<Object>} - Enhanced subject with labels, descriptions, domains, ranges, etc.
- */
+// Enhanced version of enrichSubjectWithMetadata function in controllers/ontologyController.js
+
 async function enrichSubjectWithMetadata(subject) {
   try {
     const safeUri = sanitizeSparqlString(subject.uri);
@@ -376,24 +373,139 @@ async function enrichSubjectWithMetadata(subject) {
             break;
             
           case 'http://www.w3.org/2000/01/rdf-schema#domain':
-            subject.domain = object.value;
-            subject.domainLabel = object.value.split(/[/#]/).pop();
+            if (!subject.domains) subject.domains = [];
+            subject.domains.push({
+              uri: object.value,
+              label: object.value.split(/[/#]/).pop()
+            });
             break;
             
           case 'http://www.w3.org/2000/01/rdf-schema#range':
-            subject.range = object.value;
-            subject.rangeLabel = object.value.split(/[/#]/).pop();
+            if (!subject.ranges) subject.ranges = [];
+            subject.ranges.push({
+              uri: object.value,
+              label: object.value.split(/[/#]/).pop()
+            });
             break;
             
           case 'http://www.w3.org/2000/01/rdf-schema#subClassOf':
             if (!subject.superClasses) subject.superClasses = [];
-            subject.superClasses.push(object.value);
+            subject.superClasses.push({
+              uri: object.value,
+              label: object.value.split(/[/#]/).pop()
+            });
             break;
             
           case 'http://www.w3.org/2000/01/rdf-schema#subPropertyOf':
             if (!subject.superProperties) subject.superProperties = [];
-            subject.superProperties.push(object.value);
+            subject.superProperties.push({
+              uri: object.value,
+              label: object.value.split(/[/#]/).pop()
+            });
             break;
+        }
+      }
+    }
+    
+    // If it's a property or class, get domain relationships
+    if (subject.typeClass === 'property-tag' || subject.typeClass === 'data-property-tag' || 
+        subject.typeClass === 'class-tag') {
+      
+      // Find classes/properties that have this as domain
+      const inDomainQuery = `
+        SELECT DISTINCT ?property ?propertyType WHERE {
+          ?property <http://www.w3.org/2000/01/rdf-schema#domain> <${safeUri}> .
+          OPTIONAL { ?property a ?propertyType }
+        }
+        LIMIT 25
+      `;
+      
+      try {
+        const domainResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+          headers: { 'Accept': 'application/sparql-results+json' },
+          params: { query: inDomainQuery }
+        });
+        
+        if (domainResponse.data && 
+            domainResponse.data.results && 
+            domainResponse.data.results.bindings && 
+            domainResponse.data.results.bindings.length > 0) {
+          
+          subject.inDomainOf = domainResponse.data.results.bindings.map(binding => {
+            return {
+              uri: binding.property?.value,
+              label: binding.property?.value.split(/[/#]/).pop(),
+              type: binding.propertyType?.value
+            };
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch domain relationships for ${subject.uri}: ${err.message}`);
+      }
+      
+      // Find classes/properties that have this as range
+      const inRangeQuery = `
+        SELECT DISTINCT ?property ?propertyType WHERE {
+          ?property <http://www.w3.org/2000/01/rdf-schema#range> <${safeUri}> .
+          OPTIONAL { ?property a ?propertyType }
+        }
+        LIMIT 25
+      `;
+      
+      try {
+        const rangeResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+          headers: { 'Accept': 'application/sparql-results+json' },
+          params: { query: inRangeQuery }
+        });
+        
+        if (rangeResponse.data && 
+            rangeResponse.data.results && 
+            rangeResponse.data.results.bindings && 
+            rangeResponse.data.results.bindings.length > 0) {
+          
+          subject.inRangeOf = rangeResponse.data.results.bindings.map(binding => {
+            return {
+              uri: binding.property?.value,
+              label: binding.property?.value.split(/[/#]/).pop(),
+              type: binding.propertyType?.value
+            };
+          });
+        }
+      } catch (err) {
+        console.warn(`Failed to fetch range relationships for ${subject.uri}: ${err.message}`);
+      }
+      
+      // Find classes that this is a superclass of (only for class-tag)
+      if (subject.typeClass === 'class-tag') {
+        const subClassQuery = `
+          SELECT DISTINCT ?subClass ?subClassType WHERE {
+            ?subClass <http://www.w3.org/2000/01/rdf-schema#subClassOf> <${safeUri}> .
+            OPTIONAL { ?subClass a ?subClassType }
+          }
+          LIMIT 25
+        `;
+        
+        try {
+          const subClassResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+            headers: { 'Accept': 'application/sparql-results+json' },
+            params: { query: subClassQuery }
+          });
+          
+          if (subClassResponse.data && 
+              subClassResponse.data.results && 
+              subClassResponse.data.results.bindings && 
+              subClassResponse.data.results.bindings.length > 0) {
+            
+            subject.subClasses = subClassResponse.data.results.bindings.map(binding => {
+              return {
+                uri: binding.subClass?.value,
+                label: binding.subClass?.value.split(/[/#]/).pop(),
+                type: binding.subClassType?.value
+              };
+            });
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch subclass relationships for ${subject.uri}: ${err.message}`);
         }
       }
     }
@@ -438,7 +550,6 @@ async function enrichSubjectWithMetadata(subject) {
     return subject; // Return the original subject if enrichment fails
   }
 }
-
 /**
  * Fetch description for a resource
  * @param {string} uri - Resource URI

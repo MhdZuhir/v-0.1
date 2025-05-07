@@ -1,337 +1,131 @@
 <body>
-  <div class="page-container">
-    <!-- Table of Contents Sidebar -->
-    <div class="toc-sidebar">
-      <div class="toc-content">
-        <h3>Table of Contents</h3>
-        <ul class="toc-list">
-          <li><a href="#metadata" class="toc-active">Metadata</a></li>
-          <li><a href="#overview">Overview</a></li>
-          {{#if ontology.subjects}}
-          <li>
-            <a href="#classes">Classes</a>
-            <ul class="toc-sublist">
-              {{#each ontology.subjects}}
-                {{#if (eq this.typeClass "class-tag")}}
-                <li><a href="#class-{{this.uri}}">{{this.label}}</a></li>
-                {{/if}}
-              {{/each}}
-            </ul>
-          </li>
-          <li>
-            <a href="#object-properties">Object Properties</a>
-            <ul class="toc-sublist">
-              {{#each ontology.subjects}}
-                {{#if (eq this.typeClass "property-tag")}}
-                <li><a href="#prop-{{this.uri}}">{{this.label}}</a></li>
-                {{/if}}
-              {{/each}}
-            </ul>
-          </li>
-          {{/if}}
-          <li><a href="#annotation-properties">Annotation Properties</a></li>
-          <li><a href="#namespaces">Namespaces</a></li>
-          <li><a href="#legend">Legend</a></li>
-          <li><a href="#downloads">Downloads</a></li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- Main Content -->
-    <div class="ontology-container">
-      <h1>{{ontology.title}}</h1>
-
-      <h2 id="metadata">Metadata</h2>
-      <div class="metadata-section">
-        <p><strong>IRI</strong><br>
-        <code>{{ontology.uri}}</code></p>
-
-        <p><strong>Title</strong><br>
-        {{ontology.title}}</p>
-
-        {{#if ontology.creator}}
-        <p><strong>Creator</strong><br>
-        {{ontology.creator}}</p>
+{{!-- Enhanced class display section with relationship information --}}
+<div class="classes-section">
+  <div class="filter-control">
+    <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
+  </div>
+  
+  <div class="entity-items">
+    {{#each ontology.subjects}}
+      {{#if (eq this.typeClass "class-tag")}}
+      <div id="class-{{encodeURIComponent this.uri}}" class="entity-item class-item">
+        <h3>{{this.label}} <sup>c</sup></h3>
+        <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+        
+        {{#if this.description}}
+        <p><strong>Description</strong><br>
+        {{this.description}}</p>
         {{/if}}
-
-        {{#if ontology.publisher}}
-        <p><strong>Publisher</strong><br>
-        {{ontology.publisher}}
+        
+        {{!-- Display superclasses if available --}}
+        {{#if this.superClasses}}
+        <p><strong>Super Class Of</strong><br>
+          {{#each this.superClasses}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+          {{/each}}
         </p>
         {{/if}}
-
-        {{#if ontology.created}}
-        <p><strong>Date Created</strong><br>
-        {{ontology.created}}</p>
-        {{/if}}
-
-        {{#if ontology.modified}}
-        <p><strong>Date Modified</strong><br>
-        {{ontology.modified}}</p>
-        {{/if}}
-
-        {{#if ontology.license}}
-        <p><strong>License</strong><br>
-        <a href="{{ontology.license}}">{{ontology.license}}</a></p>
-        {{/if}}
-
-        {{#if ontology.version}}
-        <p><strong>Version</strong><br>
-        {{ontology.version}}</p>
-        {{/if}}
-
-        <p><strong>Description</strong><br>
-        {{ontology.description}}</p>
-      </div>
-
-      <h2 id="overview">Overview</h2>
-      <div class="overview-section">
-        <p><strong>Figure 1: </strong>Ontology overview</p>
         
-        <div class="stats-summary">
-          <div class="stat-item">
-            <span class="stat-value">{{ontology.stats.classes}}</span> Classes
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ontology.stats.properties}}</span> Properties
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">{{ontology.stats.individuals}}</span> Individuals
-          </div>
-        </div>
-        
-        <p>{{ontology.description}}</p>
-
-        {{#if ontology.relationships}}
-        <div class="relationships-container">
-          <h3>Key Relationships</h3>
-          <table class="relationships-table">
-            <tr>
-              <th>Property</th>
-              <th>Domain</th>
-              <th>Range</th>
-            </tr>
-            {{#each ontology.relationships}}
-            <tr>
-              <td>
-                <a href="/resource?uri={{property.uri}}">
-                  {{#if ../showLabels}}
-                    {{property.label}}
-                  {{else}}
-                    {{property.uri}}
-                  {{/if}}
-                </a>
-              </td>
-              <td>
-                {{#if domain.uri}}
-                <a href="/resource?uri={{domain.uri}}">
-                  {{#if ../showLabels}}
-                    {{domain.label}}
-                  {{else}}
-                    {{domain.uri}}
-                  {{/if}}
-                </a>
-                {{else}}
-                -
-                {{/if}}
-              </td>
-              <td>
-                {{#if range.uri}}
-                <a href="/resource?uri={{range.uri}}">
-                  {{#if ../showLabels}}
-                    {{range.label}}
-                  {{else}}
-                    {{range.uri}}
-                  {{/if}}
-                </a>
-                {{else}}
-                -
-                {{/if}}
-              </td>
-            </tr>
-            {{/each}}
-          </table>
-        </div>
-        {{/if}}
-      </div>
-
-      {{#if ontology.subjects}}
-      <h2 id="classes">Classes</h2>
-      <div class="classes-section">
-        <div class="filter-control">
-          <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
-        </div>
-        
-        <div class="entity-items">
-          {{#each ontology.subjects}}
-            {{#if (eq this.typeClass "class-tag")}}
-            <div id="class-{{encodeURIComponent this.uri}}" class="entity-item class-item">
-              <h3>{{this.label}} <sup>c</sup></h3>
-              <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
-              
-              {{#if this.description}}
-              <p><strong>Description</strong><br>
-              {{this.description}}</p>
-              {{/if}}
-              
-              <!-- Add more class properties from GraphDB if available -->
-            </div>
-            {{/if}}
+        {{!-- Display subclasses if available --}}
+        {{#if this.subClasses}}
+        <p><strong>Sub Class Of</strong><br>
+          {{#each this.subClasses}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
           {{/each}}
-        </div>
-      </div>
-
-      <h2 id="object-properties">Object Properties</h2>
-      <div class="properties-section">
-        <div class="filter-control">
-          <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
-        </div>
+        </p>
+        {{/if}}
         
-        <div class="entity-items">
-          {{#each ontology.subjects}}
-            {{#if (eq this.typeClass "property-tag")}}
-            <div id="prop-{{encodeURIComponent this.uri}}" class="entity-item property-item">
-              <h3>{{this.label}} <sup>op</sup></h3>
-              <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
-              
-              {{#if this.description}}
-              <p><strong>Description</strong><br>
-              {{this.description}}</p>
-              {{/if}}
-              
-              <!-- Add more property details from GraphDB if available -->
-            </div>
-            {{/if}}
+        {{!-- Display properties in domain --}}
+        {{#if this.inDomainOf}}
+        <p><strong>In Domain Of</strong><br>
+          {{#each this.inDomainOf}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
           {{/each}}
-        </div>
+        </p>
+        {{/if}}
+        
+        {{!-- Display properties in range --}}
+        {{#if this.inRangeOf}}
+        <p><strong>In Range Of</strong><br>
+          {{#each this.inRangeOf}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+          {{/each}}
+        </p>
+        {{/if}}
       </div>
       {{/if}}
+    {{/each}}
+  </div>
+</div>
 
-      <h2 id="annotation-properties">Annotation Properties</h2>
-      <div class="annotation-props-section">
-        <div class="entity-items">
-          {{#each ontology.subjects}}
-            {{#if (eq this.typeClass "annotation-tag")}}
-            <div id="annot-{{encodeURIComponent this.uri}}" class="entity-item">
-              <h3>
-                <a href="#annot-{{encodeURIComponent this.uri}}" class="property-title-link">
-                  {{this.label}} <sup>ap</sup>
-                </a>
-              </h3>
-              <p><strong>IRI</strong>
-                <a href="#annot-{{encodeURIComponent this.uri}}" class="iri-link">
-                  <code>{{this.uri}}</code>
-                </a>
-              </p>
-              <div class="property-description">
-                <p>{{this.description}}</p>
-              </div>
-            </div>
-            {{/if}}
+{{!-- Enhanced property display section with relationship information --}}
+<div class="properties-section">
+  <div class="filter-control">
+    <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
+  </div>
+  
+  <div class="entity-items">
+    {{#each ontology.subjects}}
+      {{#if (eq this.typeClass "property-tag")}}
+      <div id="prop-{{encodeURIComponent this.uri}}" class="entity-item property-item">
+        <h3>{{this.label}} <sup>op</sup></h3>
+        <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+        
+        {{#if this.description}}
+        <p><strong>Description</strong><br>
+        {{this.description}}</p>
+        {{/if}}
+        
+        {{!-- Display domains if available --}}
+        {{#if this.domains}}
+        <p><strong>Domain</strong><br>
+          {{#each this.domains}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
           {{/each}}
-
-          <!-- Common annotation properties if none found in the data -->
-          {{#unless hasAnnotationProperties}}
-          <div id="annot-label" class="entity-item">
-            <h3>
-              <a href="#annot-label" class="property-title-link">
-                label <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-label" class="iri-link">
-                <code>http://www.w3.org/2000/01/rdf-schema#label</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>A human-readable name for the subject.</p>
-            </div>
-          </div>
-          
-          <div id="annot-comment" class="entity-item">
-            <h3>
-              <a href="#annot-comment" class="property-title-link">
-                comment <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-comment" class="iri-link">
-                <code>http://www.w3.org/2000/01/rdf-schema#comment</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>A description of the subject resource.</p>
-            </div>
-          </div>
-          {{/unless}}
-        </div>
-      </div>
-
-      <h2 id="namespaces">Namespaces</h2>
-      <div class="namespaces-section">
-        <table class="namespaces-table">
-          {{#if commonNamespaces}}
-            {{#each commonNamespaces}}
-            <tr>
-              <td><strong>{{this.prefix}}</strong></td>
-              <td><code>{{this.uri}}</code></td>
-            </tr>
+        </p>
+        {{/if}}
+        
+        {{!-- Display ranges if available --}}
+        {{#if this.ranges}}
+        <p><strong>Range</strong><br>
+          {{#each this.ranges}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+          {{/each}}
+        </p>
+        {{/if}}
+        
+        {{!-- Display super-properties if available --}}
+        {{#if this.superProperties}}
+        <p><strong>Super Property Of</strong><br>
+          {{#each this.superProperties}}
+            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+          {{/each}}
+        </p>
+        {{/if}}
+        
+        {{!-- Display examples of usage if available --}}
+        {{#if this.examples}}
+        <div class="examples-section">
+          <p><strong>Examples</strong></p>
+          <ul class="examples-list">
+            {{#each this.examples}}
+              <li>
+                <a href="/resource?uri={{this.subject}}">{{this.subjectLabel}}</a> → 
+                {{#if (eq this.object.type "uri")}}
+                  <a href="/resource?uri={{this.object}}">{{this.objectLabel}}</a>
+                {{else}}
+                  "{{this.object}}"
+                {{/if}}
+              </li>
             {{/each}}
-          {{else}}
-            <tr>
-              <td><strong>rdf</strong></td>
-              <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
-            </tr>
-            <tr>
-              <td><strong>rdfs</strong></td>
-              <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
-            </tr>
-            <tr>
-              <td><strong>owl</strong></td>
-              <td><code>http://www.w3.org/2002/07/owl#</code></td>
-            </tr>
-            <tr>
-              <td><strong>xsd</strong></td>
-              <td><code>http://www.w3.org/2001/XMLSchema#</code></td>
-            </tr>
-          {{/if}}
-        </table>
-      </div>
-
-      <h2 id="legend">Legend</h2>
-      <div class="legend-section">
-        <p><sup>c</sup> Classes <sup>op</sup> Object Properties <sup>ap</sup> Annotation Properties</p>
-      </div>
-      
-      <div id="downloads" class="download-section">
-        <h2>Downloads</h2>
-        <div class="download-links">
-          {{#each downloadLinks}}
-          <a href="{{this.url}}" class="download-link" download="ontology.{{this.extension}}">
-            Download as {{this.format}}
-          </a>
-          {{/each}}
+          </ul>
         </div>
-      </div>
-    
-      <div class="display-control">
-        <label for="displayToggle">Show human-readable labels:</label>
-        <label class="toggle-switch">
-          <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-label">{{#if showLabels}}On{{else}}Off{{/if}}</span>
-      </div>
-    
-      <div class="navigation-links">
-        <a href="/" class="nav-link">Back to Home</a>
-        <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}" class="nav-link">View Related Products</a>
-        {{#if ontology.relatedOntologies}}
-        <a href="/class/browse" class="nav-link">Browse Classes</a>
         {{/if}}
       </div>
-    </div>
+      {{/if}}
+    {{/each}}
   </div>
+</div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -1836,3 +1836,355 @@ input:checked + .slider:before {
         flex-direction: column;
       }
     }
+/* CSS styles to make resource page match ontology details */
+
+/* Page layout with sidebar */
+.page-container {
+  display: flex;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: 30px;
+}
+
+/* Table of Contents sidebar */
+.toc-sidebar {
+  width: 280px;
+  position: sticky;
+  top: 20px;
+  align-self: flex-start;
+  height: calc(100vh - 40px);
+  overflow-y: auto;
+  padding-right: 15px;
+}
+
+.toc-content {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.toc-content h3 {
+  margin-top: 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 18px;
+  color: #333;
+}
+
+.toc-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-list li {
+  margin-bottom: 8px;
+}
+
+.toc-list a {
+  display: block;
+  padding: 6px 10px;
+  color: #1976d2;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.toc-list a:hover,
+.toc-list a.toc-active {
+  background-color: #e3f2fd;
+  color: #0d47a1;
+}
+
+.toc-sublist {
+  list-style-type: none;
+  padding-left: 20px;
+  margin: 8px 0 0 0;
+}
+
+.toc-sublist li {
+  margin-bottom: 5px;
+}
+
+/* Main content area */
+.ontology-container {
+  flex: 1;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.ontology-container h1 {
+  margin-top: 0;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+  font-size: 28px;
+}
+
+.ontology-container h2 {
+  margin-top: 40px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+  font-size: 22px;
+}
+
+.ontology-container h3 {
+  font-size: 18px;
+  color: #444;
+  margin-top: 20px;
+  margin-bottom: 15px;
+}
+
+/* Metadata section */
+.metadata-section {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.metadata-section p {
+  margin-bottom: 15px;
+}
+
+.metadata-section code {
+  background-color: #f0f0f0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  word-break: break-all;
+  display: inline-block;
+}
+
+/* Types section */
+.types-section {
+  margin-bottom: 30px;
+}
+
+.type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.type-badge {
+  display: inline-block;
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.type-badge:hover {
+  background-color: #bbdefb;
+  transform: translateY(-2px);
+}
+
+/* Relationships sections */
+.relations-section {
+  margin-bottom: 30px;
+}
+
+.relation-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 15px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.relation-list li {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.relation-list li:hover {
+  background-color: #e3f2fd;
+  transform: translateY(-2px);
+}
+
+.relation-list a {
+  display: block;
+  padding: 10px 15px;
+  color: #1976d2;
+  text-decoration: none;
+}
+
+.relation-list a:hover {
+  color: #0d47a1;
+}
+
+/* Properties section */
+.properties-section {
+  margin-bottom: 30px;
+}
+
+.properties-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.properties-table th,
+.properties-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.properties-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+  color: #555;
+}
+
+.properties-table tr:last-child td {
+  border-bottom: none;
+}
+
+.properties-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.properties-table a {
+  color: #1976d2;
+  text-decoration: none;
+  word-break: break-all;
+}
+
+.properties-table a:hover {
+  text-decoration: underline;
+}
+
+/* Namespaces section */
+.namespaces-section {
+  margin-bottom: 30px;
+}
+
+.namespaces-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.namespaces-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.namespaces-table code {
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+/* Display control and navigation */
+.display-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #2196F3;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: #666;
+}
+
+.navigation-links {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.nav-link {
+  display: inline-block;
+  color: #1976d2;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: #e3f2fd;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  background-color: #bbdefb;
+  transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .page-container {
+    flex-direction: column;
+  }
+  
+  .toc-sidebar {
+    width: 100%;
+    position: relative;
+    height: auto;
+    top: 0;
+  }
+  
+  .relation-list {
+    grid-template-columns: 1fr;
+  }
+}

@@ -2,10 +2,10 @@
 
 const graphdbService = require('../services/graphdbService');
 const labelService = require('../services/labelService');
-const coreResourceService = require('../services/coreResourceService');
+const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 
 /**
- * Handle resource page request
+ * Handle resource page request with enhanced relationship display
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  * @param {Function} next - Express next middleware function
@@ -21,11 +21,10 @@ exports.getResourcePage = async (req, res, next) => {
   }
 
   try {
-    console.log(`Fetching resource page for: ${uri}`);
+    console.log(`Fetching enhanced resource page for: ${uri}`);
     
-    // Check if this is a core RDF/RDFS/OWL resource
-    const isCoreResource = coreResourceService.isCoreResource(uri);
-    console.log(`Is core resource: ${isCoreResource}`);
+    // Check if this is a core RDF/RDFS/OWL resource - skip for now since we don't have coreResourceService
+    const isCoreResource = false; // We'll implement this later
     
     // Fetch all data about the resource
     const properties = await graphdbService.fetchResourceProperties(uri);
@@ -33,7 +32,14 @@ exports.getResourcePage = async (req, res, next) => {
     const relatedUris = await graphdbService.fetchRelatedResources(uri);
     const types = await graphdbService.fetchResourceTypes(uri);
     
+    // NEW: Fetch additional relationship data
+    const inDomainOf = await fetchPropertiesWithDomain(uri);
+    const inRangeOf = await fetchPropertiesWithRange(uri);
+    const subClasses = await fetchSubClasses(uri);
+    const superClasses = await fetchSuperClasses(uri);
+    
     console.log(`Resource ${uri}: Found ${properties.length} properties, ${types.length} types, ${relatedUris.length} related resources`);
+    console.log(`Additional relationships: ${inDomainOf.length} in domain of, ${inRangeOf.length} in range of, ${subClasses.length} subclasses, ${superClasses.length} superclasses`);
     
     // Get labels if needed
     let labelMap = {};
@@ -44,21 +50,16 @@ exports.getResourcePage = async (req, res, next) => {
         if (row.object?.type === 'uri') uris.push(row.object.value);
         if (row.predicate?.type === 'uri') uris.push(row.predicate.value);
       });
+      
+      // Add relationship URIs
       uris.push(uri, ...relatedUris, ...types);
+      inDomainOf.forEach(prop => uris.push(prop.uri));
+      inRangeOf.forEach(prop => uris.push(prop.uri));
+      subClasses.forEach(cls => uris.push(cls.uri));
+      superClasses.forEach(cls => uris.push(cls.uri));
       
       console.log(`Fetching labels for ${uris.length} URIs`);
       labelMap = await labelService.fetchLabelsForUris(uris);
-    }
-    
-    // Enhanced data for core resources
-    let enhancedData = {};
-    if (isCoreResource) {
-      enhancedData = await coreResourceService.enhanceResourceData(uri, { description });
-      
-      // Use enhanced description if available
-      if (enhancedData.description) {
-        description = enhancedData.description;
-      }
     }
 
     // Group properties by type
@@ -102,10 +103,34 @@ exports.getResourcePage = async (req, res, next) => {
       console.warn("Warning: properties is not an array:", properties);
     }
     
-    console.log(`Property groups: basic=${propertyGroups.basic.length}, relationships=${propertyGroups.relationships.length}, other=${propertyGroups.other.length}`);
+    // Get common namespaces for the view - temporarily removed since we don't have coreResourceService
+    const commonNamespaces = [
+      { prefix: 'rdf', uri: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#', description: 'RDF core vocabulary' },
+      { prefix: 'rdfs', uri: 'http://www.w3.org/2000/01/rdf-schema#', description: 'RDF Schema vocabulary' },
+      { prefix: 'owl', uri: 'http://www.w3.org/2002/07/owl#', description: 'Web Ontology Language' },
+      { prefix: 'xsd', uri: 'http://www.w3.org/2001/XMLSchema#', description: 'XML Schema Datatypes' }
+    ];
     
-    // Get common namespaces for the view
-    const commonNamespaces = coreResourceService.getCommonNamespaces();
+    // Format the relationship data for the view
+    const formattedInDomainOf = inDomainOf.map(prop => ({
+      uri: prop.uri,
+      label: req.showLabels && labelMap[prop.uri] ? labelMap[prop.uri] : prop.uri.split(/[/#]/).pop()
+    }));
+    
+    const formattedInRangeOf = inRangeOf.map(prop => ({
+      uri: prop.uri,
+      label: req.showLabels && labelMap[prop.uri] ? labelMap[prop.uri] : prop.uri.split(/[/#]/).pop()
+    }));
+    
+    const formattedSubClasses = subClasses.map(cls => ({
+      uri: cls.uri,
+      label: req.showLabels && labelMap[cls.uri] ? labelMap[cls.uri] : cls.uri.split(/[/#]/).pop()
+    }));
+    
+    const formattedSuperClasses = superClasses.map(cls => ({
+      uri: cls.uri,
+      label: req.showLabels && labelMap[cls.uri] ? labelMap[cls.uri] : cls.uri.split(/[/#]/).pop()
+    }));
 
     res.render('resource', {
       title: 'Resursdetaljer',
@@ -126,14 +151,14 @@ exports.getResourcePage = async (req, res, next) => {
       showLabels: req.showLabels,
       showLabelsToggleState: req.showLabels ? 'false' : 'true',
       
-      // Enhanced data for core resources
-      isCoreResource,
-      coreResource: enhancedData,
-      namespace: enhancedData.namespace,
-      resourceType: enhancedData.resourceType,
-      coreProperties: enhancedData.properties,
-      coreExamples: enhancedData.examples,
-      coreRelated: enhancedData.related,
+      // Enhanced relationship data
+      inDomainOf: formattedInDomainOf,
+      inRangeOf: formattedInRangeOf,
+      subClasses: formattedSubClasses,
+      superClasses: formattedSuperClasses,
+      
+      // Core resource info - simplified for now
+      isCoreResource: false,
       commonNamespaces
     });
   } catch (err) {
@@ -141,3 +166,131 @@ exports.getResourcePage = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * Fetch properties that have the given URI as their domain
+ * @param {string} uri - Resource URI
+ * @returns {Promise<Array>} - Array of property objects
+ */
+async function fetchPropertiesWithDomain(uri) {
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    const query = `
+      SELECT DISTINCT ?property ?type WHERE {
+        ?property <http://www.w3.org/2000/01/rdf-schema#domain> <${safeUri}> .
+        OPTIONAL { ?property a ?type }
+      }
+      LIMIT 50
+    `;
+    
+    const response = await graphdbService.executeQuery(query);
+    
+    if (!response || !response.results || !Array.isArray(response.results.bindings)) {
+      return [];
+    }
+    
+    return response.results.bindings.map(binding => ({
+      uri: binding.property.value,
+      type: binding.type?.value
+    }));
+  } catch (error) {
+    console.error(`Error fetching properties with domain ${uri}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch properties that have the given URI as their range
+ * @param {string} uri - Resource URI
+ * @returns {Promise<Array>} - Array of property objects
+ */
+async function fetchPropertiesWithRange(uri) {
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    const query = `
+      SELECT DISTINCT ?property ?type WHERE {
+        ?property <http://www.w3.org/2000/01/rdf-schema#range> <${safeUri}> .
+        OPTIONAL { ?property a ?type }
+      }
+      LIMIT 50
+    `;
+    
+    const response = await graphdbService.executeQuery(query);
+    
+    if (!response || !response.results || !Array.isArray(response.results.bindings)) {
+      return [];
+    }
+    
+    return response.results.bindings.map(binding => ({
+      uri: binding.property.value,
+      type: binding.type?.value
+    }));
+  } catch (error) {
+    console.error(`Error fetching properties with range ${uri}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch classes that are subclasses of the given URI
+ * @param {string} uri - Resource URI
+ * @returns {Promise<Array>} - Array of class objects
+ */
+async function fetchSubClasses(uri) {
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    const query = `
+      SELECT DISTINCT ?class ?type WHERE {
+        ?class <http://www.w3.org/2000/01/rdf-schema#subClassOf> <${safeUri}> .
+        OPTIONAL { ?class a ?type }
+      }
+      LIMIT 50
+    `;
+    
+    const response = await graphdbService.executeQuery(query);
+    
+    if (!response || !response.results || !Array.isArray(response.results.bindings)) {
+      return [];
+    }
+    
+    return response.results.bindings.map(binding => ({
+      uri: binding.class.value,
+      type: binding.type?.value
+    }));
+  } catch (error) {
+    console.error(`Error fetching subclasses of ${uri}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch superclasses of the given URI
+ * @param {string} uri - Resource URI
+ * @returns {Promise<Array>} - Array of class objects
+ */
+async function fetchSuperClasses(uri) {
+  try {
+    const safeUri = sanitizeSparqlString(uri);
+    const query = `
+      SELECT DISTINCT ?class ?type WHERE {
+        <${safeUri}> <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?class .
+        OPTIONAL { ?class a ?type }
+      }
+      LIMIT 50
+    `;
+    
+    const response = await graphdbService.executeQuery(query);
+    
+    if (!response || !response.results || !Array.isArray(response.results.bindings)) {
+      return [];
+    }
+    
+    return response.results.bindings.map(binding => ({
+      uri: binding.class.value,
+      type: binding.type?.value
+    }));
+  } catch (error) {
+    console.error(`Error fetching superclasses of ${uri}:`, error);
+    return [];
+  }
+}
