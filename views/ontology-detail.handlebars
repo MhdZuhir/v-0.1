@@ -7,37 +7,29 @@
         <ul class="toc-list">
           <li><a href="#metadata" class="toc-active">Metadata</a></li>
           <li><a href="#overview">Overview</a></li>
+          {{#if ontology.subjects}}
           <li>
             <a href="#classes">Classes</a>
             <ul class="toc-sublist">
-              <li><a href="#class-digital-product-passport">Digital Product Passport</a></li>
-              <li><a href="#class-product">Product</a></li>
-              <li><a href="#class-material-composition">Material Composition</a></li>
-              <li><a href="#class-circularity-metric">Circularity Metric</a></li>
+              {{#each ontology.subjects}}
+                {{#if (eq this.typeClass "class-tag")}}
+                <li><a href="#class-{{this.uri}}">{{this.label}}</a></li>
+                {{/if}}
+              {{/each}}
             </ul>
           </li>
           <li>
             <a href="#object-properties">Object Properties</a>
             <ul class="toc-sublist">
-              <li><a href="#prop-describes">describes</a></li>
-              <li><a href="#prop-has-part">has part</a></li>
-              <li><a href="#prop-has-passport">has passport</a></li>
-              <li><a href="#prop-has-material">has material</a></li>
+              {{#each ontology.subjects}}
+                {{#if (eq this.typeClass "property-tag")}}
+                <li><a href="#prop-{{this.uri}}">{{this.label}}</a></li>
+                {{/if}}
+              {{/each}}
             </ul>
           </li>
-          <li>
-            <a href="#annotation-properties">Annotation Properties</a>
-            <ul class="toc-sublist">
-              <li><a href="#annot-contributor">contributor</a></li>
-              <li><a href="#annot-created">created</a></li>
-              <li><a href="#annot-creator">creator</a></li>
-              <li><a href="#annot-description">description</a></li>
-              <li><a href="#annot-license">license</a></li>
-              <li><a href="#annot-title">title</a></li>
-              <li><a href="#annot-prefix">preferred namespace prefix</a></li>
-              <li><a href="#annot-uri">preferred namespace uri</a></li>
-            </ul>
-          </li>
+          {{/if}}
+          <li><a href="#annotation-properties">Annotation Properties</a></li>
           <li><a href="#namespaces">Namespaces</a></li>
           <li><a href="#legend">Legend</a></li>
           <li><a href="#downloads">Downloads</a></li>
@@ -47,44 +39,49 @@
 
     <!-- Main Content -->
     <div class="ontology-container">
-      <h1>Digital Product Passport Ontology</h1>
+      <h1>{{ontology.title}}</h1>
 
       <h2 id="metadata">Metadata</h2>
       <div class="metadata-section">
         <p><strong>IRI</strong><br>
-        <code>http://www.w3id.org/dpp/digital-product-passport/1.0</code></p>
+        <code>{{ontology.uri}}</code></p>
 
         <p><strong>Title</strong><br>
-        Digital Product Passport Ontology</p>
+        {{ontology.title}}</p>
 
+        {{#if ontology.creator}}
         <p><strong>Creator</strong><br>
-        EU Circular Economy Initiative</p>
+        {{ontology.creator}}</p>
+        {{/if}}
 
-        <p><strong>Contributor</strong><br>
-        Sustainability Research Group<br>
-        Product Lifecycle Management Consortium
+        {{#if ontology.publisher}}
+        <p><strong>Publisher</strong><br>
+        {{ontology.publisher}}
         </p>
+        {{/if}}
 
+        {{#if ontology.created}}
         <p><strong>Date Created</strong><br>
-        2024-03-15</p>
+        {{ontology.created}}</p>
+        {{/if}}
 
+        {{#if ontology.modified}}
         <p><strong>Date Modified</strong><br>
-        2024-04-10</p>
+        {{ontology.modified}}</p>
+        {{/if}}
 
+        {{#if ontology.license}}
         <p><strong>License</strong><br>
-        <a href="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</a></p>
+        <a href="{{ontology.license}}">{{ontology.license}}</a></p>
+        {{/if}}
 
+        {{#if ontology.version}}
         <p><strong>Version</strong><br>
-        1.0.0</p>
-
-        <p><strong>Preferred Namespace Prefix</strong><br>
-        dpp</p>
-
-        <p><strong>Preferred Namespace Uri</strong><br>
-        <code>http://www.w3id.org/dpp/digital-product-passport/1.0#</code></p>
+        {{ontology.version}}</p>
+        {{/if}}
 
         <p><strong>Description</strong><br>
-        An ontology for representing Digital Product Passports (DPP), defining concepts and relationships for tracking product information throughout the lifecycle, with focus on sustainability metrics, material composition, and circular economy principles.</p>
+        {{ontology.description}}</p>
       </div>
 
       <h2 id="overview">Overview</h2>
@@ -93,19 +90,72 @@
         
         <div class="stats-summary">
           <div class="stat-item">
-            <span class="stat-value">24</span> Classes
+            <span class="stat-value">{{ontology.stats.classes}}</span> Classes
           </div>
           <div class="stat-item">
-            <span class="stat-value">36</span> Properties
+            <span class="stat-value">{{ontology.stats.properties}}</span> Properties
           </div>
           <div class="stat-item">
-            <span class="stat-value">15</span> Individuals
+            <span class="stat-value">{{ontology.stats.individuals}}</span> Individuals
           </div>
         </div>
         
-        <p>The Digital Product Passport Ontology provides a standard vocabulary for creating digital product passports that accompany physical products throughout their lifecycle. These passports contain vital information about a product's composition, environmental impact, repair instructions, and end-of-life considerations, supporting circular economy principles and regulatory compliance with the EU's Circular Economy Action Plan.</p>
+        <p>{{ontology.description}}</p>
+
+        {{#if ontology.relationships}}
+        <div class="relationships-container">
+          <h3>Key Relationships</h3>
+          <table class="relationships-table">
+            <tr>
+              <th>Property</th>
+              <th>Domain</th>
+              <th>Range</th>
+            </tr>
+            {{#each ontology.relationships}}
+            <tr>
+              <td>
+                <a href="/resource?uri={{property.uri}}">
+                  {{#if ../showLabels}}
+                    {{property.label}}
+                  {{else}}
+                    {{property.uri}}
+                  {{/if}}
+                </a>
+              </td>
+              <td>
+                {{#if domain.uri}}
+                <a href="/resource?uri={{domain.uri}}">
+                  {{#if ../showLabels}}
+                    {{domain.label}}
+                  {{else}}
+                    {{domain.uri}}
+                  {{/if}}
+                </a>
+                {{else}}
+                -
+                {{/if}}
+              </td>
+              <td>
+                {{#if range.uri}}
+                <a href="/resource?uri={{range.uri}}">
+                  {{#if ../showLabels}}
+                    {{range.label}}
+                  {{else}}
+                    {{range.uri}}
+                  {{/if}}
+                </a>
+                {{else}}
+                -
+                {{/if}}
+              </td>
+            </tr>
+            {{/each}}
+          </table>
+        </div>
+        {{/if}}
       </div>
 
+      {{#if ontology.subjects}}
       <h2 id="classes">Classes</h2>
       <div class="classes-section">
         <div class="filter-control">
@@ -113,61 +163,21 @@
         </div>
         
         <div class="entity-items">
-          <div id="class-digital-product-passport" class="entity-item class-item">
-            <h3>Digital Product Passport <sup>c</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#DigitalProductPassport</code></p>
-            
-            <p><strong>Description</strong><br>
-            A digital representation of product information throughout its lifecycle, containing data on composition, environmental impact, and circularity aspects.</p>
-            
-            <p><strong>In Domain Of</strong><br>
-            describes, hasIdentifier, hasCertification, hasTimestamp</p>
-            
-            <p><strong>In Range Of</strong><br>
-            hasPassport</p>
-          </div>
-
-          <div id="class-product" class="entity-item class-item">
-            <h3>Product <sup>c</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#Product</code></p>
-            
-            <p><strong>Description</strong><br>
-            A physical product that is tracked via a Digital Product Passport.</p>
-            
-            <p><strong>In Domain Of</strong><br>
-            hasPassport, hasMaterialComposition, hasManufacturer, hasProductCategory</p>
-            
-            <p><strong>In Range Of</strong><br>
-            describes, hasPart</p>
-          </div>
-
-          <div id="class-material-composition" class="entity-item class-item">
-            <h3>Material Composition <sup>c</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#MaterialComposition</code></p>
-            
-            <p><strong>Description</strong><br>
-            The material components and their quantities in a product.</p>
-            
-            <p><strong>In Domain Of</strong><br>
-            hasMaterial, hasWeight, hasPercentage</p>
-            
-            <p><strong>In Range Of</strong><br>
-            hasMaterialComposition</p>
-          </div>
-
-          <div id="class-circularity-metric" class="entity-item class-item">
-            <h3>Circularity Metric <sup>c</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#CircularityMetric</code></p>
-            
-            <p><strong>Description</strong><br>
-            Metrics related to circular economy principles, such as recyclability, repairability, and durability scores.</p>
-            
-            <p><strong>In Domain Of</strong><br>
-            hasScore, hasCalculationMethod, hasTimestamp</p>
-            
-            <p><strong>In Range Of</strong><br>
-            hasCircularityMetric</p>
-          </div>
+          {{#each ontology.subjects}}
+            {{#if (eq this.typeClass "class-tag")}}
+            <div id="class-{{encodeURIComponent this.uri}}" class="entity-item class-item">
+              <h3>{{this.label}} <sup>c</sup></h3>
+              <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+              
+              {{#if this.description}}
+              <p><strong>Description</strong><br>
+              {{this.description}}</p>
+              {{/if}}
+              
+              <!-- Add more class properties from GraphDB if available -->
+            </div>
+            {{/if}}
+          {{/each}}
         </div>
       </div>
 
@@ -178,228 +188,113 @@
         </div>
         
         <div class="entity-items">
-          <div id="prop-describes" class="entity-item property-item">
-            <h3>describes <sup>op</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#describes</code></p>
-            
-            <p><strong>Description</strong><br>
-            Relates a Digital Product Passport to the Product it describes.</p>
-            
-            <p><strong>Domain</strong><br>
-            <a href="#class-digital-product-passport">Digital Product Passport</a> <sup>c</sup></p>
-            
-            <p><strong>Range</strong><br>
-            <a href="#class-product">Product</a> <sup>c</sup></p>
-          </div>
-
-          <div id="prop-has-part" class="entity-item property-item">
-            <h3>has part <sup>op</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasPart</code></p>
-            
-            <p><strong>Description</strong><br>
-            Relates a product to its component parts.</p>
-            
-            <p><strong>Domain</strong><br>
-            <a href="#class-product">Product</a> <sup>c</sup></p>
-            
-            <p><strong>Range</strong><br>
-            <a href="#class-product">Product</a> <sup>c</sup></p>
-          </div>
-
-          <div id="prop-has-passport" class="entity-item property-item">
-            <h3>has passport <sup>op</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasPassport</code></p>
-            
-            <p><strong>Description</strong><br>
-            Relates a Product to its Digital Product Passport.</p>
-            
-            <p><strong>Domain</strong><br>
-            <a href="#class-product">Product</a> <sup>c</sup></p>
-            
-            <p><strong>Range</strong><br>
-            <a href="#class-digital-product-passport">Digital Product Passport</a> <sup>c</sup></p>
-          </div>
-
-          <div id="prop-has-material" class="entity-item property-item">
-            <h3>has material <sup>op</sup></h3>
-            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasMaterial</code></p>
-            
-            <p><strong>Description</strong><br>
-            Relates a Material Composition to a specific material.</p>
-            
-            <p><strong>Domain</strong><br>
-            <a href="#class-material-composition">Material Composition</a> <sup>c</sup></p>
-            
-            <p><strong>Range</strong><br>
-            Material <sup>c</sup></p>
-          </div>
+          {{#each ontology.subjects}}
+            {{#if (eq this.typeClass "property-tag")}}
+            <div id="prop-{{encodeURIComponent this.uri}}" class="entity-item property-item">
+              <h3>{{this.label}} <sup>op</sup></h3>
+              <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+              
+              {{#if this.description}}
+              <p><strong>Description</strong><br>
+              {{this.description}}</p>
+              {{/if}}
+              
+              <!-- Add more property details from GraphDB if available -->
+            </div>
+            {{/if}}
+          {{/each}}
         </div>
       </div>
+      {{/if}}
 
       <h2 id="annotation-properties">Annotation Properties</h2>
       <div class="annotation-props-section">
         <div class="entity-items">
-          <div id="annot-contributor" class="entity-item">
+          {{#each ontology.subjects}}
+            {{#if (eq this.typeClass "annotation-tag")}}
+            <div id="annot-{{encodeURIComponent this.uri}}" class="entity-item">
+              <h3>
+                <a href="#annot-{{encodeURIComponent this.uri}}" class="property-title-link">
+                  {{this.label}} <sup>ap</sup>
+                </a>
+              </h3>
+              <p><strong>IRI</strong>
+                <a href="#annot-{{encodeURIComponent this.uri}}" class="iri-link">
+                  <code>{{this.uri}}</code>
+                </a>
+              </p>
+              <div class="property-description">
+                <p>{{this.description}}</p>
+              </div>
+            </div>
+            {{/if}}
+          {{/each}}
+
+          <!-- Common annotation properties if none found in the data -->
+          {{#unless hasAnnotationProperties}}
+          <div id="annot-label" class="entity-item">
             <h3>
-              <a href="#annot-contributor" class="property-title-link">
-                contributor <sup>ap</sup>
+              <a href="#annot-label" class="property-title-link">
+                label <sup>ap</sup>
               </a>
             </h3>
             <p><strong>IRI</strong>
-              <a href="#annot-contributor" class="iri-link">
-                <code>http://purl.org/dc/terms/contributor</code>
+              <a href="#annot-label" class="iri-link">
+                <code>http://www.w3.org/2000/01/rdf-schema#label</code>
               </a>
             </p>
             <div class="property-description">
-              <p>An entity responsible for making contributions to the resource.</p>
+              <p>A human-readable name for the subject.</p>
             </div>
           </div>
           
-          <div id="annot-creator" class="entity-item">
+          <div id="annot-comment" class="entity-item">
             <h3>
-              <a href="#annot-creator" class="property-title-link">
-                creator <sup>ap</sup>
+              <a href="#annot-comment" class="property-title-link">
+                comment <sup>ap</sup>
               </a>
             </h3>
             <p><strong>IRI</strong>
-              <a href="#annot-creator" class="iri-link">
-                <code>http://purl.org/dc/terms/creator</code>
+              <a href="#annot-comment" class="iri-link">
+                <code>http://www.w3.org/2000/01/rdf-schema#comment</code>
               </a>
             </p>
             <div class="property-description">
-              <p>An entity primarily responsible for making the resource.</p>
+              <p>A description of the subject resource.</p>
             </div>
           </div>
-          
-          <div id="annot-description" class="entity-item">
-            <h3>
-              <a href="#annot-description" class="property-title-link">
-                description <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-description" class="iri-link">
-                <code>http://purl.org/dc/terms/description</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>An account of the resource. May include an abstract, table of contents, or free-text account of the resource.</p>
-            </div>
-          </div>
-          
-          <div id="annot-created" class="entity-item">
-            <h3>
-              <a href="#annot-created" class="property-title-link">
-                created <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-created" class="iri-link">
-                <code>http://purl.org/dc/terms/created</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>Date of creation of the resource.</p>
-            </div>
-          </div>
-          
-          <div id="annot-license" class="entity-item">
-            <h3>
-              <a href="#annot-license" class="property-title-link">
-                license <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-license" class="iri-link">
-                <code>http://purl.org/dc/terms/license</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>A legal document giving official permission to do something with the resource.</p>
-            </div>
-          </div>
-          
-          <div id="annot-title" class="entity-item">
-            <h3>
-              <a href="#annot-title" class="property-title-link">
-                title <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-title" class="iri-link">
-                <code>http://purl.org/dc/terms/title</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>A name given to the resource.</p>
-            </div>
-          </div>
-          
-          <div id="annot-prefix" class="entity-item">
-            <h3>
-              <a href="#annot-prefix" class="property-title-link">
-                preferred namespace prefix <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-prefix" class="iri-link">
-                <code>http://purl.org/vocab/vann/preferredNamespacePrefix</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>The preferred namespace prefix to use when using terms from this vocabulary in an XML document.</p>
-            </div>
-          </div>
-          
-          <div id="annot-uri" class="entity-item">
-            <h3>
-              <a href="#annot-uri" class="property-title-link">
-                preferred namespace uri <sup>ap</sup>
-              </a>
-            </h3>
-            <p><strong>IRI</strong>
-              <a href="#annot-uri" class="iri-link">
-                <code>http://purl.org/vocab/vann/preferredNamespaceUri</code>
-              </a>
-            </p>
-            <div class="property-description">
-              <p>The preferred namespace URI to use when using terms from this vocabulary in an XML document.</p>
-            </div>
-          </div>
+          {{/unless}}
         </div>
       </div>
 
       <h2 id="namespaces">Namespaces</h2>
       <div class="namespaces-section">
         <table class="namespaces-table">
-          <tr>
-            <td><strong>dpp</strong></td>
-            <td><code>http://www.w3id.org/dpp/digital-product-passport/1.0#</code></td>
-          </tr>
-          <tr>
-            <td><strong>dcterms</strong></td>
-            <td><code>http://purl.org/dc/terms/</code></td>
-          </tr>
-          <tr>
-            <td><strong>owl</strong></td>
-            <td><code>http://www.w3.org/2002/07/owl#</code></td>
-          </tr>
-          <tr>
-            <td><strong>prov</strong></td>
-            <td><code>http://www.w3.org/ns/prov#</code></td>
-          </tr>
-          <tr>
-            <td><strong>rdf</strong></td>
-            <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
-          </tr>
-          <tr>
-            <td><strong>rdfs</strong></td>
-            <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
-          </tr>
-          <tr>
-            <td><strong>vann</strong></td>
-            <td><code>http://purl.org/vocab/vann/</code></td>
-          </tr>
+          {{#if commonNamespaces}}
+            {{#each commonNamespaces}}
+            <tr>
+              <td><strong>{{this.prefix}}</strong></td>
+              <td><code>{{this.uri}}</code></td>
+            </tr>
+            {{/each}}
+          {{else}}
+            <tr>
+              <td><strong>rdf</strong></td>
+              <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
+            </tr>
+            <tr>
+              <td><strong>rdfs</strong></td>
+              <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
+            </tr>
+            <tr>
+              <td><strong>owl</strong></td>
+              <td><code>http://www.w3.org/2002/07/owl#</code></td>
+            </tr>
+            <tr>
+              <td><strong>xsd</strong></td>
+              <td><code>http://www.w3.org/2001/XMLSchema#</code></td>
+            </tr>
+          {{/if}}
         </table>
       </div>
 
@@ -411,33 +306,29 @@
       <div id="downloads" class="download-section">
         <h2>Downloads</h2>
         <div class="download-links">
-          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=rdf" class="download-link" download="ontology.rdf">
-            Download as RDF/XML
+          {{#each downloadLinks}}
+          <a href="{{this.url}}" class="download-link" download="ontology.{{this.extension}}">
+            Download as {{this.format}}
           </a>
-          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=ttl" class="download-link" download="ontology.ttl">
-            Download as Turtle
-          </a>
-          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=nt" class="download-link" download="ontology.nt">
-            Download as N-Triples
-          </a>
-          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=jsonld" class="download-link" download="ontology.jsonld">
-            Download as JSON-LD
-          </a>
+          {{/each}}
         </div>
       </div>
     
       <div class="display-control">
         <label for="displayToggle">Show human-readable labels:</label>
         <label class="toggle-switch">
-          <input type="checkbox" id="displayToggle" checked>
+          <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
           <span class="toggle-slider"></span>
         </label>
-        <span class="toggle-label">On</span>
+        <span class="toggle-label">{{#if showLabels}}On{{else}}Off{{/if}}</span>
       </div>
     
       <div class="navigation-links">
         <a href="/" class="nav-link">Back to Home</a>
-        <a href="/ontology/products?uri=http://www.w3id.org/dpp/digital-product-passport/1.0" class="nav-link">View Related Products</a>
+        <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}" class="nav-link">View Related Products</a>
+        {{#if ontology.relatedOntologies}}
+        <a href="/class/browse" class="nav-link">Browse Classes</a>
+        {{/if}}
       </div>
     </div>
   </div>
@@ -599,3 +490,4 @@
       });
     }
   </script>
+</body>

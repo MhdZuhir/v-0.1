@@ -15,13 +15,16 @@ router.get('/test-download', ontologyController.testDownload);
 // Route to check supported formats
 router.get('/formats', ontologyController.getSupportedFormats);
 
-// Debug products route
-router.get('/debug-products', ontologyController.debugProducts);
+// Get ontology triples route
+router.get('/triples', ontologyController.getOntologyTriples);
 
 // Ontology products route
 router.get('/products', ontologyController.getOntologyProducts);
 
-// Rebuild product index route
-router.get('/rebuild-products', ontologyController.rebuildProductIndex);
+// Debug products route - commenting out if not defined
+// router.get('/debug-products', ontologyController.debugProducts);
+
+// Rebuild product index route - commenting out if not defined
+// router.get('/rebuild-products', ontologyController.rebuildProductIndex);
 
 module.exports = router;
