@@ -1,287 +1,356 @@
-<body>
-{{!-- Enhanced class display section with relationship information --}}
-<div class="classes-section">
-  <div class="filter-control">
-    <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
-  </div>
-  
-  <div class="entity-items">
-    {{#each ontology.subjects}}
-      {{#if (eq this.typeClass "class-tag")}}
-      <div id="class-{{encodeURIComponent this.uri}}" class="entity-item class-item">
-        <h3>{{this.label}} <sup>c</sup></h3>
-        <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
-        
-        {{#if this.description}}
-        <p><strong>Description</strong><br>
-        {{this.description}}</p>
+{{!-- Main page container with sidebar layout --}}
+<div class="page-container">
+  {{!-- Table of Contents sidebar --}}
+  <div class="toc-sidebar">
+    <div class="toc-content">
+      <h3>Contents</h3>
+      <ul class="toc-list">
+        {{#if ontology.metadata}}
+        <li><a href="#metadata">Metadata</a></li>
         {{/if}}
-        
-        {{!-- Display superclasses if available --}}
-        {{#if this.superClasses}}
-        <p><strong>Super Class Of</strong><br>
-          {{#each this.superClasses}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display subclasses if available --}}
-        {{#if this.subClasses}}
-        <p><strong>Sub Class Of</strong><br>
-          {{#each this.subClasses}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display properties in domain --}}
-        {{#if this.inDomainOf}}
-        <p><strong>In Domain Of</strong><br>
-          {{#each this.inDomainOf}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display properties in range --}}
-        {{#if this.inRangeOf}}
-        <p><strong>In Range Of</strong><br>
-          {{#each this.inRangeOf}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-      </div>
-      {{/if}}
-    {{/each}}
-  </div>
-</div>
-
-{{!-- Enhanced property display section with relationship information --}}
-<div class="properties-section">
-  <div class="filter-control">
-    <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
-  </div>
-  
-  <div class="entity-items">
-    {{#each ontology.subjects}}
-      {{#if (eq this.typeClass "property-tag")}}
-      <div id="prop-{{encodeURIComponent this.uri}}" class="entity-item property-item">
-        <h3>{{this.label}} <sup>op</sup></h3>
-        <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
-        
-        {{#if this.description}}
-        <p><strong>Description</strong><br>
-        {{this.description}}</p>
-        {{/if}}
-        
-        {{!-- Display domains if available --}}
-        {{#if this.domains}}
-        <p><strong>Domain</strong><br>
-          {{#each this.domains}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display ranges if available --}}
-        {{#if this.ranges}}
-        <p><strong>Range</strong><br>
-          {{#each this.ranges}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display super-properties if available --}}
-        {{#if this.superProperties}}
-        <p><strong>Super Property Of</strong><br>
-          {{#each this.superProperties}}
-            <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
-          {{/each}}
-        </p>
-        {{/if}}
-        
-        {{!-- Display examples of usage if available --}}
-        {{#if this.examples}}
-        <div class="examples-section">
-          <p><strong>Examples</strong></p>
-          <ul class="examples-list">
-            {{#each this.examples}}
-              <li>
-                <a href="/resource?uri={{this.subject}}">{{this.subjectLabel}}</a> → 
-                {{#if (eq this.object.type "uri")}}
-                  <a href="/resource?uri={{this.object}}">{{this.objectLabel}}</a>
-                {{else}}
-                  "{{this.object}}"
-                {{/if}}
-              </li>
+        <li>
+          <a href="#classes">Classes</a>
+          <ul class="toc-sublist">
+            {{#each ontology.subjects}}
+              {{#if (eq this.typeClass "class-tag")}}
+                <li><a href="#class-{{encodeURIComponent this.uri}}">{{this.label}}</a></li>
+              {{/if}}
             {{/each}}
           </ul>
-        </div>
-        {{/if}}
-      </div>
+        </li>
+        <li>
+          <a href="#properties">Properties</a>
+          <ul class="toc-sublist">
+            {{#each ontology.subjects}}
+              {{#if (eq this.typeClass "property-tag")}}
+                <li><a href="#prop-{{encodeURIComponent this.uri}}">{{this.label}}</a></li>
+              {{/if}}
+            {{/each}}
+          </ul>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  {{!-- Main content area --}}
+  <div class="ontology-container">
+    <h1>{{ontology.title}}</h1>
+    <p>overview </p>
+    <script src="/js/simple-ontology-viz.js"></script>
+    {{!-- Metadata section --}}
+    {{#if ontology.metadata}}
+    <div id="metadata" class="metadata-section">
+      <h2>Metadata</h2>
+      <p><strong>IRI</strong><br><code>{{ontology.metadata.ontologyIRI}}</code></p>
+      
+      {{#if ontology.metadata.description}}
+      <p><strong>Description</strong><br>
+      {{ontology.metadata.description}}</p>
       {{/if}}
-    {{/each}}
+      
+      {{#if ontology.metadata.version}}
+      <p><strong>Version</strong><br>
+      {{ontology.metadata.version}}</p>
+      {{/if}}
+      
+      {{#if ontology.metadata.created}}
+      <p><strong>Created</strong><br>
+      {{formatDate ontology.metadata.created}}</p>
+      {{/if}}
+      
+      {{#if ontology.metadata.updated}}
+      <p><strong>Last updated</strong><br>
+      {{formatDate ontology.metadata.updated}}</p>
+      {{/if}}
+    </div>
+    {{/if}}
+    
+    {{!-- Classes section --}}
+    <div id="classes" class="classes-section">
+      <h2>Classes</h2>
+      <div class="filter-control">
+        <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
+      </div>
+      
+      <div class="entity-items">
+        {{#each ontology.subjects}}
+          {{#if (eq this.typeClass "class-tag")}}
+          <div id="class-{{encodeURIComponent this.uri}}" class="entity-item class-item">
+            <h3>{{this.label}} <sup>c</sup></h3>
+            <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+            
+            {{#if this.description}}
+            <p><strong>Description</strong><br>
+            {{this.description}}</p>
+            {{/if}}
+            
+            {{!-- Display superclasses if available --}}
+            {{#if this.superClasses}}
+            <p><strong>Super Class Of</strong><br>
+              {{#each this.superClasses}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display subclasses if available --}}
+            {{#if this.subClasses}}
+            <p><strong>Sub Class Of</strong><br>
+              {{#each this.subClasses}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display properties in domain --}}
+            {{#if this.inDomainOf}}
+            <p><strong>In Domain Of</strong><br>
+              {{#each this.inDomainOf}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display properties in range --}}
+            {{#if this.inRangeOf}}
+            <p><strong>In Range Of</strong><br>
+              {{#each this.inRangeOf}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+          </div>
+          {{/if}}
+        {{/each}}
+      </div>
+    </div>
+
+    {{!-- Properties section --}}
+    <div id="properties" class="properties-section">
+      <h2>Properties</h2>
+      <div class="filter-control">
+        <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
+      </div>
+      
+      <div class="entity-items">
+        {{#each ontology.subjects}}
+          {{#if (eq this.typeClass "property-tag")}}
+          <div id="prop-{{encodeURIComponent this.uri}}" class="entity-item property-item">
+            <h3>{{this.label}} <sup>op</sup></h3>
+            <p><strong>IRI</strong><br><code>{{this.uri}}</code></p>
+            
+            {{#if this.description}}
+            <p><strong>Description</strong><br>
+            {{this.description}}</p>
+            {{/if}}
+            
+            {{!-- Display domains if available --}}
+            {{#if this.domains}}
+            <p><strong>Domain</strong><br>
+              {{#each this.domains}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display ranges if available --}}
+            {{#if this.ranges}}
+            <p><strong>Range</strong><br>
+              {{#each this.ranges}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display super-properties if available --}}
+            {{#if this.superProperties}}
+            <p><strong>Super Property Of</strong><br>
+              {{#each this.superProperties}}
+                <a href="/resource?uri={{this.uri}}">{{this.label}}</a>{{#unless @last}}, {{/unless}}
+              {{/each}}
+            </p>
+            {{/if}}
+            
+            {{!-- Display examples of usage if available --}}
+            {{#if this.examples}}
+            <div class="examples-section">
+              <p><strong>Examples</strong></p>
+              <ul class="examples-list">
+                {{#each this.examples}}
+                  <li>
+                    <a href="/resource?uri={{this.subject}}">{{this.subjectLabel}}</a> → 
+                    {{#if (eq this.object.type "uri")}}
+                      <a href="/resource?uri={{this.object}}">{{this.objectLabel}}</a>
+                    {{else}}
+                      "{{this.object}}"
+                    {{/if}}
+                  </li>
+                {{/each}}
+              </ul>
+            </div>
+            {{/if}}
+          </div>
+          {{/if}}
+        {{/each}}
+      </div>
+    </div>
   </div>
 </div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      // Initialize filtering
-      initFilter('#classFilter', '.class-item');
-      initFilter('#propFilter', '.property-item');
-      
-      // Update display toggle
-      const displayToggle = document.getElementById('displayToggle');
-      const toggleLabel = document.querySelector('.toggle-label');
-      
-      if (displayToggle && toggleLabel) {
-        displayToggle.addEventListener('change', function() {
-          // Update the label text
-          toggleLabel.textContent = this.checked ? 'On' : 'Off';
-          
-          // Create URL with updated showLabels parameter
-          const url = new URL(window.location.href);
-          url.searchParams.set('showLabels', this.checked ? 'true' : 'false');
-          
-          // Redirect to the new URL
-          window.location.href = url.toString();
-        });
-      }
-      
-      // Initialize TOC highlight on scroll
-      initTOCHighlight();
-      
-      // Make the TOC stay in view when scrolling
-      window.addEventListener('scroll', function() {
-        const toc = document.querySelector('.toc-sidebar');
-        if (toc) {
-          if (window.innerWidth > 992) { // Only apply this on larger screens
-            const scrollPosition = window.scrollY;
-            toc.style.top = (scrollPosition > 0) ? '0' : '';
-          }
-        }
-      });
-      
-      // Smooth scrolling for anchor links
-      document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          const targetId = this.getAttribute('href').substring(1);
-          const targetElement = document.getElementById(targetId);
-          
-          if (targetElement) {
-            window.scrollTo({
-              top: targetElement.offsetTop - 20,
-              behavior: 'smooth'
-            });
-            
-            // Update URL without reload
-            history.pushState(null, null, `#${targetId}`);
-            
-            // Highlight the clicked TOC item
-            highlightTOCItem(this);
-          }
-        });
-      });
-      
-      // Check for hash in URL on page load to scroll to section
-      if (window.location.hash) {
-        const targetId = window.location.hash.substring(1);
-        const targetElement = document.getElementById(targetId);
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize filtering
+    initFilter('#classFilter', '.class-item');
+    initFilter('#propFilter', '.property-item');
+    
+    // Update display toggle
+    const displayToggle = document.getElementById('displayToggle');
+    const toggleLabel = document.querySelector('.toggle-label');
+    
+    if (displayToggle && toggleLabel) {
+      displayToggle.addEventListener('change', function() {
+        // Update the label text
+        toggleLabel.textContent = this.checked ? 'On' : 'Off';
         
-        if (targetElement) {
-          setTimeout(() => {
-            window.scrollTo({
-              top: targetElement.offsetTop - 20,
-              behavior: 'auto'
-            });
-            
-            // Find and highlight the corresponding TOC item
-            const tocItem = document.querySelector(`.toc-list a[href="#${targetId}"], .toc-sublist a[href="#${targetId}"]`);
-            if (tocItem) {
-              highlightTOCItem(tocItem);
-            }
-          }, 100);
+        // Create URL with updated showLabels parameter
+        const url = new URL(window.location.href);
+        url.searchParams.set('showLabels', this.checked ? 'true' : 'false');
+        
+        // Redirect to the new URL
+        window.location.href = url.toString();
+      });
+    }
+    
+    // Initialize TOC highlight on scroll
+    initTOCHighlight();
+    
+    // Make the TOC stay in view when scrolling
+    window.addEventListener('scroll', function() {
+      const toc = document.querySelector('.toc-sidebar');
+      if (toc) {
+        if (window.innerWidth > 992) { // Only apply this on larger screens
+          const scrollPosition = window.scrollY;
+          toc.style.top = (scrollPosition > 0) ? '0' : '';
         }
       }
     });
     
-    // Function to initialize filtering
-    function initFilter(inputSelector, itemSelector) {
-      const input = document.querySelector(inputSelector);
-      if (!input) return;
-      
-      input.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const items = document.querySelectorAll(itemSelector);
+    // Smooth scrolling for anchor links
+    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
         
-        items.forEach(item => {
-          // Check if item contains the search term
-          const text = item.textContent.toLowerCase();
-          
-          if (searchTerm === '' || text.includes(searchTerm)) {
-            item.style.display = '';
-          } else {
-            item.style.display = 'none';
-          }
-        });
-      });
-    }
-    
-    // Function to highlight active TOC item
-    function highlightTOCItem(item) {
-      // Remove active class from all TOC items
-      document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
-        link.classList.remove('toc-active');
-      });
-      
-      // Add active class to the clicked item
-      item.classList.add('toc-active');
-    }
-    
-    // Function to highlight TOC items based on scroll position
-    function initTOCHighlight() {
-      // Get all section elements
-      const sections = document.querySelectorAll('h2[id], .entity-item[id]');
-      
-      // Observe sections visibility
-      window.addEventListener('scroll', function() {
-        let currentSection = '';
-        const scrollPosition = window.scrollY;
+        const targetId = this.getAttribute('href').substring(1);
+        const targetElement = document.getElementById(targetId);
         
-        // Find the current section
-        sections.forEach(section => {
-          const sectionTop = section.offsetTop - 100;
-          const sectionHeight = section.offsetHeight;
+        if (targetElement) {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'smooth'
+          });
           
-          if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-            currentSection = section.getAttribute('id');
-          }
-        });
-        
-        // Highlight the corresponding TOC item
-        if (currentSection) {
-          const tocItem = document.querySelector(`.toc-list a[href="#${currentSection}"], .toc-sublist a[href="#${currentSection}"]`);
+          // Update URL without reload
+          history.pushState(null, null, `#${targetId}`);
           
-          if (tocItem) {
-            document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
-              link.classList.remove('toc-active');
-            });
-            
-            tocItem.classList.add('toc-active');
-            
-            // If it's a subitem, also highlight its parent
-            const parent = tocItem.closest('.toc-sublist');
-            if (parent && parent.previousElementSibling) {
-              parent.previousElementSibling.classList.add('toc-active');
-            }
-          }
+          // Highlight the clicked TOC item
+          highlightTOCItem(this);
         }
       });
+    });
+    
+    // Check for hash in URL on page load to scroll to section
+    if (window.location.hash) {
+      const targetId = window.location.hash.substring(1);
+      const targetElement = document.getElementById(targetId);
+      
+      if (targetElement) {
+        setTimeout(() => {
+          window.scrollTo({
+            top: targetElement.offsetTop - 20,
+            behavior: 'auto'
+          });
+          
+          // Find and highlight the corresponding TOC item
+          const tocItem = document.querySelector(`.toc-list a[href="#${targetId}"], .toc-sublist a[href="#${targetId}"]`);
+          if (tocItem) {
+            highlightTOCItem(tocItem);
+          }
+        }, 100);
+      }
     }
-  </script>
-</body>
+  });
+  
+  // Function to initialize filtering
+  function initFilter(inputSelector, itemSelector) {
+    const input = document.querySelector(inputSelector);
+    if (!input) return;
+    
+    input.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      const items = document.querySelectorAll(itemSelector);
+      
+      items.forEach(item => {
+        // Check if item contains the search term
+        const text = item.textContent.toLowerCase();
+        
+        if (searchTerm === '' || text.includes(searchTerm)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    });
+  }
+  
+  // Function to highlight active TOC item
+  function highlightTOCItem(item) {
+    // Remove active class from all TOC items
+    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+      link.classList.remove('toc-active');
+    });
+    
+    // Add active class to the clicked item
+    item.classList.add('toc-active');
+  }
+  
+  // Function to highlight TOC items based on scroll position
+  function initTOCHighlight() {
+    // Get all section elements
+    const sections = document.querySelectorAll('h2[id], .entity-item[id]');
+    
+    // Observe sections visibility
+    window.addEventListener('scroll', function() {
+      let currentSection = '';
+      const scrollPosition = window.scrollY;
+      
+      // Find the current section
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        const sectionHeight = section.offsetHeight;
+        
+        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+          currentSection = section.getAttribute('id');
+        }
+      });
+      
+      // Highlight the corresponding TOC item
+      if (currentSection) {
+        const tocItem = document.querySelector(`.toc-list a[href="#${currentSection}"], .toc-sublist a[href="#${currentSection}"]`);
+        
+        if (tocItem) {
+          document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+            link.classList.remove('toc-active');
+          });
+          
+          tocItem.classList.add('toc-active');
+          
+          // If it's a subitem, also highlight its parent
+          const parent = tocItem.closest('.toc-sublist');
+          if (parent && parent.previousElementSibling) {
+            parent.previousElementSibling.classList.add('toc-active');
+          }
+        }
+      }
+    });
+  }
+</script>
