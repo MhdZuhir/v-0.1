@@ -20,15 +20,41 @@ exports.getDiagnosticPage = async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
+    // Check if a specific ontology URI is provided
+    const ontologyUri = req.query.uri;
+    
     // Allow a custom query for diagnostics
     const customQuery = req.query.query;
-    const query = customQuery || `
-      SELECT ?s ?p ?o WHERE { 
-        ?s ?p ?o 
-        FILTER(STRSTARTS(STR(?s), "http://www.w3id.org/")) 
-      } 
-      LIMIT 20
-    `;
+    
+    // Determine the query to execute
+    let query;
+    if (customQuery) {
+      query = customQuery;
+    } else if (ontologyUri) {
+      // If ontology URI is provided, fetch triples for that ontology
+      query = `
+        SELECT ?s ?p ?o WHERE { 
+          ?s ?p ?o .
+          {
+            ?s <http://www.w3.org/2000/01/rdf-schema#isDefinedBy> <${ontologyUri}> .
+          } UNION {
+            FILTER(STRSTARTS(STR(?s), STR(<${ontologyUri}>)))
+          }
+        } 
+        ORDER BY ?s ?p ?o
+        LIMIT 100
+      `;
+      debugInfo.ontologyUri = ontologyUri;
+    } else {
+      // Default query for diagnostic
+      query = `
+        SELECT ?s ?p ?o WHERE { 
+          ?s ?p ?o 
+          FILTER(STRSTARTS(STR(?s), "http://www.w3id.org/")) 
+        } 
+        LIMIT 100
+      `;
+    }
     
     debugInfo.query = query;
     
@@ -141,8 +167,9 @@ exports.getDiagnosticPage = async (req, res) => {
     
     debugInfo.originalCount = bindings.length;
     
+    // For the graphdb routes, let's just display the raw triples
     res.render('graphdb', {
-      title: 'GraphDB Diagnostic Data',
+      title: ontologyUri ? `Triples for ${ontologyUri}` : 'GraphDB Diagnostic Data',
       message: errorMessage || 'Raw Data from GraphDB:',
       rows: bindings,
       labelMap: {},
@@ -157,5 +184,57 @@ exports.getDiagnosticPage = async (req, res) => {
       <p>There was an error processing your request:</p>
       <pre>${err.stack}</pre>
     `);
+  }
+};
+
+/**
+ * Get SPO triples for a specific URI
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+exports.getTriples = async (req, res) => {
+  try {
+    const uri = req.query.uri;
+    
+    if (!uri) {
+      return res.status(400).json({
+        error: 'No URI provided',
+        message: 'A URI parameter is required to fetch triples'
+      });
+    }
+    
+    // Query to fetch triples for this URI
+    const query = `
+      SELECT ?s ?p ?o WHERE { 
+        ?s ?p ?o .
+        FILTER(?s = <${uri}> || ?p = <${uri}> || ?o = <${uri}>)
+      } 
+      ORDER BY ?s ?p ?o
+      LIMIT 100
+    `;
+    
+    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+      headers: { 'Accept': 'application/sparql-results+json' },
+      params: { query }
+    });
+    
+    if (response.data && response.data.results && Array.isArray(response.data.results.bindings)) {
+      res.json({
+        uri,
+        triples: response.data.results.bindings,
+        count: response.data.results.bindings.length
+      });
+    } else {
+      res.status(500).json({
+        error: 'Unexpected response structure',
+        message: 'The GraphDB response does not have the expected structure'
+      });
+    }
+  } catch (err) {
+    console.error('Error in getTriples:', err);
+    res.status(500).json({
+      error: 'Server error',
+      message: err.message
+    });
   }
 };

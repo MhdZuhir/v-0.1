@@ -1,992 +1,601 @@
-<!-- views/ontology-detail.handlebars - Complete fixed version -->
-<div class="page-container">
-  <!-- Table of Contents Sidebar -->
-  <div class="toc-sidebar">
-    <div class="toc-content">
-      <h3>Table of Contents</h3>
-      <ul class="toc-list">
-        <li><a href="#metadata">Metadata</a></li>
-        <li><a href="#overview">Overview</a></li>
-        <li>
-          <a href="#classes">Classes</a>
-          <ul class="toc-sublist">
-            <li><a href="#class-digital-product-passport">Digital Product Passport</a></li>
-            <li><a href="#class-product">Product</a></li>
-          </ul>
-        </li>
-        <li>
-          <a href="#object-properties">Object Properties</a>
-          <ul class="toc-sublist">
-            <li><a href="#prop-describes">describes</a></li>
-            <li><a href="#prop-has-part">has part</a></li>
-          </ul>
-        </li>
-        <li>
-          <a href="#annotation-properties">Annotation Properties</a>
-          <ul class="toc-sublist">
-            <li><a href="#annot-contributor">contributor</a></li>
-            <li><a href="#annot-created">created</a></li>
-            <li><a href="#annot-creator">creator</a></li>
-            <li><a href="#annot-description">description</a></li>
-            <li><a href="#annot-license">license</a></li>
-            <li><a href="#annot-title">title</a></li>
-            <li><a href="#annot-prefix">preferred namespace prefix</a></li>
-            <li><a href="#annot-uri">preferred namespace uri</a></li>
-          </ul>
-        </li>
-        <li><a href="#namespaces">Namespaces</a></li>
-        <li><a href="#legend">Legend</a></li>
-        <li><a href="#downloads">Downloads</a></li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Main Content -->
-  <div class="ontology-container">
-    <h1>{{ontology.title}}</h1>
-
-    <h2 id="metadata">Metadata</h2>
-    <div class="metadata-section">
-      <p><strong>IRI</strong><br>
-      <code>{{ontology.uri}}</code></p>
-
-      <p><strong>Title</strong><br>
-      {{ontology.title}}</p>
-
-      {{#if ontology.creator}}
-        <p><strong>Creator</strong><br>
-        {{ontology.creator}}</p>
-      {{/if}}
-
-      {{#if ontology.contributor}}
-        <p><strong>Contributor</strong><br>
-        {{#each ontology.contributors}}
-          * {{this}}<br>
-        {{else}}
-          {{ontology.contributor}}
-        {{/each}}
-        </p>
-      {{/if}}
-
-      {{#if ontology.created}}
-        <p><strong>Date Created</strong><br>
-        {{ontology.created}}</p>
-      {{/if}}
-
-      {{#if ontology.license}}
-        <p><strong>License</strong><br>
-        <a href="{{ontology.license}}">{{ontology.license}}</a></p>
-      {{/if}}
-
-      {{#if ontology.version}}
-        <p><strong>Version</strong><br>
-        {{ontology.version}}</p>
-      {{/if}}
-
-      {{#if ontology.versionInfo}}
-        <p><strong>Version Info</strong><br>
-        {{ontology.versionInfo}}</p>
-      {{/if}}
-
-      {{#if ontology.namespace_prefix}}
-        <p><strong>Preferred Namespace Prefix</strong><br>
-        {{ontology.namespace_prefix}}</p>
-      {{/if}}
-
-      {{#if ontology.namespace_uri}}
-        <p><strong>Preferred Namespace Uri</strong><br>
-        <code>{{ontology.namespace_uri}}</code></p>
-      {{/if}}
-
-      {{#if ontology.description}}
-        <p><strong>Description</strong><br>
-        {{ontology.description}}</p>
-      {{/if}}
-    </div>
-  <script src="/js/simple-ontology-viz.js"></script>
-
-    <h2 id="overview">Overview</h2>
-    <div class="overview-section">
-      <p><strong>Figure 1: </strong>Ontology overview</p>
-      
-      <div class="stats-summary">
-        <div class="stat-item">
-          <span class="stat-value">{{ontology.stats.classes}}</span> Classes
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ontology.stats.properties}}</span> Properties
-        </div>
-        <div class="stat-item">
-          <span class="stat-value">{{ontology.stats.individuals}}</span> Individuals
-        </div>
+<body>
+  <div class="page-container">
+    <!-- Table of Contents Sidebar -->
+    <div class="toc-sidebar">
+      <div class="toc-content">
+        <h3>Table of Contents</h3>
+        <ul class="toc-list">
+          <li><a href="#metadata" class="toc-active">Metadata</a></li>
+          <li><a href="#overview">Overview</a></li>
+          <li>
+            <a href="#classes">Classes</a>
+            <ul class="toc-sublist">
+              <li><a href="#class-digital-product-passport">Digital Product Passport</a></li>
+              <li><a href="#class-product">Product</a></li>
+              <li><a href="#class-material-composition">Material Composition</a></li>
+              <li><a href="#class-circularity-metric">Circularity Metric</a></li>
+            </ul>
+          </li>
+          <li>
+            <a href="#object-properties">Object Properties</a>
+            <ul class="toc-sublist">
+              <li><a href="#prop-describes">describes</a></li>
+              <li><a href="#prop-has-part">has part</a></li>
+              <li><a href="#prop-has-passport">has passport</a></li>
+              <li><a href="#prop-has-material">has material</a></li>
+            </ul>
+          </li>
+          <li>
+            <a href="#annotation-properties">Annotation Properties</a>
+            <ul class="toc-sublist">
+              <li><a href="#annot-contributor">contributor</a></li>
+              <li><a href="#annot-created">created</a></li>
+              <li><a href="#annot-creator">creator</a></li>
+              <li><a href="#annot-description">description</a></li>
+              <li><a href="#annot-license">license</a></li>
+              <li><a href="#annot-title">title</a></li>
+              <li><a href="#annot-prefix">preferred namespace prefix</a></li>
+              <li><a href="#annot-uri">preferred namespace uri</a></li>
+            </ul>
+          </li>
+          <li><a href="#namespaces">Namespaces</a></li>
+          <li><a href="#legend">Legend</a></li>
+          <li><a href="#downloads">Downloads</a></li>
+        </ul>
       </div>
-      
-      {{#if ontology.description}}
-        <p>{{ontology.description}}</p>
-      {{/if}}
     </div>
 
-    <h2 id="classes">Classes</h2>
-    <div class="classes-section">
-      {{#if ontology.subjects}}
+    <!-- Main Content -->
+    <div class="ontology-container">
+      <h1>Digital Product Passport Ontology</h1>
+
+      <h2 id="metadata">Metadata</h2>
+      <div class="metadata-section">
+        <p><strong>IRI</strong><br>
+        <code>http://www.w3id.org/dpp/digital-product-passport/1.0</code></p>
+
+        <p><strong>Title</strong><br>
+        Digital Product Passport Ontology</p>
+
+        <p><strong>Creator</strong><br>
+        EU Circular Economy Initiative</p>
+
+        <p><strong>Contributor</strong><br>
+        Sustainability Research Group<br>
+        Product Lifecycle Management Consortium
+        </p>
+
+        <p><strong>Date Created</strong><br>
+        2024-03-15</p>
+
+        <p><strong>Date Modified</strong><br>
+        2024-04-10</p>
+
+        <p><strong>License</strong><br>
+        <a href="https://creativecommons.org/licenses/by/4.0/">https://creativecommons.org/licenses/by/4.0/</a></p>
+
+        <p><strong>Version</strong><br>
+        1.0.0</p>
+
+        <p><strong>Preferred Namespace Prefix</strong><br>
+        dpp</p>
+
+        <p><strong>Preferred Namespace Uri</strong><br>
+        <code>http://www.w3id.org/dpp/digital-product-passport/1.0#</code></p>
+
+        <p><strong>Description</strong><br>
+        An ontology for representing Digital Product Passports (DPP), defining concepts and relationships for tracking product information throughout the lifecycle, with focus on sustainability metrics, material composition, and circular economy principles.</p>
+      </div>
+
+      <h2 id="overview">Overview</h2>
+      <div class="overview-section">
+        <p><strong>Figure 1: </strong>Ontology overview</p>
+        
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-value">24</span> Classes
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">36</span> Properties
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">15</span> Individuals
+          </div>
+        </div>
+        
+        <p>The Digital Product Passport Ontology provides a standard vocabulary for creating digital product passports that accompany physical products throughout their lifecycle. These passports contain vital information about a product's composition, environmental impact, repair instructions, and end-of-life considerations, supporting circular economy principles and regulatory compliance with the EU's Circular Economy Action Plan.</p>
+      </div>
+
+      <h2 id="classes">Classes</h2>
+      <div class="classes-section">
         <div class="filter-control">
           <input type="text" id="classFilter" placeholder="Filter classes..." class="filter-input">
         </div>
         
         <div class="entity-items">
-          {{#each ontology.subjects}}
-            {{#if (eq this.typeClass "class-tag")}}
-              <div id="class-{{this.label}}" class="entity-item class-item">
-                <h3>{{this.label}} <sup>c</sup></h3>
-                <p><strong>IRI</strong><code>{{this.uri}}</code></p>
-                
-                {{#if this.description}}
-                  <p><strong>Description</strong><br>
-                  {{this.description}}</p>
-                {{/if}}
-                
-                <!-- Property restrictions would go here if available -->
-                <p><strong>In Domain Of</strong></p>
-                
-                <p><strong>In Range Of</strong></p>
-              </div>
-            {{/if}}
-          {{/each}}
-        </div>
-      {{else}}
-        <p>No classes found in this ontology.</p>
-      {{/if}}
-    </div>
+          <div id="class-digital-product-passport" class="entity-item class-item">
+            <h3>Digital Product Passport <sup>c</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#DigitalProductPassport</code></p>
+            
+            <p><strong>Description</strong><br>
+            A digital representation of product information throughout its lifecycle, containing data on composition, environmental impact, and circularity aspects.</p>
+            
+            <p><strong>In Domain Of</strong><br>
+            describes, hasIdentifier, hasCertification, hasTimestamp</p>
+            
+            <p><strong>In Range Of</strong><br>
+            hasPassport</p>
+          </div>
 
-    <h2 id="object-properties">Object Properties</h2>
-    <div class="properties-section">
-      {{#if ontology.relationships.length}}
+          <div id="class-product" class="entity-item class-item">
+            <h3>Product <sup>c</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#Product</code></p>
+            
+            <p><strong>Description</strong><br>
+            A physical product that is tracked via a Digital Product Passport.</p>
+            
+            <p><strong>In Domain Of</strong><br>
+            hasPassport, hasMaterialComposition, hasManufacturer, hasProductCategory</p>
+            
+            <p><strong>In Range Of</strong><br>
+            describes, hasPart</p>
+          </div>
+
+          <div id="class-material-composition" class="entity-item class-item">
+            <h3>Material Composition <sup>c</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#MaterialComposition</code></p>
+            
+            <p><strong>Description</strong><br>
+            The material components and their quantities in a product.</p>
+            
+            <p><strong>In Domain Of</strong><br>
+            hasMaterial, hasWeight, hasPercentage</p>
+            
+            <p><strong>In Range Of</strong><br>
+            hasMaterialComposition</p>
+          </div>
+
+          <div id="class-circularity-metric" class="entity-item class-item">
+            <h3>Circularity Metric <sup>c</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#CircularityMetric</code></p>
+            
+            <p><strong>Description</strong><br>
+            Metrics related to circular economy principles, such as recyclability, repairability, and durability scores.</p>
+            
+            <p><strong>In Domain Of</strong><br>
+            hasScore, hasCalculationMethod, hasTimestamp</p>
+            
+            <p><strong>In Range Of</strong><br>
+            hasCircularityMetric</p>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="object-properties">Object Properties</h2>
+      <div class="properties-section">
         <div class="filter-control">
           <input type="text" id="propFilter" placeholder="Filter properties..." class="filter-input">
         </div>
         
         <div class="entity-items">
-          {{#each ontology.relationships}}
-            <div id="prop-{{this.property.label}}" class="entity-item property-item">
-              <h3>{{this.property.label}} <sup>op</sup></h3>
-              <p><strong>IRI</strong><code>{{this.property.uri}}</code></p>
-              
-              {{#if this.description}}
-                <p><strong>Description</strong><br>
-                {{this.description}}</p>
-              {{/if}}
-              
-              {{#if this.domain.uri}}
-                <p><strong>Domain</strong>
-                <a href="/resource?uri={{encodeURIComponent this.domain.uri}}&showLabels={{../showLabels}}">
-                  {{this.domain.label}}
-                </a> <sup>c</sup></p>
-              {{/if}}
-              
-              {{#if this.range.uri}}
-                <p><strong>Range</strong>
-                <a href="/resource?uri={{encodeURIComponent this.range.uri}}&showLabels={{../showLabels}}">
-                  {{this.range.label}}
-                </a> <sup>c</sup></p>
-              {{/if}}
+          <div id="prop-describes" class="entity-item property-item">
+            <h3>describes <sup>op</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#describes</code></p>
+            
+            <p><strong>Description</strong><br>
+            Relates a Digital Product Passport to the Product it describes.</p>
+            
+            <p><strong>Domain</strong><br>
+            <a href="#class-digital-product-passport">Digital Product Passport</a> <sup>c</sup></p>
+            
+            <p><strong>Range</strong><br>
+            <a href="#class-product">Product</a> <sup>c</sup></p>
+          </div>
+
+          <div id="prop-has-part" class="entity-item property-item">
+            <h3>has part <sup>op</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasPart</code></p>
+            
+            <p><strong>Description</strong><br>
+            Relates a product to its component parts.</p>
+            
+            <p><strong>Domain</strong><br>
+            <a href="#class-product">Product</a> <sup>c</sup></p>
+            
+            <p><strong>Range</strong><br>
+            <a href="#class-product">Product</a> <sup>c</sup></p>
+          </div>
+
+          <div id="prop-has-passport" class="entity-item property-item">
+            <h3>has passport <sup>op</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasPassport</code></p>
+            
+            <p><strong>Description</strong><br>
+            Relates a Product to its Digital Product Passport.</p>
+            
+            <p><strong>Domain</strong><br>
+            <a href="#class-product">Product</a> <sup>c</sup></p>
+            
+            <p><strong>Range</strong><br>
+            <a href="#class-digital-product-passport">Digital Product Passport</a> <sup>c</sup></p>
+          </div>
+
+          <div id="prop-has-material" class="entity-item property-item">
+            <h3>has material <sup>op</sup></h3>
+            <p><strong>IRI</strong><br><code>http://www.w3id.org/dpp/digital-product-passport/1.0#hasMaterial</code></p>
+            
+            <p><strong>Description</strong><br>
+            Relates a Material Composition to a specific material.</p>
+            
+            <p><strong>Domain</strong><br>
+            <a href="#class-material-composition">Material Composition</a> <sup>c</sup></p>
+            
+            <p><strong>Range</strong><br>
+            Material <sup>c</sup></p>
+          </div>
+        </div>
+      </div>
+
+      <h2 id="annotation-properties">Annotation Properties</h2>
+      <div class="annotation-props-section">
+        <div class="entity-items">
+          <div id="annot-contributor" class="entity-item">
+            <h3>
+              <a href="#annot-contributor" class="property-title-link">
+                contributor <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-contributor" class="iri-link">
+                <code>http://purl.org/dc/terms/contributor</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>An entity responsible for making contributions to the resource.</p>
             </div>
-          {{/each}}
-        </div>
-      {{else}}
-        <p>No object properties found in this ontology.</p>
-      {{/if}}
-    </div>
-
-    <h2 id="annotation-properties">Annotation Properties</h2>
-    <div class="annotation-props-section">
-      <div class="entity-items">
-        <!-- Display annotation properties with clickable IRIs -->
-        <div id="annot-contributor" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/contributor&showLabels={{showLabels}}" class="property-title-link">
-              contributor <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/contributor&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/contributor</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>An entity responsible for making contributions to the resource.</p>
           </div>
-        </div>
-        
-        <div id="annot-creator" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/creator&showLabels={{showLabels}}" class="property-title-link">
-              creator <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/creator&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/creator</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>An entity primarily responsible for making the resource.</p>
+          
+          <div id="annot-creator" class="entity-item">
+            <h3>
+              <a href="#annot-creator" class="property-title-link">
+                creator <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-creator" class="iri-link">
+                <code>http://purl.org/dc/terms/creator</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>An entity primarily responsible for making the resource.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-description" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/description&showLabels={{showLabels}}" class="property-title-link">
-              description <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/description&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/description</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>An account of the resource. May include an abstract, table of contents, or free-text account of the resource.</p>
+          
+          <div id="annot-description" class="entity-item">
+            <h3>
+              <a href="#annot-description" class="property-title-link">
+                description <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-description" class="iri-link">
+                <code>http://purl.org/dc/terms/description</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>An account of the resource. May include an abstract, table of contents, or free-text account of the resource.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-created" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/created&showLabels={{showLabels}}" class="property-title-link">
-              created <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/created&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/created</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>Date of creation of the resource.</p>
+          
+          <div id="annot-created" class="entity-item">
+            <h3>
+              <a href="#annot-created" class="property-title-link">
+                created <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-created" class="iri-link">
+                <code>http://purl.org/dc/terms/created</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>Date of creation of the resource.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-license" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/license&showLabels={{showLabels}}" class="property-title-link">
-              license <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/license&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/license</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>A legal document giving official permission to do something with the resource.</p>
+          
+          <div id="annot-license" class="entity-item">
+            <h3>
+              <a href="#annot-license" class="property-title-link">
+                license <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-license" class="iri-link">
+                <code>http://purl.org/dc/terms/license</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>A legal document giving official permission to do something with the resource.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-title" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/dc/terms/title&showLabels={{showLabels}}" class="property-title-link">
-              title <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/dc/terms/title&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/dc/terms/title</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>A name given to the resource.</p>
+          
+          <div id="annot-title" class="entity-item">
+            <h3>
+              <a href="#annot-title" class="property-title-link">
+                title <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-title" class="iri-link">
+                <code>http://purl.org/dc/terms/title</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>A name given to the resource.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-prefix" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespacePrefix&showLabels={{showLabels}}" class="property-title-link">
-              preferred namespace prefix <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespacePrefix&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/vocab/vann/preferredNamespacePrefix</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>The preferred namespace prefix to use when using terms from this vocabulary in an XML document.</p>
+          
+          <div id="annot-prefix" class="entity-item">
+            <h3>
+              <a href="#annot-prefix" class="property-title-link">
+                preferred namespace prefix <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-prefix" class="iri-link">
+                <code>http://purl.org/vocab/vann/preferredNamespacePrefix</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>The preferred namespace prefix to use when using terms from this vocabulary in an XML document.</p>
+            </div>
           </div>
-        </div>
-        
-        <div id="annot-uri" class="entity-item">
-          <h3>
-            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespaceUri&showLabels={{showLabels}}" class="property-title-link">
-              preferred namespace uri <sup>ap</sup>
-            </a>
-          </h3>
-          <p><strong>IRI</strong>
-            <a href="/resource?uri=http://purl.org/vocab/vann/preferredNamespaceUri&showLabels={{showLabels}}" class="iri-link">
-              <code>http://purl.org/vocab/vann/preferredNamespaceUri</code>
-            </a>
-          </p>
-          <div class="property-description">
-            <p>The preferred namespace URI to use when using terms from this vocabulary in an XML document.</p>
+          
+          <div id="annot-uri" class="entity-item">
+            <h3>
+              <a href="#annot-uri" class="property-title-link">
+                preferred namespace uri <sup>ap</sup>
+              </a>
+            </h3>
+            <p><strong>IRI</strong>
+              <a href="#annot-uri" class="iri-link">
+                <code>http://purl.org/vocab/vann/preferredNamespaceUri</code>
+              </a>
+            </p>
+            <div class="property-description">
+              <p>The preferred namespace URI to use when using terms from this vocabulary in an XML document.</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <h2 id="namespaces">Namespaces</h2>
-    <div class="namespaces-section">
-      <table class="namespaces-table">
-        <tr>
-          <td><strong>:</strong></td>
-          <td><code>{{ontology.uri}}</code></td>
-        </tr>
-        <tr>
-          <td><strong>dcterms</strong></td>
-          <td><code>http://purl.org/dc/terms/</code></td>
-        </tr>
-        <tr>
-          <td><strong>owl</strong></td>
-          <td><code>http://www.w3.org/2002/07/owl#</code></td>
-        </tr>
-        <tr>
-          <td><strong>prov</strong></td>
-          <td><code>http://www.w3.org/ns/prov#</code></td>
-        </tr>
-        <tr>
-          <td><strong>rdf</strong></td>
-          <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
-        </tr>
-        <tr>
-          <td><strong>rdfs</strong></td>
-          <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
-        </tr>
-        <tr>
-          <td><strong>vann</strong></td>
-          <td><code>http://purl.org/vocab/vann/</code></td>
-        </tr>
-      </table>
-    </div>
+      <h2 id="namespaces">Namespaces</h2>
+      <div class="namespaces-section">
+        <table class="namespaces-table">
+          <tr>
+            <td><strong>dpp</strong></td>
+            <td><code>http://www.w3id.org/dpp/digital-product-passport/1.0#</code></td>
+          </tr>
+          <tr>
+            <td><strong>dcterms</strong></td>
+            <td><code>http://purl.org/dc/terms/</code></td>
+          </tr>
+          <tr>
+            <td><strong>owl</strong></td>
+            <td><code>http://www.w3.org/2002/07/owl#</code></td>
+          </tr>
+          <tr>
+            <td><strong>prov</strong></td>
+            <td><code>http://www.w3.org/ns/prov#</code></td>
+          </tr>
+          <tr>
+            <td><strong>rdf</strong></td>
+            <td><code>http://www.w3.org/1999/02/22-rdf-syntax-ns#</code></td>
+          </tr>
+          <tr>
+            <td><strong>rdfs</strong></td>
+            <td><code>http://www.w3.org/2000/01/rdf-schema#</code></td>
+          </tr>
+          <tr>
+            <td><strong>vann</strong></td>
+            <td><code>http://purl.org/vocab/vann/</code></td>
+          </tr>
+        </table>
+      </div>
 
-    <h2 id="legend">Legend</h2>
-    <div class="legend-section">
-      <p><sup>c</sup> Classes <sup>op</sup> Object Properties <sup>ap</sup> Annotation Properties</p>
-    </div>
-    
-    <div id="downloads" class="download-section">
-      <h2>Downloads</h2>
-      <div class="download-links">
-        {{#each downloadLinks}}
-          <a href="{{this.url}}" class="download-link" download="ontology.{{this.extension}}">
-            Download as {{this.format}}
+      <h2 id="legend">Legend</h2>
+      <div class="legend-section">
+        <p><sup>c</sup> Classes <sup>op</sup> Object Properties <sup>ap</sup> Annotation Properties</p>
+      </div>
+      
+      <div id="downloads" class="download-section">
+        <h2>Downloads</h2>
+        <div class="download-links">
+          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=rdf" class="download-link" download="ontology.rdf">
+            Download as RDF/XML
           </a>
-        {{/each}}
+          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=ttl" class="download-link" download="ontology.ttl">
+            Download as Turtle
+          </a>
+          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=nt" class="download-link" download="ontology.nt">
+            Download as N-Triples
+          </a>
+          <a href="/ontology/download?uri=http://www.w3id.org/dpp/digital-product-passport/1.0&format=jsonld" class="download-link" download="ontology.jsonld">
+            Download as JSON-LD
+          </a>
+        </div>
       </div>
-    </div>
     
-    <div class="display-control">
-      <label for="displayToggle">Show human-readable labels:</label>
-      <label class="toggle-switch">
-        <input type="checkbox" id="displayToggle" {{#if showLabels}}checked{{/if}}>
-        <span class="toggle-slider"></span>
-      </label>
-      <span class="toggle-label">{{#if showLabels}}On{{else}}Off{{/if}}</span>
-    </div>
+      <div class="display-control">
+        <label for="displayToggle">Show human-readable labels:</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="displayToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label">On</span>
+      </div>
     
-    <div class="navigation-links">
-      <a href="/?showLabels={{showLabels}}" class="nav-link">Back to Home</a>
-      <a href="/ontology/products?uri={{encodeURIComponent ontology.uri}}&showLabels={{showLabels}}" class="nav-link">View Related Products</a>
+      <div class="navigation-links">
+        <a href="/" class="nav-link">Back to Home</a>
+        <a href="/ontology/products?uri=http://www.w3id.org/dpp/digital-product-passport/1.0" class="nav-link">View Related Products</a>
+      </div>
     </div>
   </div>
-</div>
 
-<style>
-  /* Page Layout */
- .page-container {
-  display: flex;
-  align-items: flex-start;
-  /* No changes needed here, the flex direction is already row by default */
-}
-  
-  /* Table of Contents Sidebar */
- .toc-sidebar {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  width: 280px;
-  background-color: #f5f5f5;
-  border-left: 1px solid #ddd;
-  border-right: none;
-  overflow-y: auto;
-  padding: 20px 0;
-  flex-shrink: 0;
-  /* Change this from margin-left: auto to margin-right: auto */
-  margin-right: 0;
-  margin-left: auto;
-  order: 2; /* Add this to move it to the end of the flex container */
-}
-  .toc-content {
-    padding: 0 15px;
-  }
-  .main-content {
-  flex: 1;
-  padding: 20px;
-}
-  .toc-sidebar h3 {
-    color: #000080;
-    font-size: 1.2rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #000080;
-  }
-  
-  .toc-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-  }
-  
-  .toc-list li {
-    margin-bottom: 0.5rem;
-  }
-  
-  .toc-list a {
-    color: #333;
-    text-decoration: none;
-    display: block;
-    padding: 4px 0;
-    transition: color 0.2s;
-  }
-  
-  .toc-list a:hover {
-    color: #000080;
-    font-weight: bold;
-  }
-  
-  .toc-sublist {
-    list-style-type: none;
-    padding-left: 1rem;
-    margin: 0.25rem 0;
-    border-left: 2px solid #ccc;
-  }
-  
-  .toc-sublist a {
-    font-size: 0.9rem;
-  }
-  
-  /* Highlighted active TOC item */
-  .toc-active {
-    color: #000080 !important;
-    font-weight: bold;
-    background-color: rgba(0, 0, 128, 0.05);
-    border-left: 3px solid #000080;
-    margin-left: -3px;
-  }
-
-  /* Overall layout */
-.ontology-container {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  line-height: 1.5;
-  color: #333;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-  flex-grow: 1;
-  order: 1; /* Add this to ensure it comes before the TOC */
-}
-  /* Headings */
-  h1 {
-    color: #000080;
-    font-size: 1.8rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #000080;
-  }
-  
-  h2 {
-    color: #000080;
-    font-size: 1.4rem;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.25rem;
-    border-bottom: 1px solid #ccc;
-    scroll-margin-top: 20px; /* For smooth scrolling to anchor */
-  }
-  
-  h3 {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-    color: #000080;
-  }
-  
-  /* Metadata section */
-  .metadata-section p {
-    margin-bottom: 0.75rem;
-  }
-  
-  .metadata-section strong {
-    font-weight: 600;
-  }
-  
-  /* Code blocks for IRIs */
-  code {
-    display: inline-block;
-    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    color: #c7254e;
-    background-color: #f9f2f4;
-    padding: 0.1rem 0.2rem;
-    border-radius: 3px;
-    word-break: break-all;
-    font-size: 0.85em;
-  }
-  
-  /* Stats summary */
-  .stats-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin: 1rem 0;
-  }
-  
-  .stat-item {
-    background-color: #f5f5f5;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-  }
-  
-  .stat-value {
-    font-weight: bold;
-    color: #000080;
-  }
-  
-  /* Entity items (classes, properties) */
-  .entity-items {
-    margin-top: 1rem;
-  }
-  
-  .entity-item {
-    background-color: #f9f9f9;
-    border: 1px solid #000080;
-    border-radius: 4px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    scroll-margin-top: 20px; /* For smooth scrolling to anchor */
-  }
-  
-  .entity-item h3 {
-    margin-top: 0;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 0.5rem;
-  }
-  
-  .entity-item p {
-    margin: 0.5rem 0;
-  }
-  
-  .entity-item strong {
-    font-weight: 600;
-  }
-  
-  /* Superscript for entity types */
-  sup {
-    color: #ff8c00;
-    font-weight: bold;
-    font-size: 0.7em;
-  }
-  
-  /* Links */
-  a {
-    color: #0066cc;
-    text-decoration: none;
-  }
-  
-  a:hover {
-    text-decoration: underline;
-  }
-  
-  /* Namespace table */
-  .namespaces-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1rem 0;
-  }
-  
-  .namespaces-table td {
-    padding: 0.5rem;
-    vertical-align: top;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .namespaces-table td:first-child {
-    width: 150px;
-    font-weight: bold;
-  }
-  
-  /* Filter controls */
-  .filter-control {
-    margin-bottom: 1rem;
-  }
-  
-  .filter-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 0.9rem;
-  }
-  
-  /* Toggle switch */
-  .display-control {
-    display: flex;
-    align-items: center;
-    margin: 2rem 0;
-    gap: 0.5rem;
-  }
-  
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
-  }
-  
-  .toggle-switch input { 
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: .4s;
-    border-radius: 24px;
-  }
-  
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
-  
-  input:checked + .toggle-slider {
-    background-color: #2196F3;
-  }
-  
-  input:checked + .toggle-slider:before {
-    transform: translateX(26px);
-  }
-  
-  .toggle-label {
-    font-size: 0.9rem;
-  }
-  
-  /* Download section */
-  .download-section {
-    margin: 2rem 0;
-  }
-  
-  .download-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-  
-  .download-link {
-    display: inline-block;
-    background-color: #000080;
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    text-decoration: none;
-  }
-  
-  .download-link:hover {
-    background-color: #00005a;
-    text-decoration: none;
-  }
-  
-  /* Navigation links */
-  .navigation-links {
-    display: flex;
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-  
-  .nav-link {
-    display: inline-block;
-    background-color: #f5f5f5;
-    color: #000080;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    text-decoration: none;
-  }
-  
-  .nav-link:hover {
-    background-color: #e5e5e5;
-    text-decoration: none;
-  }
-  
-  /* Hide elements with class "hidden" */
-  .hidden {
-    display: none !important;
-  }
-  
-  /* Annotation properties specific styles */
-  .property-title-link {
-    color: #000080;
-    text-decoration: none;
-    display: inline-block;
-    transition: color 0.2s;
-  }
-  
-  .property-title-link:hover {
-    color: #0000c0;
-    text-decoration: underline;
-  }
-  
-  .iri-link {
-    text-decoration: none;
-  }
-  
-  .iri-link code {
-    transition: background-color 0.2s;
-  }
-  
-  .iri-link:hover code {
-    background-color: #e3f2fd;
-  }
-  
-  .property-description {
-    margin: 0.75rem 0;
-    padding: 0.75rem;
-    background-color: #f0f4f8;
-    border-left: 4px solid #0645ad;
-    border-radius: 0 4px 4px 0;
-  }
-  
-  /* Responsive adjustments */
-  @media (max-width: 992px) {
-    .page-container {
-      flex-direction: column;
-    }
-    
-    .toc-sidebar {
-      position: relative;
-      width: 100%;
-      height: auto;
-      max-height: 300px;
-      border-right: none;
-      border-bottom: 1px solid #ddd;
-    }
-    
-    .ontology-container {
-      padding: 15px;
-    }
-    
-    .stats-summary {
-      flex-direction: column;
-    }
-    
-    .namespaces-table td:first-child {
-      width: 100px;
-    }
-    
-    .download-links,
-    .navigation-links {
-      flex-direction: column;
-    }
-  }
-</style>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Create simple ID-safe versions of strings
-    function createIdFromText(text) {
-      if (!text) return '';
-      return text.toString().replace(/\s+/g, '-').replace(/[^\w\-]/g, '');
-    }
-    
-    // Initialize filtering
-    initFilter('#classFilter', '.class-item');
-    initFilter('#propFilter', '.property-item');
-    
-    // Update display toggle
-    const displayToggle = document.getElementById('displayToggle');
-    const toggleLabel = document.querySelector('.toggle-label');
-    
-    if (displayToggle && toggleLabel) {
-      displayToggle.addEventListener('change', function() {
-        // Update the label text
-        toggleLabel.textContent = this.checked ? 'On' : 'Off';
-        
-        // Create URL with updated showLabels parameter
-        const url = new URL(window.location.href);
-        url.searchParams.set('showLabels', this.checked ? 'true' : 'false');
-        
-        // Redirect to the new URL
-        window.location.href = url.toString();
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Initialize filtering
+      initFilter('#classFilter', '.class-item');
+      initFilter('#propFilter', '.property-item');
+      
+      // Update display toggle
+      const displayToggle = document.getElementById('displayToggle');
+      const toggleLabel = document.querySelector('.toggle-label');
+      
+      if (displayToggle && toggleLabel) {
+        displayToggle.addEventListener('change', function() {
+          // Update the label text
+          toggleLabel.textContent = this.checked ? 'On' : 'Off';
+          
+          // Create URL with updated showLabels parameter
+          const url = new URL(window.location.href);
+          url.searchParams.set('showLabels', this.checked ? 'true' : 'false');
+          
+          // Redirect to the new URL
+          window.location.href = url.toString();
+        });
+      }
+      
+      // Initialize TOC highlight on scroll
+      initTOCHighlight();
+      
+      // Make the TOC stay in view when scrolling
+      window.addEventListener('scroll', function() {
+        const toc = document.querySelector('.toc-sidebar');
+        if (toc) {
+          if (window.innerWidth > 992) { // Only apply this on larger screens
+            const scrollPosition = window.scrollY;
+            toc.style.top = (scrollPosition > 0) ? '0' : '';
+          }
+        }
       });
-    }
-    
-    // Initialize TOC highlight on scroll
-    initTOCHighlight();
-    
-    // Make the TOC stay in view when scrolling
-    window.addEventListener('scroll', function() {
-      const toc = document.querySelector('.toc-sidebar');
-      if (toc) {
-        if (window.innerWidth > 992) { // Only apply this on larger screens
-          const scrollPosition = window.scrollY;
-          toc.style.top = (scrollPosition > 0) ? '0' : '';
+      
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const targetId = this.getAttribute('href').substring(1);
+          const targetElement = document.getElementById(targetId);
+          
+          if (targetElement) {
+            window.scrollTo({
+              top: targetElement.offsetTop - 20,
+              behavior: 'smooth'
+            });
+            
+            // Update URL without reload
+            history.pushState(null, null, `#${targetId}`);
+            
+            // Highlight the clicked TOC item
+            highlightTOCItem(this);
+          }
+        });
+      });
+      
+      // Check for hash in URL on page load to scroll to section
+      if (window.location.hash) {
+        const targetId = window.location.hash.substring(1);
+        const targetElement = document.getElementById(targetId);
+        
+        if (targetElement) {
+          setTimeout(() => {
+            window.scrollTo({
+              top: targetElement.offsetTop - 20,
+              behavior: 'auto'
+            });
+            
+            // Find and highlight the corresponding TOC item
+            const tocItem = document.querySelector(`.toc-list a[href="#${targetId}"], .toc-sublist a[href="#${targetId}"]`);
+            if (tocItem) {
+              highlightTOCItem(tocItem);
+            }
+          }, 100);
         }
       }
     });
     
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('.toc-list a, .toc// Smooth scrolling for anchor links-sublist a').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const targetId = this.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 20,
-            behavior: 'smooth'
-          });
-          
-          // Update URL without reload
-          history.pushState(null, null, `#${targetId}`);
-        }
-      });
-    });
-    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(anchor => {
-      anchor.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const targetId = this.getAttribute('href').substring(1);
-        const targetElement = document.getElementById(targetId);
-        
-        if (targetElement) {
-          window.scrollTo({
-            top: targetElement.offsetTop - 20,
-            behavior: 'smooth'
-          });
-          
-          // Update URL without reload
-          history.pushState(null, null, `#${targetId}`);
-          
-          // Highlight the clicked TOC item
-          highlightTOCItem(this);
-        }
-      });
-    });
-    
-    // Check for hash in URL on page load to scroll to section
-    if (window.location.hash) {
-      const targetId = window.location.hash.substring(1);
-      const targetElement = document.getElementById(targetId);
+    // Function to initialize filtering
+    function initFilter(inputSelector, itemSelector) {
+      const input = document.querySelector(inputSelector);
+      if (!input) return;
       
-      if (targetElement) {
-        setTimeout(() => {
-          window.scrollTo({
-            top: targetElement.offsetTop - 20,
-            behavior: 'auto'
-          });
+      input.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const items = document.querySelectorAll(itemSelector);
+        
+        items.forEach(item => {
+          // Check if item contains the search term
+          const text = item.textContent.toLowerCase();
           
-          // Find and highlight the corresponding TOC item
-          const tocItem = document.querySelector(`.toc-list a[href="#${targetId}"], .toc-sublist a[href="#${targetId}"]`);
+          if (searchTerm === '' || text.includes(searchTerm)) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    }
+    
+    // Function to highlight active TOC item
+    function highlightTOCItem(item) {
+      // Remove active class from all TOC items
+      document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+        link.classList.remove('toc-active');
+      });
+      
+      // Add active class to the clicked item
+      item.classList.add('toc-active');
+    }
+    
+    // Function to highlight TOC items based on scroll position
+    function initTOCHighlight() {
+      // Get all section elements
+      const sections = document.querySelectorAll('h2[id], .entity-item[id]');
+      
+      // Observe sections visibility
+      window.addEventListener('scroll', function() {
+        let currentSection = '';
+        const scrollPosition = window.scrollY;
+        
+        // Find the current section
+        sections.forEach(section => {
+          const sectionTop = section.offsetTop - 100;
+          const sectionHeight = section.offsetHeight;
+          
+          if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+            currentSection = section.getAttribute('id');
+          }
+        });
+        
+        // Highlight the corresponding TOC item
+        if (currentSection) {
+          const tocItem = document.querySelector(`.toc-list a[href="#${currentSection}"], .toc-sublist a[href="#${currentSection}"]`);
+          
           if (tocItem) {
-            highlightTOCItem(tocItem);
+            document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
+              link.classList.remove('toc-active');
+            });
+            
+            tocItem.classList.add('toc-active');
+            
+            // If it's a subitem, also highlight its parent
+            const parent = tocItem.closest('.toc-sublist');
+            if (parent && parent.previousElementSibling) {
+              parent.previousElementSibling.classList.add('toc-active');
+            }
           }
-        }, 100);
-      }
+        }
+      });
     }
-  });
-  
-  // Function to initialize filtering
-  function initFilter(inputSelector, itemSelector) {
-    const input = document.querySelector(inputSelector);
-    if (!input) return;
-    
-    input.addEventListener('input', function() {
-      const searchTerm = this.value.toLowerCase();
-      const items = document.querySelectorAll(itemSelector);
-      
-      items.forEach(item => {
-        // Check if item contains the search term
-        const text = item.textContent.toLowerCase();
-        
-        if (searchTerm === '' || text.includes(searchTerm)) {
-          item.style.display = '';
-        } else {
-          item.style.display = 'none';
-        }
-      });
-    });
-  }
-  
-  // Function to highlight active TOC item
-  function highlightTOCItem(item) {
-    // Remove active class from all TOC items
-    document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
-      link.classList.remove('toc-active');
-    });
-    
-    // Add active class to the clicked item
-    item.classList.add('toc-active');
-  }
-  
-  // Function to highlight TOC items based on scroll position
-  function initTOCHighlight() {
-    // Get all section elements
-    const sections = document.querySelectorAll('h2[id], .entity-item[id]');
-    
-    // Observe sections visibility
-    window.addEventListener('scroll', function() {
-      let currentSection = '';
-      const scrollPosition = window.scrollY;
-      
-      // Find the current section
-      sections.forEach(section => {
-        const sectionTop = section.offsetTop - 100;
-        const sectionHeight = section.offsetHeight;
-        
-        if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
-          currentSection = section.getAttribute('id');
-        }
-      });
-      
-      // Highlight the corresponding TOC item
-      if (currentSection) {
-        const tocItem = document.querySelector(`.toc-list a[href="#${currentSection}"], .toc-sublist a[href="#${currentSection}"]`);
-        
-        if (tocItem) {
-          document.querySelectorAll('.toc-list a, .toc-sublist a').forEach(link => {
-            link.classList.remove('toc-active');
-          });
-          
-          tocItem.classList.add('toc-active');
-          
-          // If it's a subitem, also highlight its parent
-          const parent = tocItem.closest('.toc-sublist');
-          if (parent && parent.previousElementSibling) {
-            parent.previousElementSibling.classList.add('toc-active');
-          }
-        }
-      }
-    });
-  }
-</script>
+  </script>
