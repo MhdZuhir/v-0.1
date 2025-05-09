@@ -1,57 +1,47 @@
-// services/graphdbService.js - Fixed version
+// services/graphdbService.js - Fixed version matching app.js exactly
 const axios = require('axios');
 const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const { isSystemResource } = require('../utils/uriUtils');
 
 /**
-  * Execute a SPARQL query against GraphDB with enhanced authentication
+ * Execute a SPARQL query against GraphDB
  * @param {string} query - SPARQL query to execute
  * @returns {Promise<Object>} - Response data from GraphDB
  */
 async function executeQuery(query) {
   try {
-    // Log shortened query for debugging
-    console.log(`Sending query to GraphDB: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`);
+    console.log(`Executing query: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`);
     
-    // Ensure endpoint URL is properly formatted
-    let endpointUrl = graphdbConfig.endpoint || 'https://jthkg.hj.se';
+    // Use exact same approach as in app.js validateGraphDBConfig function
+    const baseUrl = graphdbConfig.endpoint.endsWith('/') 
+      ? graphdbConfig.endpoint.slice(0, -1) 
+      : graphdbConfig.endpoint;
     
-    // Remove trailing slash if present
-    if (endpointUrl.endsWith('/')) {
-      endpointUrl = endpointUrl.slice(0, -1);
-    }
+    const endpoint = `${baseUrl}/repositories/${graphdbConfig.repository}`;
     
-    // Construct the full endpoint URL
-    const fullEndpointUrl = `${endpointUrl}/repositories/${graphdbConfig.repository}`;
-    console.log(`Using endpoint URL: ${fullEndpointUrl}`);
-    
-    // Basic configuration - NOTE: Changed content type to application/x-www-form-urlencoded
+    // Use the same config that works in app.js
     const config = {
-      headers: { 
-        'Accept': 'application/sparql-results+json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
+      headers: { 'Accept': 'application/sparql-results+json' },
+      params: { query },
+      timeout: 5000
     };
     
-    // Add authentication if username and password are provided
+    // Add authentication exactly like in app.js - which works!
     if (graphdbConfig.username && graphdbConfig.password) {
-      console.log(`Using authentication with username: ${graphdbConfig.username}`);
+      // Method 1: Basic Auth via Axios auth option
+      config.auth = {
+        username: graphdbConfig.username,
+        password: graphdbConfig.password
+      };
       
-      // Method 1: Authorization header with Basic auth
+      // Method 2: Authorization header 
       const authString = Buffer.from(`${graphdbConfig.username}:${graphdbConfig.password}`).toString('base64');
       config.headers['Authorization'] = `Basic ${authString}`;
-      
-      // We won't use Axios auth property as it might be causing the issue
     }
     
-    // IMPORTANT: Send the query as a POST parameter instead of a GET parameter
-    // This is often required for more complex SPARQL queries
-    const response = await axios.post(
-      fullEndpointUrl, 
-      `query=${encodeURIComponent(query)}`,
-      config
-    );
+    // Use GET method like in app.js
+    const response = await axios.get(endpoint, config);
     
     // Log the status and check for success
     console.log(`GraphDB response status: ${response.status}`);
@@ -86,7 +76,6 @@ async function executeQuery(query) {
       // Specific handling for authentication errors
       if (error.response.status === 401) {
         console.error('Authentication failed. Check your username and password.');
-        console.error('Try another authentication method or check repository permissions.');
       }
     } else if (error.request) {
       // The request was made but no response was received
@@ -100,6 +89,8 @@ async function executeQuery(query) {
   }
 }
 
+// The rest of your functions can remain the same since they all call executeQuery
+// You already have these in your file
 
 /**
  * Fetch resource description (comments, definitions, etc.)
@@ -715,7 +706,6 @@ async function fetchIndividualProperties(uri) {
 
 module.exports = {
   executeQuery,
-  // Include other functions here...
   fetchResourceDescription,
   fetchRelatedResources,
   fetchCategories,

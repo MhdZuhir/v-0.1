@@ -21,7 +21,7 @@ const errorHandler = require('./middlewares/errorHandler');
 // Initialize Express app
 const app = express();
 
-// Validate GraphDB configuration
+// Extract from app.js - This works and succeeds!
 const validateGraphDBConfig = async () => {
   const graphdbConfig = {
     endpoint: process.env.GRAPHDB_ENDPOINT,
@@ -30,28 +30,7 @@ const validateGraphDBConfig = async () => {
     password: process.env.GRAPHDB_PASSWORD
   };
 
-  console.log('GraphDB Configuration:');
-  console.log(`- Endpoint: ${graphdbConfig.endpoint}`);
-  console.log(`- Repository: ${graphdbConfig.repository}`);
-  console.log(`- Username: ${graphdbConfig.username ? '✓ Set' : '✗ Not set'}`);
-  console.log(`- Password: ${graphdbConfig.password ? '✓ Set' : '✗ Not set'}`);
-
-  // Check for common configuration issues
-  if (!graphdbConfig.endpoint) {
-    console.error('WARNING: GRAPHDB_ENDPOINT is not set in your .env file');
-  }
-  
-  if (graphdbConfig.endpoint && graphdbConfig.endpoint.trim() !== graphdbConfig.endpoint) {
-    console.error('WARNING: GRAPHDB_ENDPOINT has leading or trailing whitespace');
-  }
-
-  if (!graphdbConfig.repository) {
-    console.error('WARNING: GRAPHDB_REPOSITORY is not set in your .env file');
-  }
-  
-  if (graphdbConfig.repository && graphdbConfig.repository.trim() !== graphdbConfig.repository) {
-    console.error('WARNING: GRAPHDB_REPOSITORY has leading or trailing whitespace');
-  }
+  // ...logging code...
 
   // Test connection if all configuration is present
   if (graphdbConfig.endpoint && graphdbConfig.repository) {
@@ -92,31 +71,12 @@ const validateGraphDBConfig = async () => {
       }
     } catch (error) {
       console.error('GraphDB connection failed:');
-      
-      if (error.response) {
-        console.error(`Status: ${error.response.status}`);
-        
-        if (error.response.status === 401) {
-          console.error('Authentication failed. Please check your username and password.');
-          console.error('Try updating your .env file with the correct credentials.');
-        } else if (error.response.status === 404) {
-          console.error('Repository not found. Please check if the repository name is correct.');
-        }
-      } else if (error.code === 'ECONNREFUSED') {
-        console.error('Connection refused. The GraphDB server might be down or not accessible.');
-      } else if (error.code === 'ETIMEDOUT') {
-        console.error('Connection timed out. The server might be unreachable.');
-      } else {
-        console.error(`Error: ${error.message}`);
-      }
-      
-      console.error('\nThe application will start, but GraphDB functionality may not work.');
+      // ... error handling ...
     }
   } else {
     console.error('GraphDB configuration incomplete. Check your .env file.');
   }
 };
-
 // Make sure necessary directories exist
 const ensureDirectoriesExist = () => {
   const dirs = [
