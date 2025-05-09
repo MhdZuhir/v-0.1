@@ -22,6 +22,9 @@ async function executeQuery(query) {
   }
 }
 
+
+
+
 /**
  * Fetch all products from the repository
  * @returns {Promise<Array>} - Array of product objects
