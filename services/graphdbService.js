@@ -1,4 +1,4 @@
-// services/graphdbService.js - Fixed version with consistent authentication
+// services/graphdbService.js - Fixed version
 const axios = require('axios');
 const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -11,37 +11,12 @@ const { isSystemResource } = require('../utils/uriUtils');
  */
 async function executeQuery(query) {
   try {
-    console.log(`Executing query: ${query.substring(0, 100)}${query.length > 100 ? '...' : ''}`);
+    console.log(`Sending query to GraphDB: ${query}`);
     
-    // Use exact same approach as in app.js validateGraphDBConfig function
-    const baseUrl = graphdbConfig.endpoint.endsWith('/') 
-      ? graphdbConfig.endpoint.slice(0, -1) 
-      : graphdbConfig.endpoint;
-    
-    const endpoint = `${baseUrl}/repositories/${graphdbConfig.repository}`;
-    
-    // Use the same config that works in app.js
-    const config = {
+    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
       headers: { 'Accept': 'application/sparql-results+json' },
-      params: { query },
-      timeout: 10000 // Increased timeout slightly
-    };
-    
-    // IMPORTANT: Always add authentication if credentials are provided
-    if (graphdbConfig.username && graphdbConfig.password) {
-      // Method 1: Basic Auth via Axios auth option
-      config.auth = {
-        username: graphdbConfig.username,
-        password: graphdbConfig.password
-      };
-      
-      // Method 2: Authorization header 
-      const authString = Buffer.from(`${graphdbConfig.username}:${graphdbConfig.password}`).toString('base64');
-      config.headers['Authorization'] = `Basic ${authString}`;
-    }
-    
-    // Use GET method like in app.js
-    const response = await axios.get(endpoint, config);
+      params: { query }
+    });
     
     // Log the status and check for success
     console.log(`GraphDB response status: ${response.status}`);
@@ -66,32 +41,19 @@ async function executeQuery(query) {
     return response.data;
   } catch (error) {
     // Enhanced error logging
-    console.error('Error executing GraphDB query:', error.message);
+    console.error('Error executing GraphDB query:', error);
     
     if (error.response) {
       // The request was made and the server responded with a non-2xx status
-      console.error(`GraphDB error response status: ${error.response.status}`);
-      console.error('Response data:', error.response.data);
-      
-      // Specific handling for authentication errors
-      if (error.response.status === 401) {
-        console.error('Authentication failed. Check your username and password.');
-        console.error('Make sure credentials are properly set in .env file and being used in requests.');
-      }
+      console.error('GraphDB error response:', error.response.status, error.response.data);
     } else if (error.request) {
       // The request was made but no response was received
-      console.error('No response received from GraphDB. Check if the server is running and accessible.');
-    } else {
-      // Something happened in setting up the request
-      console.error('Error setting up the request:', error.message);
+      console.error('No response received from GraphDB');
     }
     
     throw error;
   }
 }
-
-// The rest of your functions remain unchanged since they all call executeQuery
-// which now has the proper authentication
 
 /**
  * Fetch resource description (comments, definitions, etc.)
@@ -714,6 +676,7 @@ module.exports = {
   searchResources,
   fetchResourceTypes,
   fetchResourceProperties,
+  // Class and individual methods
   fetchClassInfo,
   fetchClassIndividuals,
   fetchIndividualProperties
