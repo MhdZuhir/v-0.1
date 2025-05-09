@@ -1,4 +1,4 @@
-// services/graphdbService.js - Fixed version matching app.js exactly
+// services/graphdbService.js - Fixed version with consistent authentication
 const axios = require('axios');
 const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -24,10 +24,10 @@ async function executeQuery(query) {
     const config = {
       headers: { 'Accept': 'application/sparql-results+json' },
       params: { query },
-      timeout: 5000
+      timeout: 10000 // Increased timeout slightly
     };
     
-    // Add authentication exactly like in app.js - which works!
+    // IMPORTANT: Always add authentication if credentials are provided
     if (graphdbConfig.username && graphdbConfig.password) {
       // Method 1: Basic Auth via Axios auth option
       config.auth = {
@@ -76,6 +76,7 @@ async function executeQuery(query) {
       // Specific handling for authentication errors
       if (error.response.status === 401) {
         console.error('Authentication failed. Check your username and password.');
+        console.error('Make sure credentials are properly set in .env file and being used in requests.');
       }
     } else if (error.request) {
       // The request was made but no response was received
@@ -89,8 +90,8 @@ async function executeQuery(query) {
   }
 }
 
-// The rest of your functions can remain the same since they all call executeQuery
-// You already have these in your file
+// The rest of your functions remain unchanged since they all call executeQuery
+// which now has the proper authentication
 
 /**
  * Fetch resource description (comments, definitions, etc.)
