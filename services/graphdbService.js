@@ -5,6 +5,7 @@ const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const { isSystemResource } = require('../utils/uriUtils');
 
 /**
+/**
  * Execute a SPARQL query against GraphDB
  * @param {string} query - SPARQL query to execute
  * @returns {Promise<Object>} - Response data from GraphDB
@@ -13,10 +14,20 @@ async function executeQuery(query) {
   try {
     console.log(`Sending query to GraphDB: ${query}`);
     
-    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
+    // Create request configuration
+    const config = {
       headers: { 'Accept': 'application/sparql-results+json' },
       params: { query }
-    });
+    };
+    
+    // Add authentication if username and password are provided
+    if (graphdbConfig.username && graphdbConfig.password) {
+      // Using basic authentication headers
+      const authString = Buffer.from(`${graphdbConfig.username}:${graphdbConfig.password}`).toString('base64');
+      config.headers['Authorization'] = `Basic ${authString}`;
+    }
+    
+    const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, config);
     
     // Log the status and check for success
     console.log(`GraphDB response status: ${response.status}`);

@@ -4,8 +4,10 @@
  * GraphDB connection configuration
  */
 exports.graphdbConfig = {
-    endpoint: process.env.GRAPHDB_ENDPOINT || 'http://localhost:7200',
-    repository: process.env.GRAPHDB_REPOSITORY || 'ontologi2025'
+  endpoint: process.env.GRAPHDB_ENDPOINT || 'https://jthkg.hj.se/repository',
+  repository: process.env.GRAPHDB_REPOSITORY || ' JTH-Product-Data',
+  username: process.env.zuz,
+  password: process.env.kalb
   };
   
   /**
