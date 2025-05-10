@@ -1,6 +1,7 @@
-// controllers/graphdbController.js
+// controllers/graphdbController.js with authentication
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 /**
  * Diagnostic endpoint for GraphDB connection
@@ -62,7 +63,7 @@ exports.getDiagnosticPage = async (req, res) => {
       console.log(`Executing diagnostic query: ${query}`);
       
       const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-        headers: { 'Accept': 'application/sparql-results+json' },
+        headers: getAuthHeaders(),
         params: { query }
       });
       
@@ -98,6 +99,10 @@ exports.getDiagnosticPage = async (req, res) => {
       errorMessage = "Could not retrieve data from GraphDB. " + dbErr.message;
       debugInfo.error = dbErr.message;
       debugInfo.errorStack = dbErr.stack;
+      
+      if (dbErr.response && dbErr.response.status === 401) {
+        errorMessage = "Authentication failed. Please check GraphDB credentials.";
+      }
     }
     
     // Add ontology detection for debugging
@@ -116,7 +121,7 @@ exports.getDiagnosticPage = async (req, res) => {
       `;
       
       const ontologyResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-        headers: { 'Accept': 'application/sparql-results+json' },
+        headers: getAuthHeaders(),
         params: { query: ontologyQuery }
       });
       
@@ -150,7 +155,7 @@ exports.getDiagnosticPage = async (req, res) => {
           `;
           
           const classResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-            headers: { 'Accept': 'application/sparql-results+json' },
+            headers: getAuthHeaders(),
             params: { query: classTestQuery }
           });
           
@@ -214,7 +219,7 @@ exports.getTriples = async (req, res) => {
     `;
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query }
     });
     
@@ -232,6 +237,12 @@ exports.getTriples = async (req, res) => {
     }
   } catch (err) {
     console.error('Error in getTriples:', err);
+    if (err.response && err.response.status === 401) {
+      return res.status(401).json({
+        error: 'Authentication error',
+        message: 'Failed to authenticate with GraphDB. Please check credentials.'
+      });
+    }
     res.status(500).json({
       error: 'Server error',
       message: err.message

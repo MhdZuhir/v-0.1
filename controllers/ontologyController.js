@@ -1,4 +1,4 @@
-// controllers/ontologyController.js - Enhanced version
+// controllers/ontologyController.js - Enhanced version with authentication
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
@@ -6,6 +6,7 @@ const ontologyService = require('../services/ontologyService');
 const productService = require('../services/productService');
 const labelService = require('../services/labelService');
 const { generateOntologyDescription } = require('../utils/descriptionUtils');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 /**
  * Render ontology list page
@@ -236,7 +237,7 @@ async function fetchOntologySubjects(uri) {
     `;
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query: subjectsQuery }
     });
     
@@ -325,7 +326,6 @@ async function fetchOntologySubjects(uri) {
 }
 
 // Enhanced version of enrichSubjectWithMetadata function in controllers/ontologyController.js
-
 async function enrichSubjectWithMetadata(subject) {
   try {
     const safeUri = sanitizeSparqlString(subject.uri);
@@ -349,7 +349,7 @@ async function enrichSubjectWithMetadata(subject) {
     `;
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query: metadataQuery }
     });
     
@@ -422,7 +422,7 @@ async function enrichSubjectWithMetadata(subject) {
       
       try {
         const domainResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-          headers: { 'Accept': 'application/sparql-results+json' },
+          headers: getAuthHeaders(),
           params: { query: inDomainQuery }
         });
         
@@ -454,7 +454,7 @@ async function enrichSubjectWithMetadata(subject) {
       
       try {
         const rangeResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-          headers: { 'Accept': 'application/sparql-results+json' },
+          headers: getAuthHeaders(),
           params: { query: inRangeQuery }
         });
         
@@ -487,7 +487,7 @@ async function enrichSubjectWithMetadata(subject) {
         
         try {
           const subClassResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-            headers: { 'Accept': 'application/sparql-results+json' },
+            headers: getAuthHeaders(),
             params: { query: subClassQuery }
           });
           
@@ -521,7 +521,7 @@ async function enrichSubjectWithMetadata(subject) {
       
       try {
         const examplesResponse = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-          headers: { 'Accept': 'application/sparql-results+json' },
+          headers: getAuthHeaders(),
           params: { query: examplesQuery }
         });
         
@@ -550,6 +550,7 @@ async function enrichSubjectWithMetadata(subject) {
     return subject; // Return the original subject if enrichment fails
   }
 }
+
 /**
  * Fetch description for a resource
  * @param {string} uri - Resource URI
@@ -573,7 +574,7 @@ async function fetchResourceDescription(uri) {
     `;
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query }
     });
     
@@ -739,7 +740,7 @@ async function fetchOntologyTriples(uri) {
     `;
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query: triplesQuery }
     });
     

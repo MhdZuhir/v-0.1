@@ -1,4 +1,4 @@
-// services/labelService.js - Fixed version
+// services/labelService.js - Fixed version with authentication
 
 /**
  * Service for retrieving human-readable labels for URIs
@@ -7,6 +7,7 @@
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { isSystemResource } = require('../utils/uriUtils');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 /**
  * Fetch human-readable labels for URIs with batching for performance
@@ -71,7 +72,7 @@ async function fetchLabelsForUris(uris) {
         `;
         
         const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-          headers: { 'Accept': 'application/sparql-results+json' },
+          headers: getAuthHeaders(),
           params: { query }
         });
         
@@ -121,6 +122,9 @@ async function fetchLabelsForUris(uris) {
         }
       } catch (batchError) {
         console.error(`Error processing label batch:`, batchError.message);
+        if (batchError.response && batchError.response.status === 401) {
+          console.error('Authentication failed. Please check credentials.');
+        }
         // Continue with next batch despite error
       }
     }

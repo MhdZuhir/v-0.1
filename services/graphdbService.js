@@ -1,8 +1,9 @@
-// services/graphdbService.js - Fixed version
+// services/graphdbService.js - Fixed version with authentication
 const axios = require('axios');
 const { graphdbConfig, systemNamespaces } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 const { isSystemResource } = require('../utils/uriUtils');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 /**
  * Execute a SPARQL query against GraphDB
@@ -14,7 +15,7 @@ async function executeQuery(query) {
     console.log(`Sending query to GraphDB: ${query}`);
     
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query }
     });
     
@@ -46,6 +47,9 @@ async function executeQuery(query) {
     if (error.response) {
       // The request was made and the server responded with a non-2xx status
       console.error('GraphDB error response:', error.response.status, error.response.data);
+      if (error.response.status === 401) {
+        console.error('Authentication failed. Please check credentials.');
+      }
     } else if (error.request) {
       // The request was made but no response was received
       console.error('No response received from GraphDB');

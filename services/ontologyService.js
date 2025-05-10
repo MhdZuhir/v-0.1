@@ -1,9 +1,10 @@
-// services/ontologyService.js - Fixed version
+// services/ontologyService.js - Fixed version with authentication
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 // Import the description utilities
 const { generateOntologyDescription } = require('../utils/descriptionUtils');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 // Export all the functions we need to make available
 module.exports = {
@@ -15,6 +16,7 @@ module.exports = {
   fetchOntologyRelationships,
   fetchRelatedOntologies
 };
+
 /**
  * Execute a SPARQL query against GraphDB
  * @param {string} query - SPARQL query to execute
@@ -24,7 +26,7 @@ async function executeQuery(query) {
   try {
     console.log('Executing query:', query);
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query }
     });
     
@@ -35,6 +37,9 @@ async function executeQuery(query) {
     if (error.response) {
       console.error('Response status:', error.response.status);
       console.error('Response data:', error.response.data);
+      if (error.response.status === 401) {
+        console.error('Authentication failed. Please check credentials.');
+      }
     }
     throw error;
   }
@@ -331,10 +336,10 @@ async function fetchProductsForOntology(uri) {
         UNION
         {
           # Special case for Notor65 products
-          ?product a <http://www.ontologi2025.se/notor65#Notor65_BetaOpti> .
+          ?product a <http://www.JTH-Product-Data .se/notor65#Notor65_BetaOpti> .
           FILTER(CONTAINS(STR(<${safeUri}>), "notor65"))
           
-          BIND(<http://www.ontologi2025.se/notor65#Notor65_BetaOpti> AS ?type)
+          BIND(<http://www.JTH-Product-Data .se/notor65#Notor65_BetaOpti> AS ?type)
           
           # Get basic information
           OPTIONAL { ?product <http://schema.org/name> ?name . }

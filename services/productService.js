@@ -1,7 +1,8 @@
-// services/productService.js
+// services/productService.js with authentication
 const axios = require('axios');
 const { graphdbConfig } = require('../config/db');
 const { sanitizeSparqlString } = require('../utils/sparqlUtils');
+const { getAuthHeaders } = require('../utils/authUtils');
 
 /**
  * Execute a SPARQL query against GraphDB
@@ -11,13 +12,16 @@ const { sanitizeSparqlString } = require('../utils/sparqlUtils');
 async function executeQuery(query) {
   try {
     const response = await axios.get(`${graphdbConfig.endpoint}/repositories/${graphdbConfig.repository}`, {
-      headers: { 'Accept': 'application/sparql-results+json' },
+      headers: getAuthHeaders(),
       params: { query }
     });
     
     return response.data;
   } catch (error) {
     console.error('Error executing GraphDB query:', error);
+    if (error.response && error.response.status === 401) {
+      console.error('Authentication failed. Please check credentials.');
+    }
     throw error;
   }
 }
@@ -384,7 +388,7 @@ async function fetchProductsByOntology(ontologyUri) {
           OPTIONAL { ?product <http://schema.org/name> ?name . }
           OPTIONAL { ?product <http://schema.org/description> ?description . }
           OPTIONAL { ?product <http://www.w3.org/2000/01/rdf-schema#label> ?name . }
-          OPTIONAL { ?product <http://www.ontologi2025.se/notor65#articleNumber> ?articleNumber . }
+          OPTIONAL { ?product <http://www.JTH-Product-Data.se/notor65#articleNumber> ?articleNumber . }
         }
         UNION
         {
@@ -457,7 +461,7 @@ async function detectProducts() {
             <http://schema.org/Product>, 
             <http://purl.org/goodrelations/v1#ProductOrService>,
             <http://www.w3id.org/dpp/fagerhult/notor#Notor>,
-            <http://www.ontologi2025.se/notor65#Notor65_BetaOpti>
+            <http://www.JTH-Product-Data.se/notor65#Notor65_BetaOpti>
           ))
           
           # Get basic properties
